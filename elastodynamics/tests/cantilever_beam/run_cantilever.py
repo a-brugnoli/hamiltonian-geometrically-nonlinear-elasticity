@@ -17,8 +17,8 @@ plt.savefig("Energy_cantilever.eps", dpi='figure', format='eps')
 
 
 plt.figure()
-plt.plot(time_vector[1:], np.diff(energy_vector_nonlinear) - power_balance_vec_nonlinear, label=f"Linear")
-plt.plot(time_vector[1:], np.diff(energy_vector_linear) - power_balance_vec_linear, label=f"Non linear")
+plt.plot(time_vector[1:], np.diff(energy_vector_nonlinear) - power_balance_vec_nonlinear, label=f"Non linear")
+plt.plot(time_vector[1:], np.diff(energy_vector_linear) - power_balance_vec_linear, label=f"Linear")
 plt.grid(color='0.8', linestyle='-', linewidth=.5)
 plt.xlabel(r'Time')
 plt.legend()

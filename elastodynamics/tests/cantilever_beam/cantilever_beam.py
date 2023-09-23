@@ -10,12 +10,13 @@ def simulate_cantilever_beam(linear=False):
     n_elem_y = 10
 
     time_step = 1e-2
-    T_end = 2
+    T_end = 10
     n_time  = ceil(T_end/time_step)
 
     L_x = 100
     L_y = 10
-    mesh = fdrk.RectangleMesh(n_elem_x, n_elem_y, L_x, L_y)
+
+    mesh = fdrk.RectangleMesh(n_elem_x, n_elem_y, L_x, L_y, quadrilateral=True)
 
     coordinates_mesh = fdrk.SpatialCoordinate(mesh)
     x, y = coordinates_mesh
@@ -57,6 +58,12 @@ def simulate_cantilever_beam(linear=False):
 
 
     DG_tensorspace = fdrk.TensorFunctionSpace(mesh, "DG", pol_degree-1)
+
+    if str(mesh.ufl_cell())=="quadrilateral":
+        NED_space = fdrk.FunctionSpace(mesh, "RTCE", pol_degree)
+    else:
+        NED_space = fdrk.FunctionSpace(mesh, "N1curl", pol_degree)
+
     CG_vectorspace = fdrk.VectorFunctionSpace(mesh, "CG", pol_degree)
     DG_symtensorspace = fdrk.TensorFunctionSpace(mesh, "DG", pol_degree-1, symmetry=True)
 
@@ -65,12 +72,35 @@ def simulate_cantilever_beam(linear=False):
 
     # Test and trial functions. Old, midpoint, new variables
 
-    test_defgradient = fdrk.TestFunction(DG_tensorspace)
-    trial_defgradient = fdrk.TrialFunction(DG_tensorspace)
+    # test_defgradient = fdrk.TestFunction(DG_tensorspace)
+    # trial_defgradient = fdrk.TrialFunction(DG_tensorspace)
 
-    defgradient_old_half = fdrk.Function(DG_tensorspace)
-    defgradient_new_half = fdrk.Function(DG_tensorspace)
-    defgradient_midpoint_int = fdrk.Function(DG_tensorspace)
+    # defgradient_old_half = fdrk.Function(DG_tensorspace)
+    # defgradient_new_half = fdrk.Function(DG_tensorspace)
+    # defgradient_midpoint_int = fdrk.Function(DG_tensorspace)
+
+    test_defgradient_row1, test_defgradient_row2  = fdrk.TestFunction(NED_space), fdrk.TestFunction(NED_space)
+    test_defgradient = fdrk.as_tensor([[test_defgradient_row1[0], test_defgradient_row1[1]],\
+                                       [test_defgradient_row2[0], test_defgradient_row2[1]]])
+
+    trial_defgradient_row1, trial_defgradient_row2  = fdrk.TrialFunction(NED_space), fdrk.TrialFunction(NED_space)
+    trial_defgradient = fdrk.as_tensor([[trial_defgradient_row1[0], trial_defgradient_row1[1]],\
+                                       [trial_defgradient_row2[0], trial_defgradient_row2[1]]])
+
+    defgradient_old_half_row1, defgradient_old_half_row2  = fdrk.Function(NED_space), fdrk.Function(NED_space)
+    defgradient_old_half = fdrk.as_tensor([[defgradient_old_half_row1[0], defgradient_old_half_row1[1]],\
+                                            [defgradient_old_half_row2[0], defgradient_old_half_row2[1]]])
+
+    defgradient_new_half_row1, defgradient_new_half_row2  = fdrk.Function(NED_space), fdrk.Function(NED_space)
+    defgradient_new_half_row1, defgradient_new_half_row2  = fdrk.Function(NED_space), fdrk.Function(NED_space)
+    defgradient_new_half = fdrk.as_tensor([[defgradient_new_half_row1[0], defgradient_new_half_row1[1]],\
+                                            [defgradient_new_half_row2[0], defgradient_new_half_row2[1]]])
+
+    defgradient_midpoint_int_row1, defgradient_midpoint_int_row2  = fdrk.Function(NED_space), fdrk.Function(NED_space)
+    defgradient_midpoint_int_row1, defgradient_midpoint_int_row2  = fdrk.Function(NED_space), fdrk.Function(NED_space)
+    defgradient_midpoint_int = fdrk.as_tensor([[defgradient_midpoint_int_row1[0], defgradient_midpoint_int_row1[1]],\
+                                            [defgradient_midpoint_int_row2[0], defgradient_midpoint_int_row2[1]]])
+
 
     test_velocity, test_stress = fdrk.TestFunctions(space_energy)
     trial_velocity, trial_stress = fdrk.TrialFunctions(space_energy)
@@ -105,10 +135,12 @@ def simulate_cantilever_beam(linear=False):
 
     b_functional_defgradient = mass_functional_defgradient + time_step * dyn_functional_defgradient
 
-    problem_defgradient = fdrk.LinearVariationalProblem(a=mass_operator_defgradient,\
-                                                        L=b_functional_defgradient, u=defgradient_new_half)
+    # problem_defgradient = fdrk.LinearVariationalProblem(a=mass_operator_defgradient,\
+    #                                                     L=b_functional_defgradient, u=defgradient_new_half)
 
-    solver_defgradient = fdrk.LinearVariationalSolver(problem=problem_defgradient, solver_parameters={'ksp_type': 'cg'})
+    # solver_defgradient = fdrk.LinearVariationalSolver(problem=problem_defgradient, solver_parameters={'ksp_type': 'cg'})
+
+    A_defgradient = fdrk.assemble(mass_operator_defgradient)
 
     mass_operator_energy_var = mass_energy_variables(test_velocity, trial_velocity, \
                                                     test_stress, trial_stress)
@@ -142,12 +174,16 @@ def simulate_cantilever_beam(linear=False):
                                                         u=energy_var_new_int, \
                                                         bcs=clamped_bc)
 
+
     solver_energ_var = fdrk.LinearVariationalSolver(problem=problem_energy_var)
 
     # Initial conditions
 
-    defgradient_0 = fdrk.interpolate(fdrk.Constant(np.array([[0, 0], [0, 0]])), DG_tensorspace)
-    defgradient_old_half.assign(defgradient_0)
+    # defgradient_0 = fdrk.interpolate(fdrk.Constant(np.array([[0, 0], [0, 0]])), DG_tensorspace)
+    # defgradient_old_half.assign(defgradient_0)
+
+    defgradient_old_half_row1.assign(fdrk.project(fdrk.Constant(np.array([0, 0])), NED_space))
+    defgradient_old_half_row2.assign(fdrk.project(fdrk.Constant(np.array([0, 0])), NED_space))
 
     velocity_0 = fdrk.interpolate(fdrk.Constant(np.array([0, 0])), CG_vectorspace)
     velocity_old_int.assign(velocity_0)
@@ -171,8 +207,7 @@ def simulate_cantilever_beam(linear=False):
     power_balance = time_step * fdrk.inner(velocity_midpoint_half, traction)*fdrk.ds(2)
     power_balance_vec = np.zeros((n_time, ))
 
-    n_frames = 100
-    output_frequency = int(n_time / n_frames)
+    output_frequency = 10
 
     displaced_coordinates = fdrk.interpolate(coordinates_mesh + displacement_old_int, CG_vectorspace)
 
@@ -198,20 +233,34 @@ def simulate_cantilever_beam(linear=False):
         # Solve the def gradient problem
 
         if ii==1:
-            solver_defgradient.solve()
-            defgradient_midpoint_int.assign(0.5*(defgradient_new_half+defgradient_old_half))
-            defgradient_new_half.assign(defgradient_midpoint_int)
-        if ii>1:
-            solver_defgradient.solve()
-            defgradient_midpoint_int.assign(0.5*(defgradient_new_half+defgradient_old_half))
+            # solver_defgradient.solve()
+            # defgradient_midpoint_int.assign(0.5*(defgradient_new_half+defgradient_old_half))
+            # defgradient_new_half.assign(defgradient_midpoint_int)
 
+            b_vec_defgradient = fdrk.assemble(b_functional_defgradient)
+            fdrk.solve(A_defgradient, defgradient_new_half, b_vec_defgradient)
+            
+            defgradient_midpoint_int_row1.assign(0.5*(defgradient_new_half_row1+defgradient_old_half_row1))
+            defgradient_midpoint_int_row2.assign(0.5*(defgradient_new_half_row2+defgradient_old_half_row2))
+            defgradient_new_half_row1.assign(defgradient_midpoint_int_row1)
+            defgradient_new_half_row2.assign(defgradient_midpoint_int_row2)
+        if ii>1:
+            # solver_defgradient.solve()
+            # defgradient_midpoint_int.assign(0.5*(defgradient_new_half+defgradient_old_half))
+
+            fdrk.solve(A_defgradient, defgradient_new_half, b_vec_defgradient)
+            defgradient_midpoint_int_row1.assign(0.5*(defgradient_new_half_row1+defgradient_old_half_row1))
+            defgradient_midpoint_int_row2.assign(0.5*(defgradient_new_half_row2+defgradient_old_half_row2))
+            
+
+        # Solve the energy variables problem
         solver_energ_var.solve()
         energy_var_midpoint_half.assign(0.5*(energy_var_old_int + energy_var_new_int))
         velocity_midpoint_half.assign(0.5*(velocity_new_int + velocity_old_int))
 
         displacement_new_int.assign(displacement_old_int + time_step*velocity_midpoint_half)
 
-        energy_vector[ii] = fdrk.assemble(energy_old_int)
+        energy_vector[ii] = fdrk.assemble(energy_new_int)
         power_balance_vec[ii-1] = fdrk.assemble(power_balance)
 
         # New assign
@@ -226,7 +275,10 @@ def simulate_cantilever_beam(linear=False):
         time_new_energy_var.assign(actual_time + time_step)
 
         # variables
-        defgradient_old_half.assign(defgradient_new_half)
+        # defgradient_old_half.assign(defgradient_new_half)
+        defgradient_old_half_row1.assign(defgradient_new_half_row1)
+        defgradient_old_half_row2.assign(defgradient_new_half_row2)
+
         energy_var_old_int.assign(energy_var_new_int)
         displacement_old_int.assign(displacement_new_int)
 
