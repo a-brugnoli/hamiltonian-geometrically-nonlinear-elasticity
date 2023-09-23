@@ -18,6 +18,7 @@ def simulate_cantilever_beam(is_quad_mesh=False, linear=False):
 
     mesh = fdrk.RectangleMesh(n_elem_x, n_elem_y, L_x, L_y, quadrilateral=is_quad_mesh)
 
+
     coordinates_mesh = fdrk.SpatialCoordinate(mesh)
     x, y = coordinates_mesh
 
@@ -33,12 +34,12 @@ def simulate_cantilever_beam(is_quad_mesh=False, linear=False):
         return eps_0
 
 
-    def mass_defgradient(test_tensor, tensor):
-        return fdrk.inner(test_tensor, tensor) * fdrk.dx
+    def mass_defgradient_row(test_vector, vector):
+        return fdrk.inner(test_vector, vector) * fdrk.dx
 
 
-    def dyn_defgradient(test_tensor, vector):
-        return fdrk.inner(test_tensor, fdrk.grad(vector)) * fdrk.dx
+    def dyn_defgradient_row(test_vector, scalar):
+        return fdrk.inner(test_vector, fdrk.grad(scalar)) * fdrk.dx
 
 
     def mass_energy_variables(test_vector, vector, test_symtensor, symtensor):
@@ -56,8 +57,10 @@ def simulate_cantilever_beam(is_quad_mesh=False, linear=False):
 
         return form
 
-
-    DG_tensorspace = fdrk.TensorFunctionSpace(mesh, "DG", pol_degree-1)
+    if is_quad_mesh:
+        NED_space = fdrk.FunctionSpace(mesh, "RTCE", pol_degree)
+    else:
+        NED_space = fdrk.FunctionSpace(mesh, "N1curl", pol_degree)
 
     CG_vectorspace = fdrk.VectorFunctionSpace(mesh, "CG", pol_degree)
     DG_symtensorspace = fdrk.TensorFunctionSpace(mesh, "DG", pol_degree-1, symmetry=True)
@@ -67,12 +70,13 @@ def simulate_cantilever_beam(is_quad_mesh=False, linear=False):
 
     # Test and trial functions. Old, midpoint, new variables
 
-    test_defgradient = fdrk.TestFunction(DG_tensorspace)
-    trial_defgradient = fdrk.TrialFunction(DG_tensorspace)
+    test_defgradient_row  = fdrk.TestFunction(NED_space)
 
-    defgradient_old_half = fdrk.Function(DG_tensorspace)
-    defgradient_new_half = fdrk.Function(DG_tensorspace)
-    defgradient_midpoint_int = fdrk.Function(DG_tensorspace)
+    trial_defgradient_row = fdrk.TrialFunction(NED_space)
+
+    defgradient_old_half_row1, defgradient_old_half_row2 = fdrk.Function(NED_space), fdrk.Function(NED_space)
+    defgradient_new_half_row1, defgradient_new_half_row2 = fdrk.Function(NED_space), fdrk.Function(NED_space)
+    defgradient_midpoint_int_row1, defgradient_midpoint_int_row2 = fdrk.Function(NED_space), fdrk.Function(NED_space)
 
     test_velocity, test_stress = fdrk.TestFunctions(space_energy)
     trial_velocity, trial_stress = fdrk.TrialFunctions(space_energy)
@@ -89,33 +93,43 @@ def simulate_cantilever_beam(is_quad_mesh=False, linear=False):
     displacement_new_int = fdrk.Function(CG_vectorspace)
 
     # Simulation time
-
-    time_old_defgradient = fdrk.Constant(0)
-    time_midpoint_defgradient = fdrk.Constant(0)
-    time_new_defgradient = fdrk.Constant(time_step/2)
-
-    time_old_energy_var = fdrk.Constant(0)
     time_midpoint_energy_var = fdrk.Constant(time_step/2)
-    time_new_energy_var = fdrk.Constant(time_step)
 
     # Operator, functional deformation gradient
 
-    mass_operator_defgradient = mass_defgradient(test_defgradient, trial_defgradient)
+    mass_operator_defgradient_row = mass_defgradient_row(test_defgradient_row, trial_defgradient_row)
 
-    mass_functional_defgradient = mass_defgradient(test_defgradient, defgradient_old_half)
-    dyn_functional_defgradient = dyn_defgradient(test_defgradient, velocity_old_int)
+    mass_functional_defgradient_row1 = mass_defgradient_row(test_defgradient_row, defgradient_old_half_row1)
+    dyn_functional_defgradient_row1 = dyn_defgradient_row(test_defgradient_row, velocity_old_int[0])
+    b_functional_defgradient_row1 = mass_functional_defgradient_row1 + time_step * dyn_functional_defgradient_row1
 
-    b_functional_defgradient = mass_functional_defgradient + time_step * dyn_functional_defgradient
+    problem_defgradient_row1 = fdrk.LinearVariationalProblem(a=mass_operator_defgradient_row,\
+                                                            L=b_functional_defgradient_row1, \
+                                                            u=defgradient_new_half_row1)
 
-    problem_defgradient = fdrk.LinearVariationalProblem(a=mass_operator_defgradient,\
-                                                        L=b_functional_defgradient, u=defgradient_new_half)
+    solver_defgradient_row1 = fdrk.LinearVariationalSolver(problem=problem_defgradient_row1, \
+                                                           solver_parameters={'ksp_type': 'cg'})
 
-    solver_defgradient = fdrk.LinearVariationalSolver(problem=problem_defgradient, solver_parameters={'ksp_type': 'cg'})
+    mass_functional_defgradient_row2 = mass_defgradient_row(test_defgradient_row, defgradient_old_half_row2)
+    dyn_functional_defgradient_row2 = dyn_defgradient_row(test_defgradient_row, velocity_old_int[1])
+    b_functional_defgradient_row2 = mass_functional_defgradient_row2 + time_step * dyn_functional_defgradient_row2
+
+    problem_defgradient_row2 = fdrk.LinearVariationalProblem(a=mass_operator_defgradient_row,\
+                                                            L=b_functional_defgradient_row2, \
+                                                            u=defgradient_new_half_row2)
+
+    solver_defgradient_row2 = fdrk.LinearVariationalSolver(problem=problem_defgradient_row2, \
+                                                           solver_parameters={'ksp_type': 'cg'})
+
+    defgradient_new_half = fdrk.as_tensor([[defgradient_new_half_row1[0], defgradient_new_half_row1[1]], 
+                                           [defgradient_new_half_row2[0], defgradient_new_half_row2[1]]])
 
     mass_operator_energy_var = mass_energy_variables(test_velocity, trial_velocity, \
-                                                    test_stress, trial_stress)
+                                                     test_stress, trial_stress)
+    
     dyn_operator_energy_var = dyn_energy_variables(test_velocity, trial_velocity,\
-                                                test_stress, trial_stress, defgradient_new_half, linear=linear)
+                                                    test_stress, trial_stress, \
+                                                    defgradient_new_half, linear=linear)
 
 
     a_operator_energy_var = mass_operator_energy_var - 0.5*time_step*dyn_operator_energy_var
@@ -132,7 +146,6 @@ def simulate_cantilever_beam(is_quad_mesh=False, linear=False):
         fdrk.conditional(fdrk.le(time_midpoint_energy_var, t_coutoff_forcing), 1, 0)
     traction = fdrk.as_vector([fdrk.Constant(0), traction_y])
 
-    # boundary_form = fdrk.inner(test_velocity, fdrk.dot(defgradient_new_half, traction))*fdrk.ds(2)
     boundary_form = fdrk.inner(test_velocity, traction)*fdrk.ds(2)
 
     b_functional_energy_var = mass_functional_energy_var + 0.5*time_step*dyn_functional_energy_var \
@@ -150,8 +163,15 @@ def simulate_cantilever_beam(is_quad_mesh=False, linear=False):
 
     # Initial conditions
 
-    defgradient_0 = fdrk.interpolate(fdrk.Constant(np.array([[1, 0], [0, 1]])), DG_tensorspace)
-    defgradient_old_half.assign(defgradient_0)
+    if is_quad_mesh:
+        defgradient_0_row1 = fdrk.project(fdrk.Constant(np.array([1, 0])), NED_space)
+        defgradient_0_row2 = fdrk.project(fdrk.Constant(np.array([0, 1])), NED_space)
+    else:
+        defgradient_0_row1 = fdrk.interpolate(fdrk.Constant(np.array([1, 0])), NED_space)
+        defgradient_0_row2 = fdrk.interpolate(fdrk.Constant(np.array([0, 1])), NED_space)
+
+    defgradient_old_half_row1.assign(defgradient_0_row1)
+    defgradient_old_half_row2.assign(defgradient_0_row2)
 
     velocity_0 = fdrk.interpolate(fdrk.Constant(np.array([0, 0])), CG_vectorspace)
     velocity_old_int.assign(velocity_0)
@@ -165,14 +185,13 @@ def simulate_cantilever_beam(is_quad_mesh=False, linear=False):
 
     #  energies
 
-    energy_old_int = 0.5* mass_energy_variables(velocity_old_int, velocity_old_int, stress_old_int, stress_old_int)
+    energy_old_int = 0.5 * mass_energy_variables(velocity_old_int, velocity_old_int, stress_old_int, stress_old_int)
     energy_new_int = 0.5 * mass_energy_variables(velocity_new_int, velocity_new_int, stress_new_int, stress_new_int)
 
     time_vector = np.linspace(0, T_end, num=n_time+1)
     energy_vector = np.zeros((n_time+1, ))
     energy_vector[0] = fdrk.assemble(energy_old_int)
 
-    # power_balance = time_step * fdrk.inner(velocity_midpoint_half, fdrk.dot(defgradient_new_half, traction))*fdrk.ds(2)
     power_balance = time_step * fdrk.inner(velocity_midpoint_half, traction)*fdrk.ds(2)
     power_balance_vec = np.zeros((n_time, ))
 
@@ -202,12 +221,18 @@ def simulate_cantilever_beam(is_quad_mesh=False, linear=False):
     for ii in tqdm(range(1, n_time+1)):
         actual_time = ii*time_step
         # Solve the def gradient problem
-        solver_defgradient.solve()
-        defgradient_midpoint_int.assign(0.5*(defgradient_new_half+defgradient_old_half))
 
+        solver_defgradient_row1.solve()
+        defgradient_midpoint_int_row1.assign(0.5*(defgradient_new_half_row1+defgradient_old_half_row1))
+
+        solver_defgradient_row2.solve()
+        defgradient_midpoint_int_row2.assign(0.5*(defgradient_new_half_row2+defgradient_old_half_row2))
+            
         if ii==1:
-            defgradient_new_half.assign(defgradient_midpoint_int)
+            defgradient_new_half_row1.assign(defgradient_midpoint_int_row1)
 
+            defgradient_new_half_row2.assign(defgradient_midpoint_int_row2)
+                        
         # Solve the energy variables problem
         solver_energ_var.solve()
         energy_var_midpoint_half.assign(0.5*(energy_var_old_int + energy_var_new_int))
@@ -221,16 +246,11 @@ def simulate_cantilever_beam(is_quad_mesh=False, linear=False):
         # New assign
 
         # time
-        time_old_defgradient.assign(actual_time - time_step/2)
-        time_midpoint_defgradient.assign(actual_time)
-        time_new_defgradient.assign(actual_time + time_step/2)
-
-        time_old_energy_var.assign(actual_time)
         time_midpoint_energy_var.assign(actual_time + time_step/2)
-        time_new_energy_var.assign(actual_time + time_step)
 
         # variables
-        defgradient_old_half.assign(defgradient_new_half)
+        defgradient_old_half_row1.assign(defgradient_new_half_row1)
+        defgradient_old_half_row2.assign(defgradient_new_half_row2)
         
         energy_var_old_int.assign(energy_var_new_int)
         displacement_old_int.assign(displacement_new_int)
@@ -273,6 +293,6 @@ def simulate_cantilever_beam(is_quad_mesh=False, linear=False):
                                                lim_x = (min_x_all, max_x_all), \
                                                lim_y = (min_y_all, max_y_all) )
 
-    animation_nonlinear.save(f"cantilever_{is_quad_mesh}_linear_{linear}.mp4", writer="ffmpeg")
+    animation_nonlinear.save(f"cantilever_nedelec_quad_{is_quad_mesh}_linear_{linear}.mp4", writer="ffmpeg")
 
     return time_vector, energy_vector, power_balance_vec
