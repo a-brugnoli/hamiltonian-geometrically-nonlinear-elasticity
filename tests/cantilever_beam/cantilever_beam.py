@@ -27,6 +27,10 @@ def simulate_cantilever_beam(is_quad_mesh=False, linear=False):
     young_modulus = fdrk.Constant(1000)
     poisson_modulus = fdrk.Constant(0.3)
 
+    mu = young_modulus/(2*(1+poisson_modulus))
+    print(f"Mu coefficient: {float(mu)}")
+    lam = young_modulus*poisson_modulus/((1+poisson_modulus)*(1-2*poisson_modulus))
+    print(f"Lambda coefficient: {float(lam)}")
 
     def compliance(stress):
         eps_0 = 1 /(young_modulus * h) * ((1+poisson_modulus)*stress - poisson_modulus * fdrk.Identity(2) * fdrk.tr(stress))
@@ -127,13 +131,16 @@ def simulate_cantilever_beam(is_quad_mesh=False, linear=False):
                                                     test_stress, stress_old_int, defgradient_new_half, linear=linear)
 
 
-    t_coutoff_forcing = fdrk.Constant(1)
-    traction_y = 100*fdrk.sin(2*fdrk.pi*time_midpoint_energy_var/t_coutoff_forcing) *  \
-        fdrk.conditional(fdrk.le(time_midpoint_energy_var, t_coutoff_forcing), 1, 0)
+    t_coutoff_forcing = fdrk.Constant(5)
+    magnitude_traction = 50
+    # traction_y = fdrk.sin(2*fdrk.pi*time_midpoint_energy_var/t_coutoff_forcing) *  \
+    #     fdrk.conditional(fdrk.le(time_midpoint_energy_var, t_coutoff_forcing), magnitude_traction, 0)
+    traction_y = time_midpoint_energy_var/t_coutoff_forcing *  \
+        fdrk.conditional(fdrk.le(time_midpoint_energy_var, t_coutoff_forcing), magnitude_traction, 0)
     traction = fdrk.as_vector([fdrk.Constant(0), traction_y])
 
-    # boundary_form = fdrk.inner(test_velocity, fdrk.dot(defgradient_new_half, traction))*fdrk.ds(2)
-    boundary_form = fdrk.inner(test_velocity, traction)*fdrk.ds(2)
+    boundary_form = fdrk.inner(test_velocity, fdrk.dot(defgradient_new_half, traction))*fdrk.ds(2)
+    # boundary_form = fdrk.inner(test_velocity, traction)*fdrk.ds(2)
 
     b_functional_energy_var = mass_functional_energy_var + 0.5*time_step*dyn_functional_energy_var \
                                 + time_step * boundary_form
@@ -172,8 +179,8 @@ def simulate_cantilever_beam(is_quad_mesh=False, linear=False):
     energy_vector = np.zeros((n_time+1, ))
     energy_vector[0] = fdrk.assemble(energy_old_int)
 
-    # power_balance = time_step * fdrk.inner(velocity_midpoint_half, fdrk.dot(defgradient_new_half, traction))*fdrk.ds(2)
-    power_balance = time_step * fdrk.inner(velocity_midpoint_half, traction)*fdrk.ds(2)
+    power_balance = time_step * fdrk.inner(velocity_midpoint_half, fdrk.dot(defgradient_new_half, traction))*fdrk.ds(2)
+    # power_balance = time_step * fdrk.inner(velocity_midpoint_half, traction)*fdrk.ds(2)
     power_balance_vec = np.zeros((n_time, ))
 
     output_frequency = 10
@@ -275,4 +282,13 @@ def simulate_cantilever_beam(is_quad_mesh=False, linear=False):
 
     animation_nonlinear.save(f"cantilever_{is_quad_mesh}_linear_{linear}.mp4", writer="ffmpeg")
 
-    return time_vector, energy_vector, power_balance_vec
+    list_images = []
+
+    n_frames = len(list_frames)-1
+
+    indexes_images = [int(n_frames/4), int(n_frames/2), int(3*n_frames/4), int(n_frames)]
+
+    for kk in indexes_images:
+        list_images.append(list_frames[kk])
+
+    return time_vector, energy_vector, power_balance_vec, output_frequency, indexes_images, list_images
