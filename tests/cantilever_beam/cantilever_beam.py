@@ -27,11 +27,6 @@ def simulate_cantilever_beam(is_quad_mesh=False, linear=False):
     young_modulus = fdrk.Constant(1000)
     poisson_modulus = fdrk.Constant(0.3)
 
-    mu = young_modulus/(2*(1+poisson_modulus))
-    print(f"Mu coefficient: {float(mu)}")
-    lam = young_modulus*poisson_modulus/((1+poisson_modulus)*(1-2*poisson_modulus))
-    print(f"Lambda coefficient: {float(lam)}")
-
     def compliance(stress):
         eps_0 = 1 /(young_modulus * h) * ((1+poisson_modulus)*stress - poisson_modulus * fdrk.Identity(2) * fdrk.tr(stress))
         return eps_0
@@ -282,7 +277,7 @@ def simulate_cantilever_beam(is_quad_mesh=False, linear=False):
                                                lim_x = (min_x_all, max_x_all), \
                                                lim_y = (min_y_all, max_y_all) )
 
-    animation_nonlinear.save(f"cantilever_{is_quad_mesh}_linear_{linear}.mp4", writer="ffmpeg")
+    animation_nonlinear.save(f"cantilever_linear_{linear}_quadmesh_{is_quad_mesh}.mp4", writer="ffmpeg")
 
     list_images = []
 
