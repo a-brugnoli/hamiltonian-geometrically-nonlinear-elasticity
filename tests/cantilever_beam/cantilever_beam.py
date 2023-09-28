@@ -133,8 +133,10 @@ def simulate_cantilever_beam(is_quad_mesh=False, linear=False):
 
     t_coutoff_forcing = fdrk.Constant(5)
     magnitude_traction = 50
+    
     # traction_y = fdrk.sin(2*fdrk.pi*time_midpoint_energy_var/t_coutoff_forcing) *  \
     #     fdrk.conditional(fdrk.le(time_midpoint_energy_var, t_coutoff_forcing), magnitude_traction, 0)
+    
     traction_y = time_midpoint_energy_var/t_coutoff_forcing *  \
         fdrk.conditional(fdrk.le(time_midpoint_energy_var, t_coutoff_forcing), magnitude_traction, 0)
     traction = fdrk.as_vector([fdrk.Constant(0), traction_y])
