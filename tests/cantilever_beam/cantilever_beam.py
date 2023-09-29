@@ -3,6 +3,7 @@ import numpy as np
 from math import ceil
 from tqdm import tqdm
 from src.postprocessing.animators import animate_displacement
+import matplotlib.pyplot as plt
 
 def simulate_cantilever_beam(is_quad_mesh=False, linear=False):
     pol_degree = 1
@@ -273,19 +274,30 @@ def simulate_cantilever_beam(is_quad_mesh=False, linear=False):
 
     interval = 1e3 * output_frequency * time_step
 
-    animation_nonlinear = animate_displacement(time_frames, list_frames, interval, \
-                                               lim_x = (min_x_all, max_x_all), \
-                                               lim_y = (min_y_all, max_y_all) )
+    lim_x = (min_x_all, max_x_all)
+    lim_y = (min_y_all, max_y_all)
+    animation = animate_displacement(time_frames, list_frames, interval, \
+                                               lim_x = lim_x, \
+                                               lim_y = lim_y )
 
-    animation_nonlinear.save(f"cantilever_linear_{linear}_quadmesh_{is_quad_mesh}.mp4", writer="ffmpeg")
-
-    list_images = []
+    animation.save(f"cantilever_linear_{linear}_quadmesh_{is_quad_mesh}.mp4", writer="ffmpeg")
 
     n_frames = len(list_frames)-1
 
     indexes_images = [int(n_frames/4), int(n_frames/2), int(3*n_frames/4), int(n_frames)]
 
     for kk in indexes_images:
-        list_images.append(list_frames[kk])
 
-    return time_vector, energy_vector, power_balance_vec, output_frequency, indexes_images, list_images
+        fig, axes = plt.subplots()
+        axes.set_aspect("equal")
+        triplot_image =fdrk.triplot(list_frames[kk], axes=axes)
+        # axes.set_title(f"Displacement at time $t={time_image}$" + r"$[\mathrm{s}]$", loc='center')
+        axes.set_xlabel("x")
+        axes.set_ylabel("y")
+        axes.set_xlim(lim_x)
+        axes.set_ylim(lim_y)
+
+        plt.savefig(f"Displacement_linear_{linear}_index_{kk}.eps", bbox_inches='tight', dpi='figure', format='eps')
+
+
+    return time_vector, energy_vector, power_balance_vec

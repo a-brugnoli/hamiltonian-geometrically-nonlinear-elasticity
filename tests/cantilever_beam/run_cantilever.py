@@ -5,30 +5,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 import firedrake as fdrk
 
-time_vector, energy_vector_nonlinear, power_balance_vector_nonlinear, \
-    output_freq, indexes_images, list_images_nonlinear = simulate_cantilever_beam(is_quad_mesh=False, \
-                                                                                                linear=False)
-time_vector, energy_vector_linear, power_balance_vector_linear, \
-    _, _, list_images_linear = simulate_cantilever_beam(is_quad_mesh=False, linear=True)
-
-for kk in range(len(indexes_images)):
-    time_image = time_vector[output_freq*indexes_images[kk]]
-    fig, axes = plt.subplots()
-    axes.set_aspect("equal")
-    triplot_lin = fdrk.triplot(list_images_linear[kk], axes=axes)
-    # axes.set_title(f"Displacement at time $t={time_image}$" + r"$[\mathrm{s}]$", loc='center')
-    axes.set_xlabel("x")
-    axes.set_ylabel("y")
-    plt.savefig(f"Displacement_linear_{indexes_images[kk]}.eps", bbox_inches='tight', dpi='figure', format='eps')
-
-    fig, axes = plt.subplots()
-    axes.set_aspect("equal")
-    triplot_nonlin =fdrk.triplot(list_images_nonlinear[kk], axes=axes)
-    # axes.set_title(f"Displacement at time $t={time_image}$" + r"$[\mathrm{s}]$", loc='center')
-    axes.set_xlabel("x")
-    axes.set_ylabel("y")
-    plt.savefig(f"Displacement_nonlinear_{indexes_images[kk]}.eps", bbox_inches='tight', dpi='figure', format='eps')
-
+time_vector, energy_vector_nonlinear, power_balance_vector_nonlinear = \
+    simulate_cantilever_beam(is_quad_mesh=False, linear=False)
+time_vector, energy_vector_linear, power_balance_vector_linear = \
+    simulate_cantilever_beam(is_quad_mesh=False, linear=True)
 
 
 plt.figure()
