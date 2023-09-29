@@ -3,11 +3,10 @@ import numpy as np
 from math import ceil
 from tqdm import tqdm
 from src.postprocessing.animators import animate_displacement
+import matplotlib.pyplot as plt
 
-def simulate_cantilever_beam(is_quad_mesh=False, linear=False):
-    pol_degree = 1
-    n_elem_x = 100
-    n_elem_y = 10
+def simulate_cantilever_beam(is_quad_mesh=False, linear=False, pol_degree=1, n_elem_x= 100):
+    n_elem_y = int(n_elem_x/10)
 
     time_step = 1e-2
     T_end = 10
@@ -141,12 +140,18 @@ def simulate_cantilever_beam(is_quad_mesh=False, linear=False):
                                                     test_stress, stress_old_int, defgradient_new_half, linear=linear)
 
 
-    t_coutoff_forcing = fdrk.Constant(1)
-    traction_y = 100*fdrk.sin(2*fdrk.pi*time_midpoint_energy_var/t_coutoff_forcing) *  \
-        fdrk.conditional(fdrk.le(time_midpoint_energy_var, t_coutoff_forcing), 1, 0)
+    t_coutoff_forcing = fdrk.Constant(5)
+    magnitude_traction = 50
+    
+    # traction_y = fdrk.sin(2*fdrk.pi*time_midpoint_energy_var/t_coutoff_forcing) *  \
+    #     fdrk.conditional(fdrk.le(time_midpoint_energy_var, t_coutoff_forcing), magnitude_traction, 0)
+    
+    traction_y = time_midpoint_energy_var/t_coutoff_forcing *  \
+        fdrk.conditional(fdrk.le(time_midpoint_energy_var, t_coutoff_forcing), magnitude_traction, 0)
     traction = fdrk.as_vector([fdrk.Constant(0), traction_y])
 
-    boundary_form = fdrk.inner(test_velocity, traction)*fdrk.ds(2)
+    boundary_form = fdrk.inner(test_velocity, fdrk.dot(defgradient_new_half, traction))*fdrk.ds(2)
+    # boundary_form = fdrk.inner(test_velocity, traction)*fdrk.ds(2)
 
     b_functional_energy_var = mass_functional_energy_var + 0.5*time_step*dyn_functional_energy_var \
                                 + time_step * boundary_form
@@ -192,7 +197,8 @@ def simulate_cantilever_beam(is_quad_mesh=False, linear=False):
     energy_vector = np.zeros((n_time+1, ))
     energy_vector[0] = fdrk.assemble(energy_old_int)
 
-    power_balance = time_step * fdrk.inner(velocity_midpoint_half, traction)*fdrk.ds(2)
+    power_balance = time_step * fdrk.inner(velocity_midpoint_half, fdrk.dot(defgradient_new_half, traction))*fdrk.ds(2)
+    # power_balance = time_step * fdrk.inner(velocity_midpoint_half, traction)*fdrk.ds(2)
     power_balance_vec = np.zeros((n_time, ))
 
     output_frequency = 10
@@ -289,10 +295,31 @@ def simulate_cantilever_beam(is_quad_mesh=False, linear=False):
 
     interval = 1e3 * output_frequency * time_step
 
-    animation_nonlinear = animate_displacement(time_frames, list_frames, interval, \
-                                               lim_x = (min_x_all, max_x_all), \
-                                               lim_y = (min_y_all, max_y_all) )
+    lim_x = (min_x_all, max_x_all)
+    lim_y = (min_y_all, max_y_all)
+    
+    animation = animate_displacement(time_frames, list_frames, interval, \
+                                               lim_x = lim_x, \
+                                               lim_y = lim_y )
 
-    animation_nonlinear.save(f"cantilever_nedelec_quad_{is_quad_mesh}_linear_{linear}.mp4", writer="ffmpeg")
+    animation.save(f"cantilever_nedelec_quad_{is_quad_mesh}_linear_{linear}.mp4", writer="ffmpeg")
+
+    n_frames = len(list_frames)-1
+
+    indexes_images = [int(n_frames/4), int(n_frames/2), int(3*n_frames/4), int(n_frames)]
+
+    for kk in indexes_images:
+
+        fig, axes = plt.subplots()
+        axes.set_aspect("equal")
+        fdrk.triplot(list_frames[kk], axes=axes)
+        # axes.set_title(f"Displacement at time $t={time_image}$" + r"$[\mathrm{s}]$", loc='center')
+        axes.set_xlabel("x")
+        axes.set_ylabel("y")
+        axes.set_xlim(lim_x)
+        axes.set_ylim(lim_y)
+
+        plt.savefig(f"Displacement_nedelec_linear_{linear}_index_{kk}.eps", bbox_inches='tight', dpi='figure', format='eps')
+
 
     return time_vector, energy_vector, power_balance_vec

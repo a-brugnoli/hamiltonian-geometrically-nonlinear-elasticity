@@ -5,10 +5,8 @@ from tqdm import tqdm
 from src.postprocessing.animators import animate_displacement
 import matplotlib.pyplot as plt
 
-def simulate_cantilever_beam(is_quad_mesh=False, linear=False):
-    pol_degree = 1
-    n_elem_x = 100
-    n_elem_y = 10
+def simulate_cantilever_beam(is_quad_mesh=False, linear=False, pol_degree=1, n_elem_x= 100):
+    n_elem_y = int(n_elem_x/10)
 
     time_step = 1e-2
     T_end = 10
@@ -290,7 +288,7 @@ def simulate_cantilever_beam(is_quad_mesh=False, linear=False):
 
         fig, axes = plt.subplots()
         axes.set_aspect("equal")
-        triplot_image =fdrk.triplot(list_frames[kk], axes=axes)
+        fdrk.triplot(list_frames[kk], axes=axes)
         # axes.set_title(f"Displacement at time $t={time_image}$" + r"$[\mathrm{s}]$", loc='center')
         axes.set_xlabel("x")
         axes.set_ylabel("y")
