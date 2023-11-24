@@ -5,6 +5,7 @@ from math import pi
 class Problem(ABC):
     def __init__(self):
         self.domain = None
+        self.coordinates_mesh = None
         self.bc_type = None
         self.forcing = None
         self.dim = None
@@ -25,5 +26,5 @@ class Problem(ABC):
 
     
     @abstractmethod
-    def get_boundary_conditions(self, time: fdrk.Constant):
+    def get_boundary_conditions(self, time_ess: fdrk.Constant, time_nat: fdrk.Constant):
         pass

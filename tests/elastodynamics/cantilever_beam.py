@@ -19,7 +19,6 @@ def simulate_cantilever_beam(is_quad_mesh=False, linear=False, pol_degree=1, n_e
 
     coordinates_mesh = fdrk.SpatialCoordinate(mesh)
     x, y = coordinates_mesh
-
     h = 1
 
     density = fdrk.Constant(1)
