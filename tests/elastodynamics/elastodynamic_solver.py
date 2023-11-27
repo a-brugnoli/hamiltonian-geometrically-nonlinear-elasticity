@@ -8,7 +8,7 @@ from src.solvers.implicit_linear_solver import ImplicitLinearSolver
 from src.problems.cantilever_beam import CantileverBeam
 
 
-pol_degree = 1
+pol_degree = 3
 quad = False
 n_elem_x= 100
 n_elem_y = 10
