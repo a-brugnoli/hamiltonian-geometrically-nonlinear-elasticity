@@ -100,10 +100,11 @@ class ImplicitLinearSolver:
     def _power_balance(self):
 
         if isinstance(self.operators, Elastodynamics):
-            velocity_midpoint, stress_midpoint = self.state_energy_midpoint.subfunctions
-            self.power_balance = fdrk.inner(velocity_midpoint, fdrk.dot(self.state_def_gradient_old, \
-                                                   fdrk.dot(stress_midpoint, self.problem.normal_versor)))*fdrk.ds
 
+            self.power_balance = self.operators.control(self.state_energy_midpoint.subfunctions, 
+                                                     self.state_def_gradient_old, 
+                                                     self.natural_bcs)
+            
         else:
             raise NotImplementedError("Power balance for von Karman problem not yet defined.")
       

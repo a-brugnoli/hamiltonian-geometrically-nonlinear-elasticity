@@ -106,23 +106,43 @@ animation = animate_displacement(time_frames, list_frames, interval, \
                                             lim_x = lim_x, \
                                             lim_y = lim_y )
 
-animation.save(f"cantilever_quadmesh_{quad}.mp4", writer="ffmpeg")
+animation.save(f"cantilever_quadmesh_{quad}_solver.mp4", writer="ffmpeg")
 
 n_frames = len(list_frames)-1
 
 indexes_images = [int(n_frames/4), int(n_frames/2), int(3*n_frames/4), int(n_frames)]
 
 for kk in indexes_images:
-
+    time_image = time_step * output_frequency * kk
     fig, axes = plt.subplots()
     axes.set_aspect("equal")
     fdrk.triplot(list_frames[kk], axes=axes)
-    # axes.set_title(f"Displacement at time $t={time_image}$" + r"$[\mathrm{s}]$", loc='center')
+    axes.set_title(f"Displacement at time $t={time_image}$" + r"$[\mathrm{s}]$", loc='center')
     axes.set_xlabel("x")
     axes.set_ylabel("y")
     axes.set_xlim(lim_x)
     axes.set_ylim(lim_y)
 
-    plt.savefig(f"Displacement_index_{kk}.eps", bbox_inches='tight', dpi='figure', format='eps')
+    plt.savefig(f"Displacement_index_{kk}_solver.eps", bbox_inches='tight', dpi='figure', format='eps')
 
 
+plt.figure()
+plt.plot(time_vector, energy_vector)
+# plt.plot(time_vector, energy_vector_linear, label=f"Linear")
+plt.grid(color='0.8', linestyle='-', linewidth=.5)
+plt.xlabel(r'Time')
+plt.legend()
+plt.title("Energy")
+plt.savefig(f"Energy_cantilever_quad_{quad}_solver.eps", dpi='figure', format='eps')
+
+
+plt.figure()
+plt.plot(time_vector[1:], np.diff(energy_vector) - time_step * power_balance_vector)
+# plt.plot(time_vector[1:], np.diff(energy_vector_linear) - power_balance_vector_linear, label=f"Linear")
+plt.grid(color='0.8', linestyle='-', linewidth=.5)
+plt.xlabel(r'Time')
+plt.legend()
+plt.title("Power balance conservation")
+plt.savefig(f"Power_cantilever_solver_quad_{quad}.eps", dpi='figure', format='eps')
+
+plt.show()
