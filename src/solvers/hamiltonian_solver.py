@@ -1,9 +1,9 @@
 import firedrake as fdrk
 from src.problems.problem import Problem
-from src.operators.elastodynamics import Elastodynamics
+from src.operators.elastodynamics import HamiltonianElastodynamics
 from firedrake.petsc import PETSc
 
-class ImplicitLinearSolver:
+class HamiltonianLinearSolver:
     def __init__(self,
                  problem: Problem,
                  model, 
@@ -23,7 +23,7 @@ class ImplicitLinearSolver:
 
         match model:
             case "Elastodynamics":
-                self.operators = Elastodynamics(problem, pol_degree)
+                self.operators = HamiltonianElastodynamics(problem, pol_degree)
 
             case "von Karman":
                 raise NotImplementedError("von Karman model yet not implemented.")
@@ -54,7 +54,7 @@ class ImplicitLinearSolver:
         self.state_def_gradient_new = fdrk.Function(space_def_gradient)
         self.state_def_gradient_midpoint = fdrk.Function(space_def_gradient)
 
-        if isinstance(self.operators, Elastodynamics):
+        if isinstance(self.operators, HamiltonianElastodynamics):
             space_displacement = self.operators.space_energy.sub(0)
             self.displacement_old = fdrk.Function(space_displacement)
             self.displacement_new = fdrk.Function(space_displacement)
@@ -62,22 +62,18 @@ class ImplicitLinearSolver:
 
 
     def _set_initial_boundary_conditions(self):
-        dict_t0 = self.problem.get_initial_conditions()
+        expr_t0 = self.problem.get_initial_conditions()
 
-        tuple_initial_conditions = self.operators.interpolated_initial_conditions(dict_t0)
+        interpolated_state_t0 = self.operators.interpolated_initial_conditions(expr_t0)
 
-        def_gradient_t0 = tuple_initial_conditions[0]
-        tuple_energy_variables_t0 = tuple_initial_conditions[1:-1]
-
-        self.state_def_gradient_old.assign(def_gradient_t0)
-        for counter, field in enumerate(tuple_energy_variables_t0):
-            self.state_energy_old.sub(counter).assign(field)
+        if isinstance(self.operators, HamiltonianElastodynamics):
+            self.state_def_gradient_old.assign(interpolated_state_t0["def_gradient"])
+            self.state_energy_old.sub(0).assign(interpolated_state_t0["velocity"])
+            self.state_energy_old.sub(1).assign(interpolated_state_t0["stress"])
+            self.displacement_old.assign(interpolated_state_t0["displacement"])
 
         self.state_energy_midpoint.assign(self.state_energy_old)
         self.state_energy_new.assign(self.state_energy_old)
-
-        if isinstance(self.operators, Elastodynamics):
-            self.displacement_old.assign(tuple_initial_conditions[-1])
 
         self.time_energy_old = fdrk.Constant(0)
         self.time_energy_midpoint = fdrk.Constant(self.time_step/2)
@@ -99,7 +95,7 @@ class ImplicitLinearSolver:
 
     def _power_balance(self):
 
-        if isinstance(self.operators, Elastodynamics):
+        if isinstance(self.operators, HamiltonianElastodynamics):
 
             self.power_balance = self.operators.control(self.state_energy_midpoint.subfunctions, 
                                                      self.state_def_gradient_old, 
@@ -171,7 +167,7 @@ class ImplicitLinearSolver:
         self.actual_time_energy.assign(self.time_energy_new)
         self.actual_time_def_gradient.assign(self.time_def_gradient_new)
 
-        if isinstance(self.operators, Elastodynamics):
+        if isinstance(self.operators, HamiltonianElastodynamics):
 
             self.displacement_new.assign(self.displacement_old + self.time_step * self.state_energy_midpoint.sub(0))
 
@@ -191,4 +187,5 @@ class ImplicitLinearSolver:
         self.time_def_gradient_new.assign(float(self.time_def_gradient_old) + self.time_step)
 
 
-    
+    def __str__(self):
+        return "HamiltonianLinearSolver"

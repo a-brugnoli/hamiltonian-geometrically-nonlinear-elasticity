@@ -26,5 +26,10 @@ class Problem(ABC):
 
     
     @abstractmethod
-    def get_boundary_conditions(self, time_ess: fdrk.Constant, time_nat: fdrk.Constant):
+    def get_essential_bcs(self, time_ess: fdrk.Constant):
+        pass
+
+
+    @abstractmethod
+    def get_natural_bcs(self, time_nat: fdrk.Constant):
         pass

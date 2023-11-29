@@ -4,36 +4,37 @@ from math import ceil
 from tqdm import tqdm
 from src.postprocessing.animators import animate_displacement
 import matplotlib.pyplot as plt
-from src.solvers.implicit_linear_solver import ImplicitLinearSolver
+from src.solvers.lagrangian_solver import LagrangianNonLinearSolver
 from src.problems.cantilever_beam import CantileverBeam
+import os
 
-
-pol_degree = 3
+pol_degree = 2
 quad = False
 n_elem_x= 100
 n_elem_y = 10
 time_step = 1e-2
-T_end = 10
+T_end = 3
 n_time  = ceil(T_end/time_step)
 
+problem = CantileverBeam(n_elem_x, n_elem_y, quad)
 
-cantilever_beam = CantileverBeam(n_elem_x, n_elem_y, quad)
-
-solver = ImplicitLinearSolver(cantilever_beam, 
-                                "Elastodynamics", 
+solver = LagrangianNonLinearSolver(problem, 
                                 time_step, 
-                                pol_degree)
+                                pol_degree,
+                                solver_parameters={"ksp_type": "gmres"})
 
-
+directory_results = f"{os.path.dirname(os.path.abspath(__file__))}/results/{str(solver)}/{str(problem)}/"
+if not os.path.exists(directory_results):
+            os.makedirs(directory_results)
+            
 time_vector = np.linspace(0, T_end, num=n_time+1)
 energy_vector = np.zeros((n_time+1, ))
 energy_vector[0] = fdrk.assemble(solver.energy_old)
 
-power_balance_vector = np.zeros((n_time, ))
 
 output_frequency = 10
 
-space_displacement = solver.operators.space_energy.sub(0)
+space_displacement = solver.space_displacement
 displaced_coordinates = fdrk.interpolate(solver.problem.coordinates_mesh + solver.displacement_old, space_displacement)
 
 displaced_mesh= fdrk.Mesh(displaced_coordinates)
@@ -61,7 +62,6 @@ for ii in tqdm(range(1, n_time+1)):
     solver.integrate()
 
     energy_vector[ii] = fdrk.assemble(solver.energy_new)
-    power_balance_vector[ii-1] = fdrk.assemble(solver.power_balance)
 
     solver.update_variables()
 
@@ -102,11 +102,12 @@ interval = 1e3 * output_frequency * time_step
 
 lim_x = (min_x_all, max_x_all)
 lim_y = (min_y_all, max_y_all)
+
 animation = animate_displacement(time_frames, list_frames, interval, \
                                             lim_x = lim_x, \
                                             lim_y = lim_y )
 
-animation.save(f"cantilever_quadmesh_{quad}_solver.mp4", writer="ffmpeg")
+animation.save(f"{directory_results}Animation_displacement.mp4", writer="ffmpeg")
 
 n_frames = len(list_frames)-1
 
@@ -123,7 +124,7 @@ for kk in indexes_images:
     axes.set_xlim(lim_x)
     axes.set_ylim(lim_y)
 
-    plt.savefig(f"Displacement_index_{kk}_solver.eps", bbox_inches='tight', dpi='figure', format='eps')
+    plt.savefig(f"{directory_results}Displacement_time_{time_image}_solver.eps", bbox_inches='tight', dpi='figure', format='eps')
 
 
 plt.figure()
@@ -133,16 +134,7 @@ plt.grid(color='0.8', linestyle='-', linewidth=.5)
 plt.xlabel(r'Time')
 plt.legend()
 plt.title("Energy")
-plt.savefig(f"Energy_cantilever_quad_{quad}_solver.eps", dpi='figure', format='eps')
+plt.savefig(f"{directory_results}Energy.eps", dpi='figure', format='eps')
 
-
-plt.figure()
-plt.plot(time_vector[1:], np.diff(energy_vector) - time_step * power_balance_vector)
-# plt.plot(time_vector[1:], np.diff(energy_vector_linear) - power_balance_vector_linear, label=f"Linear")
-plt.grid(color='0.8', linestyle='-', linewidth=.5)
-plt.xlabel(r'Time')
-plt.legend()
-plt.title("Power balance conservation")
-plt.savefig(f"Power_cantilever_solver_quad_{quad}.eps", dpi='figure', format='eps')
 
 plt.show()

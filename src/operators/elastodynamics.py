@@ -1,8 +1,18 @@
 import firedrake as fdrk
-from .system_operators import DynamicalOperators
+from .abstract_operators import HamiltonianOperators, Operators
 from src.problems.problem import Problem
 
-class Elastodynamics(DynamicalOperators):
+def compliance(stress, young_modulus, poisson_ratio):
+
+    dim = stress.ufl_shape()[0]
+
+    # Compliance tensor for generic dimensions
+    strain = 1 /(young_modulus) * ((1+poisson_ratio)*stress \
+                                           - poisson_ratio * fdrk.Identity(dim) * fdrk.tr(stress))
+    return strain
+
+
+class HamiltonianElastodynamics(HamiltonianOperators):
 
     def __init__(self, problem: Problem, pol_degree: int):
         super().__init__(problem, pol_degree)
@@ -32,15 +42,20 @@ class Elastodynamics(DynamicalOperators):
 
         displacement = fdrk.interpolate(displacement_exp, self.space_energy.sub(0))
 
-        return (def_gradient, velocity, stress, displacement)
+        interpolated_initial_dict = {"displacement": displacement,
+                                    "velocity": velocity, 
+                                    "def_gradient": def_gradient, 
+                                    "stress": stress}
+
+        return interpolated_initial_dict
     
 
     def boundary_conditions(self, time_ess: fdrk.Constant, time_nat: fdrk.Constant):
-        bc_dictionary = self.problem.get_boundary_conditions(time_ess, time_nat)
+        dict_essential = self.problem.get_essential_bcs(time_ess)
 
-        essential_bc_data = bc_dictionary["velocity"]
+        essential_bc_data = dict_essential["velocity"]
 
-        natural_bcs_dict = bc_dictionary["traction"]
+        natural_bcs_dict = self.problem.get_natural_bcs(time_nat)
 
         essential_bcs_list = []
 
@@ -78,18 +93,16 @@ class Elastodynamics(DynamicalOperators):
 
     def mass_energy(self, testfunctions, functions):
         params = self.problem.parameters
-
-        density = params["Density"]
+        
         young_modulus = params["Young modulus"]
-        poisson_modulus = params["Poisson modulus"]
-        h = params["Thickness"]
+        poisson_ratio = params["Poisson ratio"]
+        density = params["Density"]
 
         test_velocity, test_stress = testfunctions
         velocity, stress = functions
 
         linear_momentum = density * velocity
-        strain = 1 /(young_modulus * h) * ((1+poisson_modulus)*stress \
-                                           - poisson_modulus * fdrk.Identity(2) * fdrk.tr(stress))
+        strain = compliance(stress, young_modulus, poisson_ratio)
 
         return fdrk.inner(test_velocity, linear_momentum) * fdrk.dx + fdrk.inner(test_stress, strain)*fdrk.dx
     
@@ -104,5 +117,4 @@ class Elastodynamics(DynamicalOperators):
 
         return form
     
-
 

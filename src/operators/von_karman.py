@@ -1,8 +1,8 @@
 import firedrake as fdrk
-from src.operators.system_operators import DynamicalOperators
+from operators.abstract_operators import HamiltonianOperators
 from src.problems.problem import Problem
 
-class VonKarmanPlate(DynamicalOperators):
+class HamiltonianVonKarmanPlate(HamiltonianOperators):
 
     def __init__(self, problem : Problem, pol_degree : int):
         super().__init__(problem, pol_degree)

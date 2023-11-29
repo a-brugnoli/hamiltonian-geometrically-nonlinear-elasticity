@@ -2,15 +2,8 @@ import firedrake as fdrk
 from src.problems.problem import Problem
 from abc import ABC, abstractmethod
 
-
-class DynamicalOperators(ABC):
+class HamiltonianOperators(ABC):
     def __init__(self, problem: Problem, pol_degree):
-        """
-        Constructor for the MaxwellOperators class
-        Parameters
-            type (string) : "primal" or "dual", the kind of discretization (primal is u1 or B2)
-            reynold (float) : the reciprocal of the magnetic Reynolds number
-        """
         self.problem = problem
         self.domain = problem.domain
         self.pol_degree = pol_degree
