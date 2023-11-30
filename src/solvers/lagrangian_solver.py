@@ -1,8 +1,8 @@
 import firedrake as fdrk
 from src.problems.problem import Problem
+import numpy as np
 
-
-class LagrangianNonLinearSolver:
+class LagrangianSolver:
     def __init__(self,
                  problem: Problem,
                  time_step: float,
@@ -22,30 +22,38 @@ class LagrangianNonLinearSolver:
         young_modulus = problem.parameters["Young modulus"]
         poisson_ratio = problem.parameters["Poisson ratio"]
 
-        CG_vectorspace = fdrk.VectorFunctionSpace(problem.domain, "CG", pol_degree)
-
-        self.space_displacement = CG_vectorspace
+        self.CG_vectorspace = fdrk.VectorFunctionSpace(problem.domain, "CG", pol_degree)
 
         # Spaces and functions
-        self.displacement_old = fdrk.Function(CG_vectorspace)
-        self.displacement_new = fdrk.Function(CG_vectorspace)
+        self.displacement_old = fdrk.Function(self.CG_vectorspace)
+        self.displacement_new = fdrk.Function(self.CG_vectorspace)
 
-        self.velocity_old = fdrk.Function(CG_vectorspace)
-        self.velocity_new = fdrk.Function(CG_vectorspace)
+        self.strain_old = epsilon(self.displacement_old)
+        self.strain_new = epsilon(self.displacement_new)
 
-        self.acceleration_old = fdrk.Function(CG_vectorspace)    
-        self.acceleration_new = fdrk.Function(CG_vectorspace)    
+        self.stress_old = stiffness_tensor(self.strain_old, young_modulus, poisson_ratio)
+        self.stress_new = stiffness_tensor(self.strain_new, young_modulus, poisson_ratio)
 
-        test_CG = fdrk.TestFunction(CG_vectorspace)
-        trial_CG = fdrk.TrialFunction(CG_vectorspace)
+        self.velocity_old = fdrk.Function(self.CG_vectorspace)
+        self.velocity_new = fdrk.Function(self.CG_vectorspace)
+
+        self.acceleration_old = fdrk.Function(self.CG_vectorspace)    
+        self.acceleration_new = fdrk.Function(self.CG_vectorspace)    
+
+        self.test_CG = fdrk.TestFunction(self.CG_vectorspace)
+        self.trial_CG = fdrk.TrialFunction(self.CG_vectorspace)
+
+        self.test_strain = epsilon(self.test_CG)
+        self.trial_strain = epsilon(self.trial_CG)
+        self.trial_stress = stiffness_tensor(self.trial_strain, young_modulus, poisson_ratio)
 
         # Initial conditions and boundary conditions 
         expression_initial = problem.get_initial_conditions()
         displacement_t0 = expression_initial["displacement"]
         velocity_t0 = expression_initial["velocity"]
 
-        self.displacement_old.assign(fdrk.interpolate(displacement_t0, CG_vectorspace))
-        self.velocity_old.assign(fdrk.interpolate(velocity_t0, CG_vectorspace))
+        self.displacement_old.assign(fdrk.interpolate(displacement_t0, self.CG_vectorspace))
+        self.velocity_old.assign(fdrk.interpolate(fdrk.as_vector([fdrk.sin(self.problem.x), 0]), self.CG_vectorspace))
 
         dict_essential = problem.get_essential_bcs(self.time_new)
         disp_bc_data = dict_essential["displacement"]
@@ -54,64 +62,56 @@ class LagrangianNonLinearSolver:
         for item in disp_bc_data.items():
             id_bc = item[0]
             value_bc = item[1]
-            bcs_displacement.append(fdrk.DirichletBC(self.space_displacement, value_bc, id_bc))
-
-
+            bcs_displacement.append(fdrk.DirichletBC(self.CG_vectorspace, value_bc, id_bc))
 
         # Set initial acceleration
-        oper_acceleration = mass_form(test_CG, trial_CG, density)
+        oper_acceleration = fdrk.inner(self.test_CG, density*self.trial_CG)*fdrk.dx
 
         traction_data_old = problem.get_natural_bcs(self.time_old)
-        weak_piola_old = weak_div_piola(test_CG, 
-                                        self.displacement_old, 
-                                        traction_data_old, 
-                                        young_modulus, 
-                                        poisson_ratio)
 
-        
-        fdrk.solve(oper_acceleration == weak_piola_old, self.acceleration_old)
+        l_acceleration_0 = - fdrk.inner(self.test_strain, self.stress_old)*fdrk.dx 
+       
+        fdrk.solve(oper_acceleration == l_acceleration_0, self.acceleration_old)
         # Set non linear solver for the displacement
         # Energy preserving Newmark scheme
+        assert fdrk.norm(self.acceleration_old) < 1e-9
 
         self.beta = 1/4
         self.gamma = 1/2
 
-        auxiliary_old = 1/( self.beta*time_step**2)*(self.displacement_old + time_step * self.velocity_old) \
-                        + (1-2* self.beta)/(2* self.beta)*self.acceleration_old
+        self.auxiliary_old = 1/(self.beta*self.time_step**2)*(self.displacement_old + self.time_step * self.velocity_old) \
+                        + (1-2*self.beta)/(2*self.beta)*self.acceleration_old
         
-        traction_data_new = problem.get_natural_bcs(self.time_new)
-        weak_piola_new = weak_div_piola(test_CG, 
-                                        self.displacement_new, 
-                                        traction_data_new, 
-                                        young_modulus, 
-                                        poisson_ratio)
+        self.traction_data_new = problem.get_natural_bcs(self.time_new)
 
-
-        residual_displacement = 1/( self.beta*time_step**2)*mass_form(test_CG, self.displacement_new, density) \
-                                - weak_piola_new - mass_form(test_CG, auxiliary_old, density)
-
-        nonlinear_problem_displacement = fdrk.NonlinearVariationalProblem(residual_displacement, 
-                                                                          self.displacement_new, 
-                                                                          bcs_displacement)
+        a_form_displacement = 1/(self.beta*self.time_step**2)*fdrk.inner(self.test_CG, density*self.trial_CG)*fdrk.dx \
+                + fdrk.inner(self.test_strain, self.trial_stress)*fdrk.dx
         
-        self.displacement_solver = fdrk.NonlinearVariationalSolver(nonlinear_problem_displacement,
-                                                                   solver_parameters=solver_parameters)
+        l_form_displacement = fdrk.inner(self.test_CG, density*self.auxiliary_old)*fdrk.dx 
+                    
+        linear_problem_displacement = fdrk.LinearVariationalProblem(a_form_displacement, 
+                                                                    l_form_displacement, 
+                                                                    self.displacement_new, 
+                                                                    bcs_displacement)
+        
+        self.displacement_solver = fdrk.LinearVariationalSolver(linear_problem_displacement,
+                                                                solver_parameters=solver_parameters)
+        
+        l_acceleration = - fdrk.inner(self.test_strain, self.stress_new)*fdrk.dx 
+       
         
         acceleration_problem = fdrk.LinearVariationalProblem(oper_acceleration, 
-                                                             weak_piola_new, 
-                                                             self.acceleration_new)
+                                                            l_acceleration, 
+                                                            self.acceleration_new)
         
         self.acceleration_solver =  fdrk.LinearVariationalSolver(acceleration_problem, 
-                                                            solver_parameters={"ksp_type":"cg"})
+                                                                solver_parameters={"ksp_type":"cg"})
         
-        self.energy_old = 0.5 * mass_form(self.velocity_old, self.velocity_old, density) \
-                        + 0.5 * fdrk.inner(green_lagrange_strain(self.displacement_old), 
-                        stiffness(green_lagrange_strain(self.displacement_old), young_modulus, poisson_ratio)) * fdrk.dx
+        self.energy_old = 0.5 * fdrk.inner(self.velocity_old, density*self.velocity_old)*fdrk.dx \
+                        + 0.5 * fdrk.inner(self.strain_old, self.stress_old)*fdrk.dx
 
-        self.energy_new = 0.5 * mass_form(self.velocity_new, self.velocity_new, density) \
-                        + 0.5 * fdrk.inner(green_lagrange_strain(self.displacement_new), 
-                        stiffness(green_lagrange_strain(self.displacement_new), young_modulus, poisson_ratio)) * fdrk.dx
-
+        self.energy_new = 0.5 * fdrk.inner(self.velocity_new, density*self.velocity_new)*fdrk.dx \
+                        + 0.5 * fdrk.inner(self.strain_new, self.stress_new)*fdrk.dx
 
     def integrate(self):
         self.displacement_solver.solve()
@@ -119,8 +119,8 @@ class LagrangianNonLinearSolver:
         self.acceleration_solver.solve()
 
         self.velocity_new.assign(self.velocity_old 
-            + self.time_step*((1+self.gamma)*self.acceleration_old + self.gamma*self.acceleration_new))
-
+            + self.time_step*((1-self.gamma)*self.acceleration_old + self.gamma*self.acceleration_new))
+        
         self.actual_time.assign(self.time_new)
 
 
@@ -134,11 +134,19 @@ class LagrangianNonLinearSolver:
         self.time_new.assign(float(self.time_old) + self.time_step)
 
 
+    def output_displaced_mesh(self):
+        displaced_coordinates = fdrk.interpolate(self.problem.coordinates_mesh 
+                                            + self.displacement_old, self.CG_vectorspace)
+
+        return fdrk.Mesh(displaced_coordinates)
+    
+    
+
     def __str__(self):
         return "LagrangianSolver"
     
     
-def stiffness(strain, young_modulus, poisson_ratio):
+def stiffness_tensor(strain, young_modulus, poisson_ratio):
     dim = strain.ufl_shape[0]
 
     stress = young_modulus/(1+poisson_ratio)*\
@@ -146,55 +154,29 @@ def stiffness(strain, young_modulus, poisson_ratio):
 
     return stress 
 
-
-def mass_form(test, function, density):
-    return fdrk.inner(test, density*function)*fdrk.dx
-
-
-def def_gradient(displacement):
-    dim = displacement.ufl_shape[0]
-
-    return fdrk.Identity(dim) + fdrk.grad(displacement)
+def epsilon(vector):
+    return 1/2*(fdrk.grad(vector).T + fdrk.grad(vector))
 
 
-def green_lagrange_strain(displacement):
-    dim = displacement.ufl_shape[0]
-    
-    F = def_gradient(displacement)
+# def natural_control(test, traction_data_dict : dict):
 
-    green_lagrange_strain = 1/2*(fdrk.dot(F.T, F) - fdrk.Identity(dim))
+#     for item in traction_data_dict.items():
+#         id = item[0]
+#         value_traction = item[1]
 
-    return green_lagrange_strain
+#         natural_control = 0 
 
+#         if id == "on_boundary":
+#             natural_control +=fdrk.inner(test, value_traction)*fdrk.ds
+#         else: 
+#             natural_control +=fdrk.inner(test, value_traction)*fdrk.ds(id)
 
-def first_Piola(displacement, young_modulus, poisson_ratio):
-    F = def_gradient(displacement)
-
-    second_Piola = stiffness(green_lagrange_strain(displacement), young_modulus, poisson_ratio)
-
-    return fdrk.dot(F, second_Piola)
+#     return natural_control
 
 
-def natural_control(test, displacement, traction_data_dict : dict):
-    F = def_gradient(displacement)
-    for item in traction_data_dict.items():
-        id = item[0]
-        value_traction = item[1]
-
-        natural_control = 0 
-
-        if id == "on_boundary":
-            natural_control +=fdrk.inner(test, fdrk.dot(F, value_traction))*fdrk.ds
-        else: 
-            natural_control +=fdrk.inner(test, fdrk.dot(F, value_traction))*fdrk.ds(id)
-
-    return natural_control
 
 
-def weak_div_piola(test, displacement, traction_data_dict : dict, young_modulus, poisson_ratio):
 
-    return -fdrk.inner(fdrk.grad(test), first_Piola(displacement, young_modulus, poisson_ratio))*fdrk.dx \
-           + natural_control(test, displacement, traction_data_dict)
         
 
 

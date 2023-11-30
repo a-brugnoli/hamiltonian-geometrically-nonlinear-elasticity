@@ -134,8 +134,10 @@ def simulate_cantilever_beam(is_quad_mesh=False, linear=False, pol_degree=1, n_e
         fdrk.conditional(fdrk.le(time_midpoint_energy_var, t_coutoff_forcing), magnitude_traction, 0)
     traction = fdrk.as_vector([fdrk.Constant(0), traction_y])
 
-    boundary_form = fdrk.inner(test_velocity, fdrk.dot(defgradient_new_half, traction))*fdrk.ds(2)
-    # boundary_form = fdrk.inner(test_velocity, traction)*fdrk.ds(2)
+    if linear:
+        boundary_form = fdrk.inner(test_velocity, traction)*fdrk.ds(2)
+    else:
+        boundary_form = fdrk.inner(test_velocity, fdrk.dot(defgradient_new_half, traction))*fdrk.ds(2)
 
     b_functional_energy_var = mass_functional_energy_var + 0.5*time_step*dyn_functional_energy_var \
                                 + time_step * boundary_form
@@ -174,8 +176,11 @@ def simulate_cantilever_beam(is_quad_mesh=False, linear=False, pol_degree=1, n_e
     energy_vector = np.zeros((n_time+1, ))
     energy_vector[0] = fdrk.assemble(energy_old_int)
 
-    power_balance = time_step * fdrk.inner(velocity_midpoint_half, fdrk.dot(defgradient_new_half, traction))*fdrk.ds(2)
-    # power_balance = time_step * fdrk.inner(velocity_midpoint_half, traction)*fdrk.ds(2)
+    if linear:     
+        power_balance = time_step * fdrk.inner(velocity_midpoint_half, traction)*fdrk.ds(2)
+    else:
+        power_balance = time_step * fdrk.inner(velocity_midpoint_half, fdrk.dot(defgradient_new_half, traction))*fdrk.ds(2)
+    
     power_balance_vec = np.zeros((n_time, ))
 
     output_frequency = 10
@@ -284,17 +289,17 @@ def simulate_cantilever_beam(is_quad_mesh=False, linear=False, pol_degree=1, n_e
     indexes_images = [int(n_frames/4), int(n_frames/2), int(3*n_frames/4), int(n_frames)]
 
     for kk in indexes_images:
-
+        time_image = "{:.1f}".format(time_step * output_frequency * kk) 
         fig, axes = plt.subplots()
         axes.set_aspect("equal")
         fdrk.triplot(list_frames[kk], axes=axes)
-        # axes.set_title(f"Displacement at time $t={time_image}$" + r"$[\mathrm{s}]$", loc='center')
+        axes.set_title(f"Displacement at time $t={time_image}$" + r"$[\mathrm{s}]$", loc='center')
         axes.set_xlabel("x")
         axes.set_ylabel("y")
         axes.set_xlim(lim_x)
         axes.set_ylim(lim_y)
 
-        plt.savefig(f"Displacement_linear_{linear}_index_{kk}.eps", bbox_inches='tight', dpi='figure', format='eps')
+        plt.savefig(f"Displacement_t{time_image}.eps", bbox_inches='tight', dpi='figure', format='eps')
 
 
     return time_vector, energy_vector, power_balance_vec

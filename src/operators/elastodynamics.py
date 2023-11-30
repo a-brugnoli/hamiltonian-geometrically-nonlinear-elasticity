@@ -1,10 +1,10 @@
 import firedrake as fdrk
-from .abstract_operators import HamiltonianOperators, Operators
+from .abstract_operators import HamiltonianOperators
 from src.problems.problem import Problem
 
 def compliance(stress, young_modulus, poisson_ratio):
 
-    dim = stress.ufl_shape()[0]
+    dim = stress.ufl_shape[0]
 
     # Compliance tensor for generic dimensions
     strain = 1 /(young_modulus) * ((1+poisson_ratio)*stress \

@@ -4,7 +4,7 @@ from math import ceil
 from tqdm import tqdm
 from src.postprocessing.animators import animate_displacement
 import matplotlib.pyplot as plt
-from src.solvers.hamiltonian_solver import HamiltonianLinearSolver
+from src.solvers.hamiltonian_solver import HamiltonianSolver
 from src.problems.cantilever_beam import CantileverBeam
 import os
 
@@ -18,7 +18,7 @@ n_time  = ceil(T_end/time_step)
 
 problem = CantileverBeam(n_elem_x, n_elem_y, quad)
 
-solver = HamiltonianLinearSolver(problem, 
+solver = HamiltonianSolver(problem, 
                                 "Elastodynamics", 
                                 time_step, 
                                 pol_degree)
@@ -35,10 +35,7 @@ power_balance_vector = np.zeros((n_time, ))
 
 output_frequency = 10
 
-space_displacement = solver.operators.space_energy.sub(0)
-displaced_coordinates = fdrk.interpolate(solver.problem.coordinates_mesh + solver.displacement_old, space_displacement)
-
-displaced_mesh= fdrk.Mesh(displaced_coordinates)
+displaced_mesh= solver.output_displaced_mesh()
 
 displaced_coordinates_x = displaced_mesh.coordinates.dat.data[:, 0]
 
@@ -70,10 +67,7 @@ for ii in tqdm(range(1, n_time+1)):
 
     if ii % output_frequency == 0:
 
-        displaced_coordinates = fdrk.interpolate(solver.problem.coordinates_mesh \
-                                                    + solver.displacement_old, space_displacement)
-        
-        displaced_mesh = fdrk.Mesh(displaced_coordinates)
+        displaced_mesh = solver.output_displaced_mesh()
 
         displaced_coordinates_x = displaced_mesh.coordinates.dat.data[:, 0]
 
@@ -116,7 +110,8 @@ n_frames = len(list_frames)-1
 indexes_images = [int(n_frames/4), int(n_frames/2), int(3*n_frames/4), int(n_frames)]
 
 for kk in indexes_images:
-    time_image = time_step * output_frequency * kk
+    time_image = "{:.1f}".format(time_step * output_frequency * kk) 
+
     fig, axes = plt.subplots()
     axes.set_aspect("equal")
     fdrk.triplot(list_frames[kk], axes=axes)
@@ -126,7 +121,7 @@ for kk in indexes_images:
     axes.set_xlim(lim_x)
     axes.set_ylim(lim_y)
 
-    plt.savefig(f"{directory_results}Displacement_time_{time_image}_solver.eps", bbox_inches='tight', dpi='figure', format='eps')
+    plt.savefig(f"{directory_results}Displacement_t{time_image}.eps", bbox_inches='tight', dpi='figure', format='eps')
 
 
 plt.figure()
