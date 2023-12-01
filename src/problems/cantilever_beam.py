@@ -8,7 +8,7 @@ class CantileverBeam(Problem):
         L_x = 100
         L_y = 10
 
-        self.domain = fdrk.RectangleMesh(n_elem_x, n_elem_y, L_x, L_y, quadrilateral=quad)
+        self.domain = fdrk.RectangleMesh(n_elem_x, n_elem_y, L_x, L_y, originX=0, originY=0, quadrilateral=quad)
 
         self.coordinates_mesh = fdrk.SpatialCoordinate(self.domain)
         self.x, self.y = self.coordinates_mesh
@@ -25,11 +25,11 @@ class CantileverBeam(Problem):
 
 
     def get_initial_conditions(self):
-        def_gradient_0 = fdrk.Constant(np.array([[1, 0], [0, 1]]))
-        velocity_0 = fdrk.Constant(np.array([0, 0]))
-        stress_0 = fdrk.Constant(np.array([[0, 0], [0, 0]]))
+        def_gradient_0 = fdrk.as_vector([[1, 0], [0, 1]])
+        velocity_0 = fdrk.as_vector([0.0, 0.0])
+        stress_0 = fdrk.as_vector([[0, 0], [0, 0]])
 
-        displacement_0 = fdrk.Constant(np.array([0, 0]))
+        displacement_0 = fdrk.as_vector([0.0, 0.0])
 
         return {"displacement": displacement_0,
                 "velocity": velocity_0, 
@@ -45,8 +45,8 @@ class CantileverBeam(Problem):
         Traction along the y axis on the right boundary =
         
         """
-        essential_dict = {"displacement": {1: fdrk.Constant(np.array([0, 0]))}, \
-                        "velocity": {1: fdrk.Constant(np.array([0, 0]))}}
+        essential_dict = {"displacement": {1: fdrk.as_vector([0, 0])}, \
+                        "velocity": {1: fdrk.as_vector([0, 0])}}
         
         return essential_dict
     

@@ -19,9 +19,9 @@ n_time  = ceil(T_end/time_step)
 problem = CantileverBeam(n_elem_x, n_elem_y, quad)
 
 solver = HamiltonianSolver(problem, 
-                                "Elastodynamics", 
-                                time_step, 
-                                pol_degree)
+                            "Elastodynamics", 
+                            time_step, 
+                            pol_degree)
 
 directory_results = f"{os.path.dirname(os.path.abspath(__file__))}/results/{str(solver)}/{str(problem)}/"
 if not os.path.exists(directory_results):

@@ -173,4 +173,4 @@ class HamiltonianSolver:
         return fdrk.Mesh(displaced_coordinates)
 
     def __str__(self):
-        return "HamiltonianLinearSolver"
+        return "HamiltonianSolver"

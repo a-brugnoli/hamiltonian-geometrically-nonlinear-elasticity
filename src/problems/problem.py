@@ -6,6 +6,7 @@ class Problem(ABC):
     def __init__(self):
         self.domain = None
         self.coordinates_mesh = None
+        self.x, self.y, self.z = None, None, None
         self.bc_type = None
         self.forcing = None
         self.dim = None

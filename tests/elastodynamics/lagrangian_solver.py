@@ -4,7 +4,8 @@ from math import ceil
 from tqdm import tqdm
 from src.postprocessing.animators import animate_displacement
 import matplotlib.pyplot as plt
-from src.solvers.lagrangian_solver import LagrangianSolver
+from src.solvers.linear_lagrangian_solver import LinearLagrangianSolver
+from src.solvers.nonlinear_lagrangian_solver import NonlinearLagrangianSolver
 from src.problems.cantilever_beam import CantileverBeam
 import os
 
@@ -13,12 +14,17 @@ quad = False
 n_elem_x= 100
 n_elem_y = 10
 time_step = 1e-2
-T_end = 6
+T_end = 10
 n_time  = ceil(T_end/time_step)
 
 problem = CantileverBeam(n_elem_x, n_elem_y, quad)
 
-solver = LagrangianSolver(problem, 
+# solver = LinearLagrangianSolver(problem, 
+#                                 time_step, 
+#                                 pol_degree,
+#                                 solver_parameters={})
+
+solver = NonlinearLagrangianSolver(problem, 
                                 time_step, 
                                 pol_degree,
                                 solver_parameters={})
@@ -30,7 +36,6 @@ if not os.path.exists(directory_results):
 time_vector = np.linspace(0, T_end, num=n_time+1)
 energy_vector = np.zeros((n_time+1, ))
 energy_vector[0] = fdrk.assemble(solver.energy_old)
-
 
 output_frequency = 10
 
@@ -56,16 +61,13 @@ for ii in tqdm(range(1, n_time+1)):
     actual_time = ii*time_step
     solver.integrate()
 
-    assert np.isclose(actual_time, float(solver.actual_time))
-
     energy_vector[ii] = fdrk.assemble(solver.energy_new)
 
     solver.update_variables()
 
-
     if ii % output_frequency == 0:
 
-        displaced_mesh= solver.output_displaced_mesh()
+        displaced_mesh = solver.output_displaced_mesh()
 
         displaced_coordinates_x = displaced_mesh.coordinates.dat.data[:, 0]
         displaced_coordinates_y = displaced_mesh.coordinates.dat.data[:, 1]
