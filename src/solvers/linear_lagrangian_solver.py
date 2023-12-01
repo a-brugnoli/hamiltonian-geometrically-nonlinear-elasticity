@@ -60,12 +60,15 @@ class LinearLagrangianSolver:
 
         bcs_displacement = []
         boundary_nodes = []
+        bcs_acceleration_0 = []
+
         for item in disp_bc_data.items():
             id_bc = item[0]
             value_bc = item[1]
 
             bc_item = fdrk.DirichletBC(self.CG_vectorspace, value_bc, id_bc)
             bcs_displacement.append(bc_item)
+            bcs_acceleration_0.append(fdrk.DirichletBC(self.CG_vectorspace, fdrk.as_vector([0, 0]), id_bc))
 
             # for node in bc_item.nodes:
             #     boundary_nodes.append(node)

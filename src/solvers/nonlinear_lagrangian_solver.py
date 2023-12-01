@@ -58,6 +58,7 @@ class NonlinearLagrangianSolver:
         disp_bc_data = dict_essential["displacement"]
 
         bcs_displacement = []
+        bcs_acceleration_0 = []
         boundary_nodes = []
         for item in disp_bc_data.items():
             id_bc = item[0]
@@ -65,6 +66,7 @@ class NonlinearLagrangianSolver:
 
             bc_item = fdrk.DirichletBC(self.CG_vectorspace, value_bc, id_bc)
             bcs_displacement.append(bc_item)
+            bcs_acceleration_0.append(fdrk.DirichletBC(self.CG_vectorspace, fdrk.as_vector([0, 0]), id_bc))
 
             # for node in bc_item.nodes:
             #     boundary_nodes.append(node)
@@ -92,7 +94,8 @@ class NonlinearLagrangianSolver:
         l_acceleration_0 = - fdrk.inner(fdrk.grad(test_CG), self.first_piola_stress_old)*fdrk.dx \
                            + natural_control_follower(test_CG, self.displacement_old, traction_data_old)
        
-        fdrk.solve(oper_acceleration == l_acceleration_0, self.acceleration_old)
+       
+        fdrk.solve(oper_acceleration == l_acceleration_0, self.acceleration_old, bcs=bcs_acceleration_0)
         # Set non linear solver for the displacement
 
         self.beta = 1/4
