@@ -1,6 +1,8 @@
 import firedrake as fdrk
 from src.problems.problem import Problem
 import numpy as np
+from .utils_elastodynamics import stiffness_tensor, second_piola_stress, def_gradient,\
+      first_piola_stress, green_lagrange_strain, natural_control_follower
 
 class NonlinearLagrangianSolver:
     def __init__(self,
@@ -166,53 +168,6 @@ class NonlinearLagrangianSolver:
         return "NonlinearLagrangianSolver"
     
     
-def stiffness_tensor(strain, young_modulus, poisson_ratio):
-    dim = strain.ufl_shape[0]
-
-    stress = young_modulus/(1+poisson_ratio)*\
-            (strain + poisson_ratio/(1-2*poisson_ratio)*fdrk.Identity(dim)*fdrk.tr(strain))
-
-    return stress 
-
-
-def def_gradient(vector):
-    dim = vector.ufl_shape[0]
-    return fdrk.Identity(dim) + fdrk.grad(vector)
-
-
-def green_lagrange_strain(vector):
-    return 1/2*(fdrk.grad(vector).T + fdrk.grad(vector) + fdrk.dot(fdrk.grad(vector).T, fdrk.grad(vector)))
-
-
-def second_piola_stress(vector, young_modulus, poisson_ratio):
-    return stiffness_tensor(green_lagrange_strain(vector), young_modulus, poisson_ratio)
-    
-
-def first_piola_stress(vector, young_modulus, poisson_ratio):
-    return fdrk.dot(def_gradient(vector), second_piola_stress(vector, young_modulus, poisson_ratio))
-
-
-def natural_control_follower(test, displacement, traction_data_dict : dict):
-    F = def_gradient(displacement)
-
-    for item in traction_data_dict.items():
-        id = item[0]
-        value_traction = item[1]
-
-        natural_control = 0 
-
-        if id == "on_boundary":
-            natural_control +=fdrk.inner(test, fdrk.dot(F, value_traction))*fdrk.ds
-        else: 
-            natural_control +=fdrk.inner(test, fdrk.dot(F, value_traction))*fdrk.ds(id)
-
-    return natural_control
-
-
-
-
-
-        
 
 
 

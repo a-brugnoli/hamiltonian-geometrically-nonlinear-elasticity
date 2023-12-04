@@ -4,7 +4,8 @@ from math import ceil
 from tqdm import tqdm
 from src.postprocessing.animators import animate_displacement
 import matplotlib.pyplot as plt
-from src.solvers.hamiltonian_solver import HamiltonianSolver
+# from src.solvers.hamiltonian_solver import HamiltonianSolver
+from src.solvers.hamiltonian_displacement_solver import HamiltonianDisplacementSolver
 from src.problems.cantilever_beam import CantileverBeam
 import os
 
@@ -18,10 +19,15 @@ n_time  = ceil(T_end/time_step)
 
 problem = CantileverBeam(n_elem_x, n_elem_y, quad)
 
-solver = HamiltonianSolver(problem, 
-                            "Elastodynamics", 
+# solver = HamiltonianSolver(problem, 
+#                             "Elastodynamics", 
+#                             time_step, 
+#                             pol_degree)
+
+solver = HamiltonianDisplacementSolver(problem, 
                             time_step, 
                             pol_degree)
+
 
 directory_results = f"{os.path.dirname(os.path.abspath(__file__))}/results/{str(solver)}/{str(problem)}/"
 if not os.path.exists(directory_results):

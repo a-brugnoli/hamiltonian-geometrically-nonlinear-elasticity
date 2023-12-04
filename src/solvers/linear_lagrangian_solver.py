@@ -96,7 +96,7 @@ class LinearLagrangianSolver:
         l_acceleration_0 = - fdrk.inner(self.test_strain, self.stress_old)*fdrk.dx \
                            + natural_control(self.test_CG, traction_data_old)
        
-        fdrk.solve(oper_acceleration == l_acceleration_0, self.acceleration_old)
+        fdrk.solve(oper_acceleration == l_acceleration_0, self.acceleration_old, bcs=bcs_acceleration_0)
         # Set non linear solver for the displacement
 
         self.beta = 1/4
