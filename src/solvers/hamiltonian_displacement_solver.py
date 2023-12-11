@@ -1,7 +1,7 @@
 import firedrake as fdrk
 from src.problems.problem import Problem
 from firedrake.petsc import PETSc
-from .utils_elastodynamics import mass_energy, natural_control_follower, \
+from .utils import mass_energy, natural_control_follower, \
                                 operator_energy, functional_energy
 
 
