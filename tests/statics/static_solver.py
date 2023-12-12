@@ -22,3 +22,9 @@ displacement_ = fdrk.Function(CG_vectorspace)
 def_gradient_ = fdrk.Function(NED_vectorspace)
 
 print(def_gradient_.ufl_shape)
+import firedrake as fdrk
+from .problems.static_problem import StaticProblem
+
+class StaticSolver:
+    def __init__(problem: StaticProblem):
+        pass
