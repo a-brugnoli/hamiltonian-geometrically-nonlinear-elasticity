@@ -15,16 +15,49 @@ class Problem(ABC):
         self.parameters = None
 
 
+class StaticProblem(Problem):
+    def __init__(self):
+        super().__init__()
+
+    @abstractmethod
+    def first_piola_definition(self):
+        pass
+
+
+    @abstractmethod
+    def derivative_first_piola(self):
+        pass
+
+    @abstractmethod
+    def get_forcing(self):
+        pass
+
+    
+    @abstractmethod
+    def get_essential_bcs(self) -> dict:
+        pass
+
+
+    @abstractmethod
+    def get_natural_bcs(self) -> dict:
+        pass
+
+
+class DynamicProblem(Problem):
+    def __init__(self):
+        super().__init__()
+
+
     @abstractmethod
     def get_forcing(self, time: fdrk.Constant):
         pass
 
     
     @abstractmethod
-    def get_essential_bcs(self, time_ess: fdrk.Constant):
+    def get_essential_bcs(self, time_ess: fdrk.Constant) -> dict:
         pass
 
 
     @abstractmethod
-    def get_natural_bcs(self, time_nat: fdrk.Constant):
+    def get_natural_bcs(self, time_nat: fdrk.Constant) -> dict:
         pass

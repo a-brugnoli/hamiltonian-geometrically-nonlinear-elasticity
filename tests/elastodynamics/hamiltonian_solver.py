@@ -5,7 +5,7 @@ from tqdm import tqdm
 from src.postprocessing.animators import animate_displacement
 import matplotlib.pyplot as plt
 # from src.solvers.hamiltonian_solver import HamiltonianSolver
-from src.solvers.hamiltonian_displacement_solver import HamiltonianDisplacementSolver
+from src.solvers.hamiltonian_displacement import HamiltonianDisplacementSolver
 from src.problems.cantilever_beam import CantileverBeam
 import os
 

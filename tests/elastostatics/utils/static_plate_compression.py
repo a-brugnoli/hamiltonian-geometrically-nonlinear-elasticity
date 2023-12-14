@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 mu = 80  #N/mm^2
 kappa = 400889 #N/mm^2
 length_side = 10 #mm
-f = 8 #N/mm
+f = 10 #N/mm
 
 # mu = 80 * 10**(6) #N/m^2
 # kappa = 400889 * 10**(6) #N/m^2

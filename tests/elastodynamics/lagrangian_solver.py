@@ -4,8 +4,8 @@ from math import ceil
 from tqdm import tqdm
 from src.postprocessing.animators import animate_displacement
 import matplotlib.pyplot as plt
-from src.solvers.linear_lagrangian_solver import LinearLagrangianSolver
-from src.solvers.nonlinear_lagrangian_solver import NonlinearLagrangianSolver
+from src.solvers.linear_lagrangian import LinearLagrangianSolver
+from src.solvers.nonlinear_lagrangian import NonlinearLagrangianSolver
 from src.problems.cantilever_beam import CantileverBeam
 import os
 
