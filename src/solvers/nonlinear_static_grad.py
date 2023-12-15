@@ -1,6 +1,8 @@
 import firedrake as fdrk
 from src.problems.problem import StaticProblem
 import matplotlib.pyplot as plt
+import time
+from firedrake.petsc import PETSc
 
 class NonLinearStaticSolverGrad:
     def __init__(self, problem: StaticProblem, pol_degree=1):
@@ -15,7 +17,7 @@ class NonLinearStaticSolverGrad:
 
         self.disp_space = CG_vectorspace
         self.stress_space = NED2_vectorspace
-        self.strain_space = self.stress_space
+        self.strain_space = NED2_vectorspace
 
         mixed_space_grad = self.disp_space * self.stress_space * self.strain_space
 
@@ -25,7 +27,7 @@ class NonLinearStaticSolverGrad:
         self.displacement, self.first_piola, self.grad_disp = self.solution.subfunctions
 
         self.delta_solution = fdrk.Function(mixed_space_grad)
-        delta_displacement, delta_first_piola, delta_grad_disp = self.solution.subfunctions
+        self.delta_displacement, self.delta_first_piola, self.delta_grad_disp = self.delta_solution.subfunctions
 
         dict_essential_bcs = problem.get_essential_bcs()
         dict_disp_x = dict_essential_bcs["displacement x"]
@@ -84,26 +86,28 @@ class NonLinearStaticSolverGrad:
         tolerance = 1e-9
         n_iter_max = 1000
 
+        fig, axes = plt.subplots()
+        int_coordinates = fdrk.Mesh(fdrk.interpolate(self.problem.coordinates_mesh, self.disp_space))        
+        fdrk.triplot(int_coordinates, axes=axes)
+        plt.show(block=False)
+        plt.pause(0.2)
+
         for ii in range(n_iter_max):
-            print(f"n iter {ii}")
             self.solver.solve()
             self.solution.assign(self.solution + self.delta_solution)
+            axes.cla()
+            self.plot_displacement(axes)
+            plt.draw()
+            plt.pause(0.2)
 
+            PETSc.Sys.Print(f"Norm delta disp at iter {ii+1}: {fdrk.norm(self.delta_displacement)}")
             if fdrk.norm(self.delta_solution)<tolerance:
                 break
 
         
 
-    def plot_displacement(self):
-
-
-        int_coordinates = fdrk.Mesh(fdrk.interpolate(self.problem.coordinates_mesh, self.disp_space))
-
+    def plot_displacement(self, axes):
         int_displaced_coordinates = fdrk.Mesh(fdrk.interpolate(self.problem.coordinates_mesh \
                                                                + self.displacement, self.disp_space))
 
-        fig, axes = plt.subplots()
-        # fdrk.triplot(int_coordinates, axes=axes)
         fdrk.triplot(int_displaced_coordinates, axes=axes)
-
-        plt.show()

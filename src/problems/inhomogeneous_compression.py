@@ -64,7 +64,7 @@ class InhomogeneousCompression(StaticProblem):
     def get_natural_bcs(self) -> dict:
 
         factor = 1
-        f = 10
+        f = 9
         force_y = -factor*f*fdrk.conditional(fdrk.le(self.x, self.length_side/2), 1, 0) 
         traction = fdrk.as_vector([fdrk.Constant(0), force_y])
 

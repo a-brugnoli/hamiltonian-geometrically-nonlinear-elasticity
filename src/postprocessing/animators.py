@@ -17,6 +17,7 @@ def animate_displacement(t_frames, list_frames, interval=10, lim_x=None, lim_y=N
     def update_plot(frame_number):
         # axes.clear()
         axes.cla()
+        # plt.clf()
 
         label_t = 'Time =' + '{0:.2e}'.format(t_frames[frame_number])
         fdrk.triplot(list_frames[frame_number], axes=axes)

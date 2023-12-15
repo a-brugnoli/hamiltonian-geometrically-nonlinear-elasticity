@@ -12,4 +12,3 @@ solver = NonLinearStaticSolverGrad(problem, pol_degree)
 
 solver.solve()
 
-solver.plot_displacement()
