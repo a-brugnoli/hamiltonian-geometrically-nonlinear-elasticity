@@ -64,11 +64,12 @@ class InhomogeneousCompression(StaticProblem):
     def get_natural_bcs(self) -> dict:
 
         factor = 1
-        f = 9
+        f = 10
         force_y = -factor*f*fdrk.conditional(fdrk.le(self.x, self.length_side/2), 1, 0) 
-        traction = fdrk.as_vector([fdrk.Constant(0), force_y])
+        # traction = fdrk.as_vector([fdrk.Constant(0), force_y])
 
-        return {4: traction}
+        return {"traction x": {2: fdrk.Constant(0), 3: fdrk.Constant(0)},
+                "traction y": {1: fdrk.Constant(0), 2: fdrk.Constant(0), 4: force_y}}
 
 
 
@@ -78,4 +79,4 @@ class InhomogeneousCompression(StaticProblem):
     
 
     def __str__(self):
-        return "CantileverBeam"
+        return "InhomogeneousCompression"
