@@ -58,7 +58,7 @@ BDM_vectorspace = fdrk.VectorFunctionSpace(domain, "BDM", pol_degree) # Every ro
 
 disp_space = CG_vectorspace
 stress_space = NED2_vectorspace
-strain_space = stress_space
+strain_space = NED2_vectorspace
 
 mixed_space_grad = disp_space * stress_space * strain_space
 test_disp, test_first_piola, test_grad_disp = fdrk.TestFunctions(mixed_space_grad)
