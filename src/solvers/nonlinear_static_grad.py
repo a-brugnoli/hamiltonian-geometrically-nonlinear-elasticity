@@ -12,13 +12,13 @@ class NonLinearStaticSolver:
         self.problem = problem
 
         CG_vectorspace = fdrk.VectorFunctionSpace(self.domain, "CG", pol_degree)
-        NED2_vectorspace = fdrk.VectorFunctionSpace(self.domain, "N2curl", pol_degree-1) # Every row is a Nedelec
+        NED2_vectorspace = fdrk.VectorFunctionSpace(self.domain, "N2curl", pol_degree) # Every row is a Nedelec
         BDM_vectorspace = fdrk.VectorFunctionSpace(self.domain, "BDM", pol_degree) # Every row is a BDM
         DG_vectorspace = fdrk.VectorFunctionSpace(self.domain, "DG", pol_degree-1)
 
         if formulation=="grad":
             self.disp_space = CG_vectorspace
-            self.stress_space = NED2_vectorspace
+            self.stress_space = BDM_vectorspace
             self.strain_space = NED2_vectorspace
         else:
             self.disp_space = DG_vectorspace

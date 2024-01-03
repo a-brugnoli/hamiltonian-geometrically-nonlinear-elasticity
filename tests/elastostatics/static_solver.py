@@ -3,7 +3,7 @@ from src.problems.inhomogeneous_compression import InhomogeneousCompression
 from src.solvers.nonlinear_static_grad import NonLinearStaticSolver
 import numpy as np
 
-nx = 30
+nx = 60
 ny = 30
 pol_degree = 2
 
