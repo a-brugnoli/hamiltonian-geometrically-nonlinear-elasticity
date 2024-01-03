@@ -17,8 +17,8 @@ class InhomogeneousCompression(StaticProblem):
         self.length_side = 10 #mm
 
         self.domain = fdrk.RectangleMesh(n_elem_x, n_elem_y, 
-                                         Lx = self.length_side, 
-                                         Ly = self.length_side)
+                                         Lx = 2*self.length_side, 
+                                         Ly = self.length_side, originX=-self.length_side)
         self.dim = self.domain.geometric_dimension()
 
         self.coordinates_mesh = fdrk.SpatialCoordinate(self.domain)
@@ -56,7 +56,7 @@ class InhomogeneousCompression(StaticProblem):
         
         """
 
-        essential_dict = {"displacement x": {1: fdrk.Constant(0), 4: fdrk.Constant(0)},
+        essential_dict = {"displacement x": {4: fdrk.Constant(0)},
                           "displacement y": {3: fdrk.Constant(0)}}
         
         return essential_dict
@@ -65,10 +65,10 @@ class InhomogeneousCompression(StaticProblem):
 
         factor = 1
         f = 10
-        force_y = -factor*f*fdrk.conditional(fdrk.le(self.x, self.length_side/2), 1, 0) 
+        force_y = -factor*f*fdrk.conditional(fdrk.le(abs(self.x), self.length_side/2), 1, 0) 
         # traction = fdrk.as_vector([fdrk.Constant(0), force_y])
 
-        return {"traction x": {2: fdrk.Constant(0), 3: fdrk.Constant(0)},
+        return {"traction x": {1: fdrk.Constant(0), 2: fdrk.Constant(0), 3: fdrk.Constant(0)},
                 "traction y": {1: fdrk.Constant(0), 2: fdrk.Constant(0), 4: force_y}}
 
 
