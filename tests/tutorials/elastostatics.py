@@ -21,7 +21,7 @@ def epsilon(u):
 
 def sigma(u):
     return lambda_*div(u)*Id + 2*mu*epsilon(u)
-4
+
 u = TrialFunction(V)
 v = TestFunction(V)
 a = inner(sigma(u), epsilon(v))*dx
