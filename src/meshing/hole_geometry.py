@@ -25,3 +25,5 @@ gmsh.write("square_hole.msh")
 
 # Finalize Gmsh
 gmsh.finalize()
+
+
