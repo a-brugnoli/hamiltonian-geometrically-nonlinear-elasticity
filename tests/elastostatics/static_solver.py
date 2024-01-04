@@ -14,7 +14,7 @@ pol_degree = 2
 mesh_size = 5
 problem = CookMembrane(mesh_size)
 
-solver = NonLinearStaticSolver(problem, pol_degree, formulation="grad")
+# solver = NonLinearStaticSolver(problem, pol_degree, formulation="grad")
 
-solver.solve()
+# solver.solve()
 

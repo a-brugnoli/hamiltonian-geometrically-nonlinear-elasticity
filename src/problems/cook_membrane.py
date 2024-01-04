@@ -2,6 +2,7 @@ import firedrake as fdrk
 from .problem import StaticProblem
 import numpy as np
 from src.meshing.cook_membrane import create_cook_membrane
+import matplotlib.pyplot as plt
 
 # Neo Hookean Potentials
 # I_1, I_2, I_3 are the principal invariants of the Cauchy Green deformation tensor C = F^T F
@@ -20,11 +21,13 @@ class CookMembrane(StaticProblem):
         self.domain = fdrk.Mesh('cook_membrane.msh')
         self.dim = self.domain.geometric_dimension()
 
-        print(f"Dimension problem : {self.dim}")
+        fig, axes = plt.subplots()
+        fdrk.triplot(self.domain, axes=axes)
+        axes.legend()
+        plt.show()
 
         self.coordinates_mesh = fdrk.SpatialCoordinate(self.domain)
 
-        print(self.coordinates_mesh)
         self.x, self.y = self.coordinates_mesh
         self.normal_versor = fdrk.FacetNormal(self.domain)
 
