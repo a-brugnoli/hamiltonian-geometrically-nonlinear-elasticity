@@ -1,20 +1,26 @@
 import firedrake as fdrk
 from src.problems.inhomogeneous_compression import InhomogeneousCompression
 from src.problems.cook_membrane import CookMembrane
-from src.solvers.nonlinear_static import NonLinearStaticSolver
+from src.problems.convergence_static import ConvergenceStatic
+from src.solvers.nonlinear_static_grad import NonLinearStaticSolverGrad
+from src.solvers.nonlinear_static_general import NonLinearStaticSolver
+
 import numpy as np
 
 
 pol_degree = 2
 
-# nx = 60
-# ny = 30
-# problem = InhomogeneousCompression(nx, ny)
+nx = 30
+ny = 30
+problem = InhomogeneousCompression(nx, ny)
 
-mesh_size = 5
-problem = CookMembrane(mesh_size)
+# mesh_size = 2
+# problem = CookMembrane(mesh_size)
+
+# problem = ConvergenceStatic(20, 20)
 
 # solver = NonLinearStaticSolver(problem, pol_degree, formulation="grad")
+solver = NonLinearStaticSolverGrad(problem, pol_degree)
 
-# solver.solve()
+solver.solve()
 

@@ -1,8 +1,5 @@
 import firedrake as fdrk
 from .problem import StaticProblem
-import numpy as np
-from src.meshing.cook_membrane import create_cook_membrane
-import matplotlib.pyplot as plt
 
 # Neo Hookean Potentials
 # I_1, I_2, I_3 are the principal invariants of the Cauchy Green deformation tensor C = F^T F
@@ -13,12 +10,11 @@ import matplotlib.pyplot as plt
 # P_1 = mu (F - F^{-T}) + kappa (J^2 - J) F^{-T}
 # P_2 = mu (F - F^{-T}) + kappa ln(J) F^{-T}
 
-class CookMembrane(StaticProblem):
+class ConvergenceStatic(StaticProblem):
 
-    def __init__(self, mesh_size):
+    def __init__(self, n_elem_x, n_elem_y):
 
-        create_cook_membrane(mesh_size)
-        self.domain = fdrk.Mesh('cook_membrane.msh')
+        self.domain = fdrk.UnitSquareMesh(n_elem_x, n_elem_y)
         self.dim = self.domain.geometric_dimension()
 
         # fig, axes = plt.subplots()
@@ -31,9 +27,8 @@ class CookMembrane(StaticProblem):
         self.x, self.y = self.coordinates_mesh
         self.normal_versor = fdrk.FacetNormal(self.domain)
 
-        self.mu = 80.194  #N/mm^2
-        self.kappa = 400889.8 #N/mm^2
-
+        self.mu = 1  #N/mm^2
+        self.kappa = 1 #N/mm^2
 
 
     def first_piola_definition(self, grad_disp):
@@ -52,6 +47,19 @@ class CookMembrane(StaticProblem):
                 + self.kappa * fdrk.tr(fdrk.dot(invF, tensor)) * inv_Ftr
 
 
+    def get_exact_solution(self):
+
+        exact_displacement = fdrk.as_vector([0.5*self.y**3 + 0.5*fdrk.sin(0.5 * fdrk.pi * self.y), 
+                                             fdrk.Constant(0)])
+        
+        exact_disp_grad = fdrk.grad(exact_displacement)
+        exact_first_piola = self.first_piola_definition(exact_disp_grad)
+
+        return {"displacement" : exact_displacement,
+                "disp_grad": exact_disp_grad,
+                "first_piola": exact_first_piola}
+
+
     def get_essential_bcs(self) -> dict:
         """
         Cantilever beam
@@ -60,24 +68,28 @@ class CookMembrane(StaticProblem):
         
         """
 
-        essential_dict = {"displacement x": {1: fdrk.Constant(0)},
-                          "displacement y": {1: fdrk.Constant(0)}}
+        essential_dict = {"displacement x": {3: fdrk.Constant(0)},
+                          "displacement y": {3: fdrk.Constant(0)}}
         
         return essential_dict
     
     def get_natural_bcs(self) -> dict:
 
+        first_piola_exact = self.get_exact_solution()["first_piola"]
 
-        force_y = 24
-        # traction = fdrk.as_vector([fdrk.Constant(0), force_y])
+        traction = fdrk.dot(first_piola_exact, self.normal_versor)
 
-        return {"traction x": {2: fdrk.Constant(0), 3: fdrk.Constant(0), 4: fdrk.Constant(0)},
-                "traction y": {2: fdrk.Constant(0), 3: force_y, 4: fdrk.Constant(0)}}
+        return {"traction x": {1: traction[0], 2: traction[0], 4: traction[0]},
+                "traction y": {1: traction[1], 2: traction[1], 4: traction[1]}}
 
 
     def get_forcing(self):
-        return None
+
+        first_piola_exact = self.get_exact_solution()["first_piola"]
+        exact_forcing = - fdrk.div(first_piola_exact)
+        return exact_forcing
+    
     
 
     def __str__(self):
-        return "CookMembrane"
+        return "ConvergenceStatic2D"

@@ -25,12 +25,8 @@ class InhomogeneousCompression(StaticProblem):
         self.x, self.y = self.coordinates_mesh
         self.normal_versor = fdrk.FacetNormal(self.domain)
 
-        self.mu = 80  #N/mm^2
-        self.kappa = 400889 #N/mm^2
-
-        # mu = 80 * 10**(6) #N/m^2
-        # kappa = 400889 * 10**(6) #N/m^2
-
+        self.mu = 80.194  #N/mm^2
+        self.kappa = 400889.8 #N/mm^2
 
     def first_piola_definition(self, grad_disp):
         def_grad = fdrk.Identity(self.dim) + grad_disp
@@ -64,7 +60,7 @@ class InhomogeneousCompression(StaticProblem):
     def get_natural_bcs(self) -> dict:
 
         factor = 1
-        f = 10
+        f = 20
         force_y = -factor*f*fdrk.conditional(fdrk.le(abs(self.x), self.length_side/2), 1, 0) 
         # traction = fdrk.as_vector([fdrk.Constant(0), force_y])
 
