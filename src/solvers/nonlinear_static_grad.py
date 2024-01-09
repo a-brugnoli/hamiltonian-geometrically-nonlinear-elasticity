@@ -30,9 +30,6 @@ class NonLinearStaticSolverGrad:
         self.solution_k.sub(1).assign(fdrk.as_tensor([([0] * problem.dim) for i in range(problem.dim)]))
         self.solution_k.sub(2).assign(fdrk.as_tensor([([0] * problem.dim) for i in range(problem.dim)]))
 
-        # self.sol_load_factor = fdrk.Function(mixed_space) # the solution for a given loading parameter
-        # self.sol_load_factor.assign(self.solution_k) 
-
         self.delta_solution = fdrk.Function(mixed_space)
         self.delta_displacement, self.delta_grad_disp, self.delta_first_piola = self.delta_solution.subfunctions
 
@@ -123,48 +120,22 @@ class NonLinearStaticSolverGrad:
 
         tolerance = 1e-9
         n_iter_max = 20
-        min_stepsize = 1.0E-4
-        loading_factor_0 = 0.0 # adaptive loading parameter
-        step_size = 0.1 # parameter for increasing the load factor
+        
+        eps = 1
+        iter = 0
+        while eps > tolerance and iter < n_iter_max:
+            iter += 1
 
-        while loading_factor_0 < 1.0:
-            # alpha1 will be used to calculate the next step of loading
-            loading_factor_1 = loading_factor_0 + step_size
-            if loading_factor_1 > 1.0:
+            self.solver.solve()
+            eps = fdrk.norm(self.delta_solution)
 
-                loading_factor_1 = 1.0
-                step_size = 1.0 - loading_factor_0
-            PETSc.Sys.Print("-- load factor = %6.2E -- " % loading_factor_1)
-            self.loading_factor = loading_factor_1 # increasing load gradually
+            PETSc.Sys.Print("iter = %d: the L2 norm of the increment is %8.2E" % (iter, eps))
 
-            eps = 1
-            iter = 0
-            while eps > tolerance and iter < n_iter_max:
-                iter += 1
-
-                self.solver.solve()
-                eps = fdrk.norm(self.delta_solution)
-
-                PETSc.Sys.Print("iter = %d: the L2 norm of the increment is %8.2E" % (iter, eps))
-
-                self.solution_k.assign(self.solution_k + self.delta_solution)
-                axes.cla()
-                self.plot_displacement(axes)
-                plt.draw()
-                plt.pause(0.2)
-
-            if iter == n_iter_max:
-                PETSc.Sys.Print("Newton iterations reached the max iteration,decreasing step-size" )
-                step_size = 0.5 * step_size # decreasing step_size
-                # self.solution_k.assign(self.sol_load_factor) # rejecting the result
-            else:
-                # self.sol_load_factor.assign(self.solution_k) # accepting this step
-                loading_factor_0 = loading_factor_1
-                step_size = 2.0 * step_size # increasing the step-size
-                if step_size < min_stepsize:
-                    PETSc.Sys.Print("Too small step_size! step_size = %6.2E" % step_size)
-                    import sys
-                    sys.exit("Termination!")
+            self.solution_k.assign(self.solution_k + self.delta_solution)
+            axes.cla()
+            self.plot_displacement(axes)
+            plt.draw()
+            plt.pause(0.2)
 
         
 
