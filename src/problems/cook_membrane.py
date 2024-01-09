@@ -35,17 +35,26 @@ class CookMembrane(StaticProblem):
         self.kappa = 400889.8 #N/mm^2
 
 
+    def energy_definition(self, grad_disp):
+        def_grad = fdrk.Identity(self.dim) + grad_disp
+        Cauchy_strain = fdrk.dot(def_grad.T, def_grad) 
+        J = fdrk.det(def_grad)
+        W = self.mu/2 (fdrk.tr(Cauchy_strain) - 3) - self.mu * fdrk.ln(J) + self.kappa/2 * (fdrk.ln(J))**2
+        return W
+
+
 
     def first_piola_definition(self, grad_disp):
         def_grad = fdrk.Identity(self.dim) + grad_disp
-        inv_F_transpose = fdrk.inv(def_grad).T
-        return self.mu*(def_grad - inv_F_transpose) + self.kappa * fdrk.ln(fdrk.det(def_grad)) * inv_F_transpose
+        inv_F_transpose = fdrk.inv(def_grad.T)
+        J = fdrk.det(def_grad)
+        return self.mu*(def_grad - inv_F_transpose) + self.kappa * fdrk.ln(J) * inv_F_transpose
 
 
     def derivative_first_piola(self, tensor, grad_disp):
         def_grad = fdrk.Identity(self.dim) + grad_disp
         invF = fdrk.inv(def_grad)
-        inv_Ftr = fdrk.inv(def_grad).T
+        inv_Ftr = fdrk.inv(def_grad.T)
 
         return self.mu * tensor + (self.mu - self.kappa * fdrk.ln(fdrk.det(def_grad))) \
                 * fdrk.dot(inv_Ftr, fdrk.dot(tensor.T, inv_Ftr)) \
@@ -68,7 +77,7 @@ class CookMembrane(StaticProblem):
     def get_natural_bcs(self) -> dict:
 
 
-        force_y = 24
+        force_y = 8
         # traction = fdrk.as_vector([fdrk.Constant(0), force_y])
 
         return {"traction x": {2: fdrk.Constant(0), 3: fdrk.Constant(0), 4: fdrk.Constant(0)},

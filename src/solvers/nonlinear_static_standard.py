@@ -4,37 +4,25 @@ import matplotlib.pyplot as plt
 import time
 from firedrake.petsc import PETSc
 
-class NonLinearStaticSolverGrad:
+class NonLinearStaticSolverStandard:
     def __init__(self, problem: StaticProblem, pol_degree=2):
         
         self.domain = problem.domain
         self.problem = problem
 
         CG_vectorspace = fdrk.VectorFunctionSpace(self.domain, "CG", pol_degree)
-        NED2_vectorspace = fdrk.VectorFunctionSpace(self.domain, "N2curl", pol_degree) # Every row is a Nedelec
-        BDM_vectorspace = fdrk.VectorFunctionSpace(self.domain, "BDM", pol_degree) # Every row is a BDM
-
+        
         self.disp_space = CG_vectorspace
-        self.strain_space = NED2_vectorspace
-        self.stress_space = BDM_vectorspace
+        
+        test_disp = fdrk.TestFunction(self.disp_space)
 
-        mixed_space = self.disp_space * self.strain_space * self.stress_space
+        self.displacement = fdrk.Function(self.disp_space)
 
-        test_disp, test_grad_disp, test_first_piola = fdrk.TestFunctions(mixed_space)
+        self.displacement.assign(fdrk.as_vector([0] * problem.dim))
+        
+        self.delta_disp = fdrk.Function(self.disp_space)
 
-        self.solution = fdrk.Function(mixed_space)
-        # self.displacement, self.grad_disp, self.first_piola = self.solution.subfunctions
-        self.displacement, self.grad_disp, self.first_piola = fdrk.split(self.solution)
-
-        self.solution.sub(0).assign(fdrk.as_vector([0] * problem.dim))
-        self.solution.sub(1).assign(fdrk.as_tensor([([0] * problem.dim) for i in range(problem.dim)]))
-        self.solution.sub(2).assign(fdrk.as_tensor([([0] * problem.dim) for i in range(problem.dim)]))
-
-        self.delta_solution = fdrk.Function(mixed_space)
-        self.delta_displacement, self.delta_grad_disp, self.delta_first_piola = self.delta_solution.subfunctions
-
-        trial_delta_mixed = fdrk.TrialFunction(mixed_space)
-        trial_delta_disp, trial_delta_grad_disp, trial_delta_first_piola = fdrk.split(trial_delta_mixed)
+        trial_delta_disp = fdrk.TrialFunction(self.disp_space)
 
         dict_essential_bcs = problem.get_essential_bcs()
         dict_disp_x = dict_essential_bcs["displacement x"]
@@ -43,16 +31,18 @@ class NonLinearStaticSolverGrad:
 
         bcs = []
         for subdomain, disp_x in  dict_disp_x.items():
-            bcs.append(fdrk.DirichletBC(mixed_space.sub(0).sub(0), disp_x, subdomain))
+            bcs.append(fdrk.DirichletBC(self.disp_space.sub(0), disp_x, subdomain))
 
         for subdomain, disp_y in  dict_disp_y.items():
-            bcs.append(fdrk.DirichletBC(mixed_space.sub(0).sub(1), disp_y, subdomain))
+            bcs.append(fdrk.DirichletBC(self.disp_space.sub(1), disp_y, subdomain))
 
         dict_nat_bcs = problem.get_natural_bcs()
         dict_traction_x = dict_nat_bcs["traction x"]
         dict_traction_y = dict_nat_bcs["traction y"]
 
-        res_equilibrium = fdrk.inner(fdrk.grad(test_disp), self.first_piola) * fdrk.dx 
+        first_piola = problem.first_piola_definition(fdrk.grad(self.displacement))
+
+        res_equilibrium = fdrk.inner(fdrk.grad(test_disp), first_piola) * fdrk.dx 
 
         for subdomain, force_x in dict_traction_x.items():
             res_equilibrium -= fdrk.inner(test_disp[0], force_x) * fdrk.ds(subdomain)
@@ -65,30 +55,7 @@ class NonLinearStaticSolverGrad:
         if forcing is not None:
             res_equilibrium -= fdrk.inner(test_disp,forcing) * fdrk.dx
 
-        res_def_grad = fdrk.inner(test_grad_disp,  fdrk.grad(self.displacement) - self.grad_disp)*fdrk.dx
         
-        res_stress = fdrk.inner(test_first_piola, 
-                                problem.first_piola_definition(self.grad_disp) - self.first_piola) * fdrk.dx
-        
-        actual_res = res_equilibrium + res_def_grad + res_stress
-
-        # H is the gradient of the displacement
-        D_res_u_DP = fdrk.inner(fdrk.grad(test_disp), trial_delta_first_piola) * fdrk.dx 
-
-        D_res_H_Du = fdrk.inner(test_grad_disp, fdrk.grad(trial_delta_disp))*fdrk.dx
-        D_res_H_DH = fdrk.inner(test_grad_disp, - trial_delta_grad_disp)*fdrk.dx
-
-        D_res_P_DH = fdrk.inner(test_first_piola, 
-                                problem.derivative_first_piola(trial_delta_grad_disp, self.grad_disp)) * fdrk.dx
-
-        D_res_P_DP = fdrk.inner(test_first_piola, - trial_delta_first_piola) * fdrk.dx
-
-        Jacobian = D_res_u_DP \
-                    + D_res_H_DH \
-                    + D_res_H_Du \
-                    + D_res_P_DP \
-                    + D_res_P_DH
-
         # variational_problem = fdrk.LinearVariationalProblem(Jacobian,
         #                                                     -actual_res, 
         #                                                     self.delta_solution, 
@@ -97,8 +64,8 @@ class NonLinearStaticSolverGrad:
 
         # self.solver = fdrk.LinearVariationalSolver(variational_problem, solver_parameters={})
 
-        variational_problem = fdrk.NonlinearVariationalProblem(actual_res, 
-                                                               self.solution, 
+        variational_problem = fdrk.NonlinearVariationalProblem(res_equilibrium, 
+                                                               self.displacement, 
                                                                bcs = bcs)
 
         self.solver = fdrk.NonlinearVariationalSolver(variational_problem)
