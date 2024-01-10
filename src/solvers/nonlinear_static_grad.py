@@ -11,12 +11,12 @@ class NonLinearStaticSolverGrad:
         self.problem = problem
 
         CG_vectorspace = fdrk.VectorFunctionSpace(self.domain, "CG", pol_degree)
-        NED2_vectorspace = fdrk.VectorFunctionSpace(self.domain, "N2curl", pol_degree) # Every row is a Nedelec
-        BDM_vectorspace = fdrk.VectorFunctionSpace(self.domain, "BDM", pol_degree) # Every row is a BDM
+        NED2_vectorspace = fdrk.VectorFunctionSpace(self.domain, "N2curl", pol_degree-1) # Every row is a Nedelec
+        # BDM_vectorspace = fdrk.VectorFunctionSpace(self.domain, "BDM", pol_degree) # Every row is a BDM
 
         self.disp_space = CG_vectorspace
         self.strain_space = NED2_vectorspace
-        self.stress_space = BDM_vectorspace
+        self.stress_space = NED2_vectorspace
 
         mixed_space = self.disp_space * self.strain_space * self.stress_space
 
@@ -89,50 +89,51 @@ class NonLinearStaticSolverGrad:
                     + D_res_P_DP \
                     + D_res_P_DH
 
-        # variational_problem = fdrk.LinearVariationalProblem(Jacobian,
-        #                                                     -actual_res, 
-        #                                                     self.delta_solution, 
-        #                                                     bcs = bcs)
+        variational_problem = fdrk.LinearVariationalProblem(Jacobian,
+                                                            -actual_res, 
+                                                            self.delta_solution, 
+                                                            bcs = bcs)
 
 
-        # self.solver = fdrk.LinearVariationalSolver(variational_problem, solver_parameters={})
+        self.solver = fdrk.LinearVariationalSolver(variational_problem, solver_parameters={})
 
-        variational_problem = fdrk.NonlinearVariationalProblem(actual_res, 
-                                                               self.solution, 
-                                                               bcs = bcs)
+        # variational_problem = fdrk.NonlinearVariationalProblem(actual_res, 
+        #                                                        self.solution, 
+        #                                                        bcs = bcs)
 
-        self.solver = fdrk.NonlinearVariationalSolver(variational_problem)
+        # self.solver = fdrk.NonlinearVariationalSolver(variational_problem)
 
 
 
     def solve(self):
 
-        self.solver.solve()
+        # self.solver.solve()
 
-        # fig, axes = plt.subplots()
-        # int_coordinates = fdrk.Mesh(fdrk.interpolate(self.problem.coordinates_mesh, self.disp_space))        
-        # fdrk.triplot(int_coordinates, axes=axes)
-        # plt.show(block=False)
-        # plt.pause(0.2)
+        fig, axes = plt.subplots()
+        int_coordinates = fdrk.Mesh(fdrk.interpolate(self.problem.coordinates_mesh, self.disp_space))        
+        fdrk.triplot(int_coordinates, axes=axes)
+        plt.show(block=False)
+        plt.pause(0.2)
 
-        # tolerance = 1e-9
-        # n_iter_max = 20
+        tolerance = 1e-9
+        n_iter_max = 35
+        damping_factor = 0.1
         
-        # eps = 1
-        # iter = 0
-        # while eps > tolerance and iter < n_iter_max:
-        #     iter += 1
+        eps = 1
+        iter = 0
+        while eps > tolerance and iter < n_iter_max:
+            iter += 1
 
-        #     self.solver.solve()
-        #     eps = fdrk.norm(self.delta_solution)
+            self.solver.solve()
+            eps = fdrk.norm(self.delta_solution)
 
-        #     PETSc.Sys.Print("iter = %d: the L2 norm of the increment is %8.2E" % (iter, eps))
+            PETSc.Sys.Print("iter = %d: the L2 norm of the increment is %8.2E" % (iter, eps))
 
-        #     self.solution_k.assign(self.solution_k + self.delta_solution)
-        #     axes.cla()
-        #     self.plot_displacement(axes)
-        #     plt.draw()
-        #     plt.pause(0.2)
+            self.solution.assign(self.solution + damping_factor * self.delta_solution)
+            axes.cla()
+            self.plot_displacement(axes)
+            plt.draw()
+            plt.pause(0.2)
 
         
 

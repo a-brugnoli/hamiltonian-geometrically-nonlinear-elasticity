@@ -8,21 +8,21 @@ from src.solvers.nonlinear_static_standard import NonLinearStaticSolverStandard
 
 import numpy as np
 
-pol_degree = 3
+pol_degree = 2
 
 # nx = 30
 # ny = 30
 # problem = InhomogeneousCompression(nx, ny)
 
-mesh_size = 1
+mesh_size = 2
 problem = CookMembrane(mesh_size)
 
 # problem = ConvergenceStatic(20, 20)
 
 # solver = NonLinearStaticSolver(problem, pol_degree, formulation="grad")
-# solver = NonLinearStaticSolverGrad(problem, pol_degree)
+solver = NonLinearStaticSolverGrad(problem, pol_degree)
 
-solver = NonLinearStaticSolverStandard(problem, pol_degree)
+# solver = NonLinearStaticSolverStandard(problem, pol_degree)
 
 solver.solve()
 
