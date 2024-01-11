@@ -5,10 +5,11 @@ import time
 from firedrake.petsc import PETSc
 
 class NonLinearStaticSolverStandard:
-    def __init__(self, problem: StaticProblem, pol_degree=2):
+    def __init__(self, problem: StaticProblem, pol_degree=2, num_steps=35):
         
         self.domain = problem.domain
         self.problem = problem
+        self.num_steps = num_steps
 
         CG_vectorspace = fdrk.VectorFunctionSpace(self.domain, "CG", pol_degree)
         
@@ -44,18 +45,19 @@ class NonLinearStaticSolverStandard:
 
         res_equilibrium = fdrk.inner(fdrk.grad(test_disp), first_piola) * fdrk.dx 
 
+        self.loading_factor = fdrk.Constant(0)
+
         for subdomain, force_x in dict_traction_x.items():
-            res_equilibrium -= fdrk.inner(test_disp[0], force_x) * fdrk.ds(subdomain)
+            res_equilibrium -= fdrk.inner(test_disp[0], self.loading_factor * force_x) * fdrk.ds(subdomain)
 
         for subdomain, force_y in dict_traction_y.items():
-            res_equilibrium -= fdrk.inner(test_disp[1], force_y) * fdrk.ds(subdomain)
+            res_equilibrium -= fdrk.inner(test_disp[1], self.loading_factor * force_y) * fdrk.ds(subdomain)
 
         forcing = self.problem.get_forcing()
 
         if forcing is not None:
-            res_equilibrium -= fdrk.inner(test_disp,forcing) * fdrk.dx
+            res_equilibrium -= fdrk.inner(test_disp, self.loading_factor * forcing) * fdrk.dx
 
-        
         # variational_problem = fdrk.LinearVariationalProblem(Jacobian,
         #                                                     -actual_res, 
         #                                                     self.delta_solution, 
@@ -74,34 +76,24 @@ class NonLinearStaticSolverStandard:
 
     def solve(self):
 
-        self.solver.solve()
+        fig, axes = plt.subplots()
+        int_coordinates = fdrk.Mesh(fdrk.interpolate(self.problem.coordinates_mesh, self.disp_space))        
+        fdrk.triplot(int_coordinates, axes=axes)
+        plt.show(block=False)
+        plt.pause(0.2)
 
-        # fig, axes = plt.subplots()
-        # int_coordinates = fdrk.Mesh(fdrk.interpolate(self.problem.coordinates_mesh, self.disp_space))        
-        # fdrk.triplot(int_coordinates, axes=axes)
-        # plt.show(block=False)
-        # plt.pause(0.2)
+        for step in range(self.num_steps):
+            self.loading_factor.assign((step+1)/self.num_steps)
+            PETSc.Sys.Print("step number = %d: load factor is %.0f%%" % (step, self.loading_factor*100))
 
-        # tolerance = 1e-9
-        # n_iter_max = 20
-        
-        # eps = 1
-        # iter = 0
-        # while eps > tolerance and iter < n_iter_max:
-        #     iter += 1
+            self.solver.solve()
 
-        #     self.solver.solve()
-        #     eps = fdrk.norm(self.delta_solution)
+            axes.cla()
+            self.plot_displacement(axes)
+            plt.draw()
+            plt.pause(0.2)
 
-        #     PETSc.Sys.Print("iter = %d: the L2 norm of the increment is %8.2E" % (iter, eps))
 
-        #     self.solution_k.assign(self.solution_k + self.delta_solution)
-        #     axes.cla()
-        #     self.plot_displacement(axes)
-        #     plt.draw()
-        #     plt.pause(0.2)
-
-        
 
     def plot_displacement(self, axes):
         int_displaced_coordinates = fdrk.Mesh(fdrk.interpolate(self.problem.coordinates_mesh \

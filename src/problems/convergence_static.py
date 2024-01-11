@@ -73,11 +73,16 @@ class ConvergenceStatic(StaticProblem):
         
         return essential_dict
     
+
     def get_natural_bcs(self) -> dict:
 
         first_piola_exact = self.get_exact_solution()["first_piola"]
 
         traction = fdrk.dot(first_piola_exact, self.normal_versor)
+
+        # traction_1 = fdrk.as_vector(-first_piola_exact[:, 0])
+        # traction_2 = fdrk.as_vector(+first_piola_exact[:, 0])
+        # traction_4 = fdrk.as_vector(+first_piola_exact[:, 1])
 
         return {"traction x": {1: traction[0], 2: traction[0], 4: traction[0]},
                 "traction y": {1: traction[1], 2: traction[1], 4: traction[1]}}

@@ -6,27 +6,22 @@ from src.solvers.nonlinear_static_grad import NonLinearStaticSolverGrad
 from src.solvers.nonlinear_static_general import NonLinearStaticSolver
 from src.solvers.nonlinear_static_standard import NonLinearStaticSolverStandard
 
-import numpy as np
-
 pol_degree = 2
 
-# nx = 30
-# ny = 30
-# problem = InhomogeneousCompression(nx, ny)
+nx = 30
+ny = 30
+problem = InhomogeneousCompression(nx, ny)
 
-mesh_size = 2
-problem = CookMembrane(mesh_size)
+# mesh_size = 2
+# problem = CookMembrane(mesh_size)
 
 # problem = ConvergenceStatic(20, 20)
 
-# solver = NonLinearStaticSolver(problem, pol_degree, formulation="grad")
-solver = NonLinearStaticSolverGrad(problem, pol_degree)
+# solver = NonLinearStaticSolver(problem, pol_degree, "grad", 60)
 
-# solver = NonLinearStaticSolverStandard(problem, pol_degree)
+solver = NonLinearStaticSolverGrad(problem, pol_degree, 150)
+
+# solver = NonLinearStaticSolverStandard(problem, pol_degree, 150)
 
 solver.solve()
 
-import matplotlib.pyplot as plt
-fig, axes = plt.subplots()
-solver.plot_displacement(axes)
-plt.show()
