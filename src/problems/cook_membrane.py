@@ -43,7 +43,6 @@ class CookMembrane(StaticProblem):
         return W
 
 
-
     def first_piola_definition(self, grad_disp):
         def_grad = fdrk.Identity(self.dim) + grad_disp
         inv_F_transpose = fdrk.inv(def_grad.T)
@@ -78,10 +77,10 @@ class CookMembrane(StaticProblem):
 
 
         force_y = 24
-        # traction = fdrk.as_vector([fdrk.Constant(0), force_y])
+        traction = fdrk.as_vector([force_y, fdrk.Constant(0)])
 
-        return {"traction x": {2: fdrk.Constant(0), 3: fdrk.Constant(0), 4: fdrk.Constant(0)},
-                "traction y": {2: fdrk.Constant(0), 3: force_y, 4: fdrk.Constant(0)}}
+        return {"traction x": {2: fdrk.Constant((0, 0)), 3: fdrk.Constant((0, 0)), 4: fdrk.Constant((0, 0))},
+                "traction y": {2: fdrk.Constant((0, 0)), 3: traction, 4: fdrk.Constant((0, 0))}}
 
 
     def get_forcing(self):

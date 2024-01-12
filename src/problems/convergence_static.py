@@ -49,8 +49,7 @@ class ConvergenceStatic(StaticProblem):
 
     def get_exact_solution(self):
 
-        exact_displacement = fdrk.as_vector([0.5*self.y**3 + 0.5*fdrk.sin(0.5 * fdrk.pi * self.y), 
-                                             fdrk.Constant(0)])
+        exact_displacement = fdrk.as_vector([0.5*self.y**3 + 0.5*fdrk.sin(0.5 * fdrk.pi * self.y), 0])
         
         exact_disp_grad = fdrk.grad(exact_displacement)
         exact_first_piola = self.first_piola_definition(exact_disp_grad)
@@ -67,7 +66,6 @@ class ConvergenceStatic(StaticProblem):
         Traction along the y axis on the right boundary =
         
         """
-
         essential_dict = {"displacement x": {3: fdrk.Constant(0)},
                           "displacement y": {3: fdrk.Constant(0)}}
         
@@ -75,17 +73,13 @@ class ConvergenceStatic(StaticProblem):
     
 
     def get_natural_bcs(self) -> dict:
-
         first_piola_exact = self.get_exact_solution()["first_piola"]
 
-        traction = fdrk.dot(first_piola_exact, self.normal_versor)
+        traction_x = first_piola_exact[0, :]
+        traction_y = first_piola_exact[1, :]
 
-        # traction_1 = fdrk.as_vector(-first_piola_exact[:, 0])
-        # traction_2 = fdrk.as_vector(+first_piola_exact[:, 0])
-        # traction_4 = fdrk.as_vector(+first_piola_exact[:, 1])
-
-        return {"traction x": {1: traction[0], 2: traction[0], 4: traction[0]},
-                "traction y": {1: traction[1], 2: traction[1], 4: traction[1]}}
+        return {"traction x": {1: traction_x, 2: traction_x, 4: traction_x},
+                "traction y": {1: traction_y, 2: traction_y, 4: traction_y}}
 
 
     def get_forcing(self):
