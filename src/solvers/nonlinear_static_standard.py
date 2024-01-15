@@ -48,10 +48,12 @@ class NonLinearStaticSolverStandard:
         self.loading_factor = fdrk.Constant(0)
 
         for subdomain, force_x in dict_traction_x.items():
-            res_equilibrium -= fdrk.inner(test_disp[0], self.loading_factor * force_x) * fdrk.ds(subdomain)
+            res_equilibrium -= self.loading_factor * fdrk.inner(test_disp[0], 
+                                fdrk.dot(force_x, problem.normal_versor)) * fdrk.ds(subdomain)
 
         for subdomain, force_y in dict_traction_y.items():
-            res_equilibrium -= fdrk.inner(test_disp[1], self.loading_factor * force_y) * fdrk.ds(subdomain)
+            res_equilibrium -= self.loading_factor * fdrk.inner(test_disp[1], 
+                                fdrk.dot(force_y, problem.normal_versor)) * fdrk.ds(subdomain)
 
         forcing = self.problem.get_forcing()
 

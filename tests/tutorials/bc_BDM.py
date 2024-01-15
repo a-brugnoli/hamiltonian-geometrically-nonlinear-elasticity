@@ -32,3 +32,4 @@ BDM_vectorspace = fdrk.VectorFunctionSpace(domain, "BDM", pol_degree)
 column = exact_first_piola[:, 0]
 
 bc_BDM = fdrk.DirichletBC(BDM_vectorspace.sub(0), column, 1)
+

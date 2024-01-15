@@ -5,14 +5,23 @@ from firedrake.petsc import PETSc
 import numpy as np
 
 class NonLinearStaticSolverDiv:
-    def __init__(self, problem: StaticProblem, pol_degree=1, formulation="grad", num_steps = 35):
+    def __init__(self, problem: StaticProblem, pol_degree=1, num_steps = 35):
         
         self.domain = problem.domain
         self.problem = problem
         self.num_steps = num_steps
 
-        L2_vectorspace = fdrk.VectorFunctionSpace(self.domain, "DG", pol_degree-1)
-        Hdiv_vectorspace = fdrk.VectorFunctionSpace(self.domain, "BDM", pol_degree) # Every row is from the space
+        cell = self.domain.ufl_cell()
+        L2_fe = fdrk.FiniteElement("DG", cell, pol_degree-1)
+
+        if str(cell)=="triangle":
+            Hdiv_fe = fdrk.FiniteElement("BDM", cell, pol_degree, 
+                                        variant=f"integral({pol_degree+1})")
+        else:
+            Hdiv_fe = fdrk.FiniteElement("RTCF", cell, pol_degree)
+
+        L2_vectorspace = fdrk.VectorFunctionSpace(self.domain, L2_fe)
+        Hdiv_vectorspace = fdrk.VectorFunctionSpace(self.domain, Hdiv_fe) 
 
         self.disp_space = L2_vectorspace
         self.strain_space = Hdiv_vectorspace
@@ -50,10 +59,10 @@ class NonLinearStaticSolverDiv:
                     
         for subdomain, force_x in  dict_traction_x.items():
             space_traction = mixed_space.sub(2).sub(0)
-            bcs.append(fdrk.DirichletBC(space_traction, force_x, subdomain))
+            bcs.append(fdrk.DirichletBC(space_traction, self.loading_factor * force_x, subdomain))
         for subdomain, force_y in  dict_traction_y.items():
             space_traction = mixed_space.sub(2).sub(1)
-            bcs.append(fdrk.DirichletBC(space_traction, force_y, subdomain))
+            bcs.append(fdrk.DirichletBC(space_traction, self.loading_factor * force_y, subdomain))
 
         res_equilibrium = - fdrk.inner(test_disp, fdrk.div(self.first_piola)) * fdrk.dx 
 
@@ -70,7 +79,6 @@ class NonLinearStaticSolverDiv:
         for subdomain, disp_y in  dict_disp_y.items():
             res_def_grad += fdrk.dot(test_grad_disp, problem.normal_versor)[1]*disp_y*fdrk.ds(subdomain)
 
-        
         res_stress = fdrk.inner(test_first_piola, 
                                 problem.first_piola_definition(self.grad_disp) - self.first_piola) * fdrk.dx
         
@@ -90,23 +98,24 @@ class NonLinearStaticSolverDiv:
                 + D_res_P_DP \
                 + D_res_P_DH 
 
-        variational_problem = fdrk.LinearVariationalProblem(Jacobian,
-                                                            -actual_res, 
-                                                            self.delta_solution, 
-                                                            bcs = bcs)
+        # variational_problem = fdrk.LinearVariationalProblem(Jacobian,
+        #                                                     -actual_res, 
+        #                                                     self.delta_solution, 
+        #                                                     bcs = bcs)
         
-        solver_parameters={'ksp_converged_reason': None,
-                   'ksp_monitor_true_residual': None,
-                   'ksp_view': None}
+        # # solver_parameters={'ksp_converged_reason': None,
+        # #            'ksp_monitor_true_residual': None,
+        # #            'ksp_view': None}
 
-        self.solver = fdrk.LinearVariationalSolver(variational_problem, 
-                                                   solver_parameters=solver_parameters)
+        # solver_parameters = {}
+        # self.solver = fdrk.LinearVariationalSolver(variational_problem, 
+        #                                            solver_parameters=solver_parameters)
 
-        # variational_problem = fdrk.NonlinearVariationalProblem(actual_res, 
-        #                                                        self.solution, 
-        #                                                        bcs = bcs)
+        variational_problem = fdrk.NonlinearVariationalProblem(actual_res, 
+                                                               self.solution, 
+                                                               bcs = bcs)
 
-        # self.solver = fdrk.NonlinearVariationalSolver(variational_problem)
+        self.solver = fdrk.NonlinearVariationalSolver(variational_problem)
 
 
     def solve(self):
@@ -121,26 +130,26 @@ class NonLinearStaticSolverDiv:
         n_iter_max = 20
         damping_factor_newton = 1
 
-        # for step in range(self.num_steps):
-        #     self.loading_factor.assign((step+1)/self.num_steps)
-        #     PETSc.Sys.Print("step number = %d: load factor is %.0f%%" % (step, self.loading_factor*100))
+        for step in range(self.num_steps):
+            self.loading_factor.assign((step+1)/self.num_steps)
+            PETSc.Sys.Print("step number = %d: load factor is %.0f%%" % (step, self.loading_factor*100))
 
-        #     self.solver.solve()
+            self.solver.solve()
 
-        for load_step in range(self.num_steps):
-            self.loading_factor.assign((load_step+1)/self.num_steps)
-            PETSc.Sys.Print("step number = %d: load factor is %.0f%%" % (load_step, self.loading_factor*100))
+        # for load_step in range(self.num_steps):
+        #     self.loading_factor.assign((load_step+1)/self.num_steps)
+        #     PETSc.Sys.Print("step number = %d: load factor is %.0f%%" % (load_step, self.loading_factor*100))
 
-            for iter in range(n_iter_max):
-                self.solver.solve()
-                eps = fdrk.norm(self.delta_solution)
-                self.solution.assign(self.solution + damping_factor_newton * self.delta_solution)
+        #     for iter in range(n_iter_max):
+        #         self.solver.solve()
+        #         eps = fdrk.norm(self.delta_solution)
+        #         self.solution.assign(self.solution + damping_factor_newton * self.delta_solution)
                 
-                PETSc.Sys.Print("iter = %d: the L2 norm of the increment is %8.2E" % (iter, eps))
+        #         PETSc.Sys.Print("iter = %d: the L2 norm of the increment is %8.2E" % (iter, eps))
 
-                if eps < tolerance:
-                    PETSc.Sys.Print("Tolerance reached : exiting Newton loop")
-                    break
+        #         if eps < tolerance:
+        #             PETSc.Sys.Print("Tolerance reached : exiting Newton loop")
+        #             break
 
             axes.cla()
             self.plot_displacement(axes)

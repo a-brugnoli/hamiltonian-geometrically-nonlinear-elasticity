@@ -32,15 +32,16 @@ class ConvergenceStatic(StaticProblem):
 
 
     def first_piola_definition(self, grad_disp):
+        
         def_grad = fdrk.Identity(self.dim) + grad_disp
-        inv_F_transpose = fdrk.inv(def_grad).T
-        return self.mu*(def_grad - inv_F_transpose) + self.kappa * fdrk.ln(fdrk.det(def_grad)) * inv_F_transpose
-
+        inv_F_transpose = fdrk.inv(def_grad.T)
+        # return self.mu*(def_grad - inv_F_transpose) + self.kappa * fdrk.ln(fdrk.det(def_grad)) * inv_F_transpose
+        return self.mu*(def_grad - inv_F_transpose)
 
     def derivative_first_piola(self, tensor, grad_disp):
         def_grad = fdrk.Identity(self.dim) + grad_disp
         invF = fdrk.inv(def_grad)
-        inv_Ftr = fdrk.inv(def_grad).T
+        inv_Ftr = fdrk.inv(def_grad.T)
 
         return self.mu * tensor + (self.mu - self.kappa * fdrk.ln(fdrk.det(def_grad))) \
                 * fdrk.dot(inv_Ftr, fdrk.dot(tensor.T, inv_Ftr)) \
