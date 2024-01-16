@@ -8,7 +8,7 @@ from src.solvers.nonlinear_static import NonLinearStaticSolver
 from src.solvers.nonlinear_static_standard import NonLinearStaticSolverStandard
 
 problem_id = 1
-solver_id = 3
+solver_id = 2
 
 pol_degree = 2
 
