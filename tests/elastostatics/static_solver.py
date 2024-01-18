@@ -1,4 +1,4 @@
-import firedrake as fdrk
+from src.preprocessing.basic_plotting import *
 from src.problems.inhomogeneous_compression import InhomogeneousCompression
 from src.problems.cook_membrane import CookMembrane
 from src.problems.convergence_static import ConvergenceStatic
@@ -7,7 +7,7 @@ from src.solvers.nonlinear_static_div import NonLinearStaticSolverDiv
 from src.solvers.nonlinear_static import NonLinearStaticSolver
 from src.solvers.nonlinear_static_standard import NonLinearStaticSolverStandard
 
-problem_id = 1
+problem_id = 3
 solver_id = 2
 
 pol_degree = 2

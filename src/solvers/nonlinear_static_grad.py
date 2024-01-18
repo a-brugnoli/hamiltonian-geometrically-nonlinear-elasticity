@@ -17,6 +17,7 @@ class NonLinearStaticSolverGrad:
 
         if str(cell)=="triangle":
             Hcurl_fe = fdrk.FiniteElement("N2curl", cell, pol_degree-1, variant=f"integral({pol_degree+1})")
+            # Hcurl_fe = fdrk.FiniteElement("N1curl", cell, pol_degree, variant=f"integral({pol_degree+1})")
         else:
             Hcurl_fe = fdrk.FiniteElement("RTCE", cell, pol_degree)
  
