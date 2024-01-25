@@ -9,7 +9,7 @@ from src.solvers.hamiltonian_displacement import HamiltonianDisplacementSolver
 from src.problems.cantilever_beam import CantileverBeam
 import os
 
-pol_degree = 1
+pol_degree = 3
 quad = False
 n_elem_x= 100
 n_elem_y = 10

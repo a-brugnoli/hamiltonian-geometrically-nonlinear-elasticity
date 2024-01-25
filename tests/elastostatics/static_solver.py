@@ -3,11 +3,13 @@ from src.problems.inhomogeneous_compression import InhomogeneousCompression
 from src.problems.cook_membrane import CookMembrane
 from src.problems.convergence_static import ConvergenceStatic
 from src.solvers.nonlinear_static_grad import NonLinearStaticSolverGrad
-from src.solvers.nonlinear_static_div import NonLinearStaticSolverDiv
-from src.solvers.nonlinear_static import NonLinearStaticSolver
 from src.solvers.nonlinear_static_standard import NonLinearStaticSolverStandard
 
-problem_id = 3
+import firedrake as fdrk
+# from src.solvers.nonlinear_static_div import NonLinearStaticSolverDiv
+# from src.solvers.nonlinear_static import NonLinearStaticSolver
+
+problem_id = 2
 solver_id = 2
 
 pol_degree = 2
@@ -29,19 +31,27 @@ match problem_id:
         print("Invalid problem id") 
 
 
-match solver_id:
-    case 1:
-        solver = NonLinearStaticSolverStandard(problem, pol_degree, num_steps)
-    case 2:
-        solver = NonLinearStaticSolverGrad(problem, pol_degree, num_steps)   
-    case 3:
-        solver = NonLinearStaticSolverDiv(problem, pol_degree, num_steps)
-    case 4: 
-        solver = NonLinearStaticSolver(problem, pol_degree, "div", num_steps)
-    case _:
-        print("Invalid solver id") 
+# match solver_id:
+#     case 1:
+#         solver = NonLinearStaticSolverStandard(problem, pol_degree, num_steps)
+#     case 2:
+#         solver = NonLinearStaticSolverGrad(problem, pol_degree, num_steps)   
+#     case 3:
+#         solver = NonLinearStaticSolverDiv(problem, pol_degree, num_steps)
+#     case 4: 
+#         solver = NonLinearStaticSolver(problem, pol_degree, "div", num_steps)
+#     case _:
+#         print("Invalid solver id") 
 
 
+standard_solver = NonLinearStaticSolverStandard(problem, pol_degree, num_steps)
+standard_solver.solve()
 
-solver.solve()
+mixed_solver = NonLinearStaticSolverGrad(problem, pol_degree, num_steps)   
+mixed_solver.solve()
 
+print("L2 Norm of the difference of the displacement obtained through the two methods")
+print(fdrk.norm(standard_solver.displacement - mixed_solver.displacement, "L2"))
+
+print("H1 Norm of the difference of the displacement obtained through the two methods")
+print(fdrk.norm(standard_solver.displacement - mixed_solver.displacement, "H1"))

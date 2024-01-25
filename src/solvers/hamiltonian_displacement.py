@@ -15,9 +15,8 @@ class HamiltonianDisplacementSolver:
         self.coordinates_mesh = problem.coordinates_mesh
         self.time_step = time_step
 
-        CG_vectorspace = fdrk.VectorFunctionSpace(problem.domain, "CG", pol_degree)
+        CG_vectorspace = fdrk.VectorFunctionSpace(problem.domain, "CG", pol_degree-1)
         space_stress_tensor = fdrk.TensorFunctionSpace(problem.domain, "DG", pol_degree-1, symmetry=True)
-        # space_stress_tensor = fdrk.FunctionSpace(problem.domain, "HHJ", pol_degree-1)
 
         self.space_displacement = CG_vectorspace
         space_energy = CG_vectorspace * space_stress_tensor
