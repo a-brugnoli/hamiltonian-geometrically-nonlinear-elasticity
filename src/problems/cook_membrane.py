@@ -39,8 +39,16 @@ class CookMembrane(StaticProblem):
         def_grad = fdrk.Identity(self.dim) + grad_disp
         Cauchy_strain = fdrk.dot(def_grad.T, def_grad) 
         J = fdrk.det(def_grad)
-        W = self.mu/2 (fdrk.tr(Cauchy_strain) - 2) - self.mu * fdrk.ln(J) + self.lamda/2 * (fdrk.ln(J))**2
+        W = self.mu/2 * (fdrk.tr(Cauchy_strain) - 2) \
+            - self.mu * fdrk.ln(J) \
+            + self.lamda/2 * (fdrk.ln(J))**2
         return W
+    
+
+    def second_piola_definition(self, cauchy_strain):
+        inv_cauchy_strain = fdrk.inv(cauchy_strain)
+        return self.mu * (fdrk.Identity(self.dim) - inv_cauchy_strain) \
+             + self.lamda/2 * fdrk.ln(fdrk.det(cauchy_strain))*inv_cauchy_strain
 
 
     def first_piola_definition(self, grad_disp):

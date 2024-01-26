@@ -19,6 +19,12 @@ class StaticProblem(Problem):
     def __init__(self):
         super().__init__()
 
+
+    @abstractmethod
+    def second_piola_definition(self):
+        pass
+
+
     @abstractmethod
     def first_piola_definition(self):
         pass
