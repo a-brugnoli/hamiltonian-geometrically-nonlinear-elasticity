@@ -9,7 +9,7 @@ import firedrake as fdrk
 # from src.solvers.nonlinear_static_div import NonLinearStaticSolverDiv
 # from src.solvers.nonlinear_static import NonLinearStaticSolver
 
-problem_id = 2
+problem_id = 3
 solver_id = 3
 
 pol_degree = 2
@@ -21,7 +21,8 @@ match problem_id:
     case 2:
         mesh_size = 2
         problem = CookMembrane(mesh_size)
-        num_steps = 60
+        num_steps = 50
+        num_steps = 50
     case 3:
         nx = 30
         ny = 30

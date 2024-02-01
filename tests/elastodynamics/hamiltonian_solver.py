@@ -9,11 +9,11 @@ from src.solvers.hamiltonian_displacement import HamiltonianDisplacementSolver
 from src.problems.cantilever_beam import CantileverBeam
 import os
 
-pol_degree = 3
+pol_degree = 1
 quad = False
 n_elem_x= 100
 n_elem_y = 10
-time_step = 1e-2
+time_step = 0.5*1e-2
 T_end = 10
 n_time  = ceil(T_end/time_step)
 
@@ -27,6 +27,9 @@ problem = CantileverBeam(n_elem_x, n_elem_y, quad)
 solver = HamiltonianDisplacementSolver(problem, 
                             time_step, 
                             pol_degree)
+
+cfl_wave = solver.get_wave_cfl()
+print(f"CFL static value {cfl_wave}")
 
 
 directory_results = f"{os.path.dirname(os.path.abspath(__file__))}/results/{str(solver)}/{str(problem)}/"
@@ -65,8 +68,11 @@ for ii in tqdm(range(1, n_time+1)):
 
     solver.integrate()
 
+    print(f"Worst case CFL {cfl_wave + solver.get_dinamic_cfl()}")
+
     energy_vector[ii] = fdrk.assemble(solver.energy_new)
     power_balance_vector[ii-1] = fdrk.assemble(solver.power_balance)
+
 
     solver.update_variables()
 

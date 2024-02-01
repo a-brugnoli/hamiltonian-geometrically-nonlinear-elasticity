@@ -28,14 +28,14 @@ class ConvergenceStatic(StaticProblem):
         self.normal_versor = fdrk.FacetNormal(self.domain)
 
         self.mu = 1  #N/mm^2
-        self.kappa = 1 #N/mm^2
+        self.lamda = 1 #N/mm^2
 
 
     def first_piola_definition(self, grad_disp):
         
         def_grad = fdrk.Identity(self.dim) + grad_disp
         inv_F_transpose = fdrk.inv(def_grad.T)
-        return self.mu*(def_grad - inv_F_transpose) + self.kappa * fdrk.ln(fdrk.det(def_grad)) * inv_F_transpose
+        return self.mu*(def_grad - inv_F_transpose) + self.lamda * fdrk.ln(fdrk.det(def_grad)) * inv_F_transpose
 
 
     def derivative_first_piola(self, tensor, grad_disp):
@@ -43,9 +43,9 @@ class ConvergenceStatic(StaticProblem):
         invF = fdrk.inv(def_grad)
         inv_Ftr = fdrk.inv(def_grad.T)
 
-        return self.mu * tensor + (self.mu - self.kappa * fdrk.ln(fdrk.det(def_grad))) \
+        return self.mu * tensor + (self.mu - self.lamda * fdrk.ln(fdrk.det(def_grad))) \
                 * fdrk.dot(inv_Ftr, fdrk.dot(tensor.T, inv_Ftr)) \
-                + self.kappa * fdrk.tr(fdrk.dot(invF, tensor)) * inv_Ftr
+                + self.lamda * fdrk.tr(fdrk.dot(invF, tensor)) * inv_Ftr
 
 
     def get_exact_solution(self):

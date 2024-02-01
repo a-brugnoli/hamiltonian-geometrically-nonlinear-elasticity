@@ -3,7 +3,7 @@ from src.problems.problem import Problem
 from firedrake.petsc import PETSc
 from .utils import mass_energy, natural_control_follower, \
                                 operator_energy, functional_energy
-
+import numpy as np
 
 class HamiltonianDisplacementSolver:
     def __init__(self,
@@ -14,8 +14,28 @@ class HamiltonianDisplacementSolver:
         
         self.coordinates_mesh = problem.coordinates_mesh
         self.time_step = time_step
+        self.problem = problem
+        self.jacobian_inverse = fdrk.JacobianInverse(self.problem.domain)
 
-        CG_vectorspace = fdrk.VectorFunctionSpace(problem.domain, "CG", pol_degree-1)
+        V = fdrk.FunctionSpace(self.problem.domain, 'DG', 0)
+        # Define a function on the function space
+        v = fdrk.TestFunction(V)
+        # Compute the diameter of each cell
+        diameters = fdrk.CellSize(self.problem.domain)
+        hvol_form = v * diameters * fdrk.dx
+        volume_form = v * fdrk.dx
+
+        vector_volh = fdrk.assemble(hvol_form).vector().get_local()
+        vector_vol = fdrk.assemble(volume_form).vector().get_local()
+
+        vector_h = vector_volh / vector_vol
+
+        self.delta_x_min = min(vector_h)
+
+        self.CG1_vectorspace = fdrk.VectorFunctionSpace(problem.domain, "CG", 1)
+        self.cfl_vectorfield = fdrk.Function(self.CG1_vectorspace)
+
+        CG_vectorspace = fdrk.VectorFunctionSpace(problem.domain, "CG", pol_degree)
         space_stress_tensor = fdrk.TensorFunctionSpace(problem.domain, "DG", pol_degree-1, symmetry=True)
 
         self.space_displacement = CG_vectorspace
@@ -67,9 +87,6 @@ class HamiltonianDisplacementSolver:
 
         natural_bcs = problem.get_natural_bcs(self.time_energy_midpoint)
 
-        states_energy_old = self.state_energy_old.subfunctions
-        states_energy_new = self.state_energy_new.subfunctions
-        
         # Set first value for the deformation gradient via Explicit Euler
         self.displacement_midpoint.assign(self.displacement_old + self.time_step/2*self.state_energy_old.sub(0))
         self.displacement_old.assign(self.displacement_midpoint)
@@ -80,6 +97,8 @@ class HamiltonianDisplacementSolver:
         self.actual_time_displacement = fdrk.Constant(self.time_step/2)
 
         # Set solver for the energy part
+        states_energy_old = self.state_energy_old.subfunctions
+        states_energy_new = self.state_energy_new.subfunctions
         self.energy_old = 0.5*mass_energy(states_energy_old, states_energy_old, problem.parameters)
         self.energy_new = 0.5*mass_energy(states_energy_new, states_energy_new, problem.parameters)
 
@@ -124,6 +143,25 @@ class HamiltonianDisplacementSolver:
         self.actual_time_energy.assign(self.time_energy_new)
         self.actual_time_displacement.assign(self.time_displacement_new)
 
+
+    def get_wave_cfl(self):
+        rho = float(self.problem.parameters["Density"])
+        E = float(self.problem.parameters["Young modulus"])
+        nu = float(self.problem.parameters["Poisson ratio"])
+
+        return self.time_step/self.delta_x_min*np.sqrt(E/rho*((1-nu**2)))
+
+
+    def get_dinamic_cfl(self):
+
+        velocity_old = self.state_energy_old.subfunctions[00]
+
+        self.cfl_vectorfield.assign(fdrk.interpolate(self.time_step * fdrk.dot(self.jacobian_inverse,\
+                            velocity_old), self.CG1_vectorspace))
+
+        coeff_cfl = np.amax(np.abs(self.cfl_vectorfield.dat.data), axis=1)
+
+        return np.max(coeff_cfl)
 
     def update_variables(self):
         self.state_energy_old.assign(self.state_energy_new)
