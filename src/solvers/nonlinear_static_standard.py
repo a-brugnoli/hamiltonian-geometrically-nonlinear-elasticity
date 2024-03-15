@@ -95,6 +95,7 @@ class NonLinearStaticSolverStandard:
             plt.draw()
             plt.pause(0.2)
 
+        plt.show(block=False)
 
 
     def plot_displacement(self, axes):

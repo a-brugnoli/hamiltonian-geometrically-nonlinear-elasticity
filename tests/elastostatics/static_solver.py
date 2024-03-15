@@ -21,13 +21,12 @@ match problem_id:
     case 2:
         mesh_size = 2
         problem = CookMembrane(mesh_size)
-        num_steps = 50
-        num_steps = 50
+        num_steps = 75
     case 3:
         nx = 30
         ny = 30
         problem = InhomogeneousCompression(nx, ny)
-        num_steps = 150
+        num_steps = 1200
     case _:
         print("Invalid problem id") 
 
@@ -39,10 +38,6 @@ match solver_id:
         solver = NonLinearStaticSolverGrad(problem, pol_degree, num_steps)   
     case 3:
         solver = NonLinearStaticSolverGradSecPiola(problem, pol_degree, num_steps)
-    # case 3:
-    #     solver = NonLinearStaticSolverDiv(problem, pol_degree, num_steps)
-    # case 4: 
-    #     solver = NonLinearStaticSolver(problem, pol_degree, "div", num_steps)
     case _:
         print("Invalid solver id") 
 

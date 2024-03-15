@@ -18,7 +18,8 @@ class InhomogeneousCompression(StaticProblem):
 
         self.domain = fdrk.RectangleMesh(n_elem_x, n_elem_y, 
                                          Lx = self.length_side, 
-                                         Ly = self.length_side)
+                                         Ly = self.length_side, 
+                                         quadrilateral=quad)
         
         self.dim = self.domain.geometric_dimension()
 

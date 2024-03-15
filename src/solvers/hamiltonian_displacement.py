@@ -17,13 +17,13 @@ class HamiltonianDisplacementSolver:
         self.problem = problem
         self.jacobian_inverse = fdrk.JacobianInverse(self.problem.domain)
 
-        V = fdrk.FunctionSpace(self.problem.domain, 'DG', 0)
+        DG0_space = fdrk.FunctionSpace(self.problem.domain, 'DG', 0)
         # Define a function on the function space
-        v = fdrk.TestFunction(V)
+        v_DG0 = fdrk.TestFunction(DG0_space)
         # Compute the diameter of each cell
         diameters = fdrk.CellSize(self.problem.domain)
-        hvol_form = v * diameters * fdrk.dx
-        volume_form = v * fdrk.dx
+        hvol_form = v_DG0 * diameters * fdrk.dx
+        volume_form = v_DG0 * fdrk.dx
 
         vector_volh = fdrk.assemble(hvol_form).vector().get_local()
         vector_vol = fdrk.assemble(volume_form).vector().get_local()
@@ -35,11 +35,17 @@ class HamiltonianDisplacementSolver:
         self.CG1_vectorspace = fdrk.VectorFunctionSpace(problem.domain, "CG", 1)
         self.cfl_vectorfield = fdrk.Function(self.CG1_vectorspace)
 
-        CG_vectorspace = fdrk.VectorFunctionSpace(problem.domain, "CG", pol_degree)
+        if problem.domain.ufl_cell().is_simplex():
+            displ_vectorspace = fdrk.VectorFunctionSpace(problem.domain, "CG", pol_degree)
+        else:
+            displ_vectorspace = fdrk.VectorFunctionSpace(problem.domain, "S", pol_degree)
         space_stress_tensor = fdrk.TensorFunctionSpace(problem.domain, "DG", pol_degree-1, symmetry=True)
 
-        self.space_displacement = CG_vectorspace
-        space_energy = CG_vectorspace * space_stress_tensor
+        print("Function space displacement description:", displ_vectorspace.ufl_element())
+
+
+        self.space_displacement = displ_vectorspace
+        space_energy = displ_vectorspace * space_stress_tensor
 
         tests_energy = fdrk.TestFunctions(space_energy)
         trials_energy = fdrk.TrialFunctions(space_energy)

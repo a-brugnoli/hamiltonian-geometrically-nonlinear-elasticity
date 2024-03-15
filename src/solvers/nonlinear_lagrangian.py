@@ -70,9 +70,6 @@ class NonlinearLagrangianSolver:
             bcs_displacement.append(bc_item)
             bcs_acceleration_0.append(fdrk.DirichletBC(self.CG_vectorspace, fdrk.as_vector([0, 0]), id_bc))
 
-            # for node in bc_item.nodes:
-            #     boundary_nodes.append(node)
-
         dim_CG = self.CG_vectorspace.dim()
         list_dofs = list(range(dim_CG))
 
@@ -83,11 +80,6 @@ class NonlinearLagrangianSolver:
         self.displacement_old.assign(fdrk.interpolate(displacement_t0, self.CG_vectorspace))
         self.velocity_old.assign(fdrk.interpolate(velocity_t0, self.CG_vectorspace))
         
-        # boundary_dofs_x = [element * 2 for element in boundary_nodes] 
-        # boundary_dofs_y = [element * 2 + 1 for element in boundary_nodes] 
-        # self.boundary_dofs = boundary_dofs_x + boundary_dofs_y
-        # self.interior_dofs = list(set(list_dofs).difference(set(self.boundary_dofs)))
-
         # Set initial acceleration
         oper_acceleration = fdrk.inner(test_CG, density*trial_CG)*fdrk.dx
 

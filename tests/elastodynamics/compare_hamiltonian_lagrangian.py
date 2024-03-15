@@ -4,30 +4,45 @@ from math import ceil
 from tqdm import tqdm
 from src.postprocessing.animators import animate_displacement
 import matplotlib.pyplot as plt
-from src.solvers.linear_lagrangian import LinearLagrangianSolver
+# from src.solvers.hamiltonian_solver import HamiltonianSolver
+from src.solvers.hamiltonian_displacement import HamiltonianDisplacementSolver
 from src.solvers.nonlinear_lagrangian import NonlinearLagrangianSolver
+
 from src.problems.cantilever_beam import CantileverBeam
 import os
 
-pol_degree =1
+# # Stable choice non linear Lagrangian
+# pol_degree = 1
+# quad = False
+# n_elem_x= 100
+# n_elem_y = 10
+# time_step = 1e-2
+
+pol_degree = 2
 quad = False
 n_elem_x= 100
 n_elem_y = 10
 time_step = 1e-2
+
 T_end = 10
 n_time  = ceil(T_end/time_step)
 
 problem = CantileverBeam(n_elem_x, n_elem_y, quad)
 
-# solver = LinearLagrangianSolver(problem, 
-#                                 time_step, 
-#                                 pol_degree,
-#                                 solver_parameters={})
+# solver = HamiltonianDisplacementSolver(problem, 
+#                             time_step, 
+#                             pol_degree)
 
 solver = NonlinearLagrangianSolver(problem, 
                                 time_step, 
                                 pol_degree,
                                 solver_parameters={})
+
+
+if isinstance(solver, HamiltonianDisplacementSolver):
+    cfl_wave = solver.get_wave_cfl()
+    print(f"CFL static value {cfl_wave}")
+
 
 directory_results = f"{os.path.dirname(os.path.abspath(__file__))}/results/{str(solver)}/{str(problem)}/"
 if not os.path.exists(directory_results):
@@ -37,15 +52,18 @@ time_vector = np.linspace(0, T_end, num=n_time+1)
 energy_vector = np.zeros((n_time+1, ))
 energy_vector[0] = fdrk.assemble(solver.energy_old)
 
+power_balance_vector = np.zeros((n_time, ))
+
 output_frequency = 10
 
 displaced_mesh= solver.output_displaced_mesh()
 
 displaced_coordinates_x = displaced_mesh.coordinates.dat.data[:, 0]
-displaced_coordinates_y = displaced_mesh.coordinates.dat.data[:, 1]
 
 min_x_all = min(displaced_coordinates_x)
 max_x_all = max(displaced_coordinates_x)
+
+displaced_coordinates_y = displaced_mesh.coordinates.dat.data[:, 1]
 
 min_y_all = min(displaced_coordinates_y)
 max_y_all = max(displaced_coordinates_y)
@@ -59,18 +77,24 @@ time_frames.append(0)
 
 for ii in tqdm(range(1, n_time+1)):
     actual_time = ii*time_step
+
     solver.integrate()
 
     energy_vector[ii] = fdrk.assemble(solver.energy_new)
 
+    if isinstance(solver, HamiltonianDisplacementSolver):
+        # print(f"Worst case CFL {cfl_wave + solver.get_dinamic_cfl()}")
+        power_balance_vector[ii-1] = fdrk.assemble(solver.power_balance)
+
+
     solver.update_variables()
+
 
     if ii % output_frequency == 0:
 
         displaced_mesh = solver.output_displaced_mesh()
 
         displaced_coordinates_x = displaced_mesh.coordinates.dat.data[:, 0]
-        displaced_coordinates_y = displaced_mesh.coordinates.dat.data[:, 1]
 
         min_x = min(displaced_coordinates_x)
         max_x = max(displaced_coordinates_x)
@@ -80,6 +104,8 @@ for ii in tqdm(range(1, n_time+1)):
         if max_x>max_x_all:
             max_x_all = max_x
 
+        displaced_coordinates_y = displaced_mesh.coordinates.dat.data[:, 1]
+
         min_y = min(displaced_coordinates_y)
         max_y = max(displaced_coordinates_y)
         
@@ -87,6 +113,7 @@ for ii in tqdm(range(1, n_time+1)):
             min_y_all = min_y
         if max_y>max_y_all:
             max_y_all = max_y
+
 
         list_frames.append(displaced_mesh)
         time_frames.append(actual_time)
@@ -109,6 +136,7 @@ indexes_images = [int(n_frames/4), int(n_frames/2), int(3*n_frames/4), int(n_fra
 
 for kk in indexes_images:
     time_image = "{:.1f}".format(time_step * output_frequency * kk) 
+
     fig, axes = plt.subplots()
     axes.set_aspect("equal")
     fdrk.triplot(list_frames[kk], axes=axes)
@@ -130,5 +158,14 @@ plt.legend()
 plt.title("Energy")
 plt.savefig(f"{directory_results}Energy.eps", dpi='figure', format='eps')
 
+if isinstance(solver, HamiltonianDisplacementSolver):
+    plt.figure()
+    plt.plot(time_vector[1:], np.diff(energy_vector) - time_step * power_balance_vector)
+    # plt.plot(time_vector[1:], np.diff(energy_vector_linear) - power_balance_vector_linear, label=f"Linear")
+    plt.grid(color='0.8', linestyle='-', linewidth=.5)
+    plt.xlabel(r'Time')
+    plt.legend()
+    plt.title("Power balance conservation")
+    plt.savefig(f"{directory_results}Power.eps", dpi='figure', format='eps')
 
-# plt.show()
+plt.show()

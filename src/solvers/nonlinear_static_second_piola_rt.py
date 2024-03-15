@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import time
 from firedrake.petsc import PETSc
 
+
 class NonLinearStaticSolverGradSecPiola:
     def __init__(self, problem: StaticProblem, pol_degree=2, num_steps=35):
         
@@ -13,22 +14,20 @@ class NonLinearStaticSolverGradSecPiola:
 
         cell = self.domain.ufl_cell()
 
-        if problem.domain.ufl_cell().is_simplex():
-            H1_fe = fdrk.FiniteElement("CG", cell, pol_degree)
-        else:
-            H1_fe = fdrk.FiniteElement("S", cell, pol_degree)
+        assert not problem.domain.ufl_cell().is_simplex()
+        
+        H1_fe = fdrk.FiniteElement("CG", cell, pol_degree)
 
+        RT_broken_fe = fdrk.BrokenElement(fdrk.FiniteElement("RTCF", cell, pol_degree))
         L2_fe = fdrk.FiniteElement("DG", cell, pol_degree-1)
 
         H1_vectorspace = fdrk.VectorFunctionSpace(self.domain, H1_fe)
-        L2_symtensorspace = fdrk.TensorFunctionSpace(self.domain, L2_fe) 
-
-        print("Function space displacement description:", H1_vectorspace.ufl_element())
+        RT_broken_space = fdrk.FunctionSpace(self.domain, RT_broken_fe)
+        L2_space = fdrk.TensorFunctionSpace(self.domain, L2_fe) 
 
         self.disp_space = H1_vectorspace
-        self.stress_space = L2_symtensorspace
 
-        mixed_space = self.disp_space * self.stress_space
+        mixed_space = self.disp_space * self.diag_stress_space
 
         test_disp, test_second_piola = fdrk.TestFunctions(mixed_space)
 
