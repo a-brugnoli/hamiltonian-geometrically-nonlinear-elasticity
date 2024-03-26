@@ -19,19 +19,19 @@ class NonLinearStaticSolverGradSecPiolaRT:
         H1_fe = fdrk.FiniteElement("CG", cell, pol_degree)
         L2_fe = fdrk.FiniteElement("DG", cell, pol_degree-1)
 
-        if problem.domain.ufl_cell().is_simplex():
-            Hcurl_fe = fdrk.FiniteElement("N2curl", cell, pol_degree-1,variant="integral")
-        else:
-            # Hcurl_broken_fe = fdrk.BrokenElement(fdrk.FiniteElement("RTCE", cell, pol_degree))
-            Hcurl_fe = fdrk.FiniteElement("RTCE", cell, pol_degree)
+        # if problem.domain.ufl_cell().is_simplex():
+        #     Hcurl_fe = fdrk.FiniteElement("N2curl", cell, pol_degree-1,variant="integral")
+        # else:
+        #     # Hcurl_broken_fe = fdrk.BrokenElement(fdrk.FiniteElement("RTCE", cell, pol_degree))
+        #     Hcurl_fe = fdrk.FiniteElement("RTCE", cell, pol_degree)
 
         H1_vectorspace = fdrk.VectorFunctionSpace(self.domain, H1_fe)
         L2_space = fdrk.FunctionSpace(self.domain, L2_fe) 
 
         self.disp_space = H1_vectorspace
 
-        self.diag_stress_space = fdrk.FunctionSpace(self.domain, Hcurl_fe)
-        self.offdiag_stress_space = L2_space
+        # self.diag_stress_space = fdrk.FunctionSpace(self.domain, Hcurl_fe)
+        # self.offdiag_stress_space = L2_space
 
         self.stress_space = fdrk.FunctionSpace(self.domain, "Regge", pol_degree)
 

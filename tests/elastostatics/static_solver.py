@@ -11,7 +11,7 @@ from src.solvers.nonlinear_static_secondpiola_RT import NonLinearStaticSolverGra
 problem_id = 3
 solver_id = 4
 
-pol_degree = 2
+pol_degree = 1
 
 match problem_id:
     case 1:
