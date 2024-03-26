@@ -5,6 +5,7 @@ from math import pi
 class Problem(ABC):
     def __init__(self):
         self.domain = None
+        self.dim = None
         self.coordinates_mesh = None
         self.x, self.y, self.z = None, None, None
         self.bc_type = None

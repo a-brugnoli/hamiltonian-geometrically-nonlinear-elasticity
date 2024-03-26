@@ -5,7 +5,7 @@ import time
 from firedrake.petsc import PETSc
 
 
-class NonLinearStaticSolverGradSecPiola:
+class NonLinearStaticSolverGradSecPiolaRT:
     def __init__(self, problem: StaticProblem, pol_degree=2, num_steps=35):
         
         self.domain = problem.domain
@@ -14,34 +14,49 @@ class NonLinearStaticSolverGradSecPiola:
 
         cell = self.domain.ufl_cell()
 
-        assert not problem.domain.ufl_cell().is_simplex()
-        
-        H1_fe = fdrk.FiniteElement("CG", cell, pol_degree)
+        assert problem.dim==2
 
-        RT_broken_fe = fdrk.BrokenElement(fdrk.FiniteElement("RTCF", cell, pol_degree))
+        H1_fe = fdrk.FiniteElement("CG", cell, pol_degree)
         L2_fe = fdrk.FiniteElement("DG", cell, pol_degree-1)
 
+        if problem.domain.ufl_cell().is_simplex():
+            Hcurl_fe = fdrk.FiniteElement("N2curl", cell, pol_degree-1,variant="integral")
+        else:
+            # Hcurl_broken_fe = fdrk.BrokenElement(fdrk.FiniteElement("RTCE", cell, pol_degree))
+            Hcurl_fe = fdrk.FiniteElement("RTCE", cell, pol_degree)
+
         H1_vectorspace = fdrk.VectorFunctionSpace(self.domain, H1_fe)
-        RT_broken_space = fdrk.FunctionSpace(self.domain, RT_broken_fe)
-        L2_space = fdrk.TensorFunctionSpace(self.domain, L2_fe) 
+        L2_space = fdrk.FunctionSpace(self.domain, L2_fe) 
 
         self.disp_space = H1_vectorspace
 
-        mixed_space = self.disp_space * self.diag_stress_space
+        self.diag_stress_space = fdrk.FunctionSpace(self.domain, Hcurl_fe)
+        self.offdiag_stress_space = L2_space
 
+        self.stress_space = fdrk.FunctionSpace(self.domain, "Regge", pol_degree)
+
+        # mixed_space = self.disp_space * self.diag_stress_space * self.offdiag_stress_space
+        mixed_space = self.disp_space * self.stress_space
+
+        # test_disp, test_diag_second_piola, test_offdiag_second_piola = fdrk.TestFunctions(mixed_space)
         test_disp, test_second_piola = fdrk.TestFunctions(mixed_space)
 
         self.solution = fdrk.Function(mixed_space)
+        # self.displacement, self.diag_second_piola, self.offdiag_second_piola = fdrk.split(self.solution)
         self.displacement, self.second_piola = fdrk.split(self.solution)
 
-        self.solution.sub(0).assign(fdrk.as_vector([0] * problem.dim))
-        self.solution.sub(1).assign(fdrk.as_tensor([([0] * problem.dim) for i in range(problem.dim)]))
+        # test_second_piola = fdrk.as_tensor([[test_diag_second_piola[0], test_offdiag_second_piola], 
+        #                                     [test_offdiag_second_piola, test_diag_second_piola[1]]])
+        
 
+        # self.second_piola = fdrk.as_tensor([[self.diag_second_piola[0], self.offdiag_second_piola], 
+        #                                     [self.offdiag_second_piola, self.diag_second_piola[1]]])
+
+        
         dict_essential_bcs = problem.get_essential_bcs()
         dict_disp_x = dict_essential_bcs["displacement x"]
         dict_disp_y = dict_essential_bcs["displacement y"]
 
-        
         bcs = []
         for subdomain, disp_x in  dict_disp_x.items():
             bcs.append(fdrk.DirichletBC(mixed_space.sub(0).sub(0), disp_x, subdomain))

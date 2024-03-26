@@ -12,15 +12,10 @@ from .problem import StaticProblem
 
 class ConvergenceStatic(StaticProblem):
 
-    def __init__(self, n_elem_x, n_elem_y):
+    def __init__(self, n_elem_x, n_elem_y, quad=False):
 
-        self.domain = fdrk.UnitSquareMesh(n_elem_x, n_elem_y)
+        self.domain = fdrk.UnitSquareMesh(n_elem_x, n_elem_y, quadrilateral=quad)
         self.dim = self.domain.geometric_dimension()
-
-        # fig, axes = plt.subplots()
-        # fdrk.triplot(self.domain, axes=axes)
-        # axes.legend()
-        # plt.show()
 
         self.coordinates_mesh = fdrk.SpatialCoordinate(self.domain)
 
@@ -37,6 +32,12 @@ class ConvergenceStatic(StaticProblem):
         inv_F_transpose = fdrk.inv(def_grad.T)
         return self.mu*(def_grad - inv_F_transpose) + self.lamda * fdrk.ln(fdrk.det(def_grad)) * inv_F_transpose
 
+
+    def second_piola_definition(self, cauchy_strain):
+        inv_cauchy_strain = fdrk.inv(cauchy_strain)
+        return self.mu * (fdrk.Identity(self.dim) - inv_cauchy_strain) \
+             + self.lamda/2 * fdrk.ln(fdrk.det(cauchy_strain))*inv_cauchy_strain
+    
 
     def derivative_first_piola(self, tensor, grad_disp):
         def_grad = fdrk.Identity(self.dim) + grad_disp
@@ -90,6 +91,5 @@ class ConvergenceStatic(StaticProblem):
         return exact_forcing
     
     
-
     def __str__(self):
         return "ConvergenceStatic2D"
