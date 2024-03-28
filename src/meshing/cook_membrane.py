@@ -1,6 +1,10 @@
 import gmsh
+import firedrake as fdrk
+import matplotlib.pyplot as plt
+import sys
 
-def create_cook_membrane(mesh_size):
+
+def create_cook_membrane(mesh_size, quad=False):
     # Before using any functions in the Python API, Gmsh must be initialized:
     gmsh.initialize()
 
@@ -21,8 +25,6 @@ def create_cook_membrane(mesh_size):
 
     surface1 = gmsh.model.geo.addPlaneSurface([loop1])
 
-    gmsh.model.geo.synchronize()
-
     gmsh.model.addPhysicalGroup(1, [l1], 1, name="Clamp")
     gmsh.model.addPhysicalGroup(1, [l2], 2, name="Free1")
     gmsh.model.addPhysicalGroup(1, [l3], 3, name="Traction")
@@ -33,6 +35,12 @@ def create_cook_membrane(mesh_size):
     # Remember that by default, if physical groups are defined, Gmsh will export in
     # the output mesh file only those elements that belong to at least one physical
     # group. To force Gmsh to save all elements, you can use
+
+    if quad:
+        gmsh.option.setNumber("Mesh.Algorithm", 8)  # Quadrilateral elements
+        gmsh.option.setNumber("Mesh.RecombineAll", 1)
+
+    gmsh.model.geo.synchronize()
 
     gmsh.option.setNumber("Mesh.SaveAll", 1)
 
@@ -50,9 +58,18 @@ def create_cook_membrane(mesh_size):
     #     gmsh.fltk.run()
 
     # This should be called when you are done using the Gmsh Python API:
+
     gmsh.finalize()
 
 
 if __name__ == "__main__":
     mesh_size = 1
     create_cook_membrane(mesh_size)
+
+
+    domain = fdrk.Mesh('cook_membrane.msh')
+
+    fig, axes = plt.subplots()
+    fdrk.triplot(domain, axes=axes)
+    axes.legend()
+    plt.show()

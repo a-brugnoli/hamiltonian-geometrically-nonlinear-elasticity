@@ -5,7 +5,7 @@ import time
 from firedrake.petsc import PETSc
 
 
-class NonLinearStaticSolverGradSecPiolaRT:
+class NonLinearStaticSolverGradSecPiolaRegge:
     def __init__(self, problem: StaticProblem, pol_degree=2, num_steps=35):
         
         self.domain = problem.domain
@@ -17,7 +17,6 @@ class NonLinearStaticSolverGradSecPiolaRT:
         assert problem.dim==2
 
         H1_fe = fdrk.FiniteElement("CG", cell, pol_degree)
-        L2_fe = fdrk.FiniteElement("DG", cell, pol_degree-1)
 
         # if problem.domain.ufl_cell().is_simplex():
         #     Hcurl_fe = fdrk.FiniteElement("N2curl", cell, pol_degree-1,variant="integral")
@@ -26,14 +25,13 @@ class NonLinearStaticSolverGradSecPiolaRT:
         #     Hcurl_fe = fdrk.FiniteElement("RTCE", cell, pol_degree)
 
         H1_vectorspace = fdrk.VectorFunctionSpace(self.domain, H1_fe)
-        L2_space = fdrk.FunctionSpace(self.domain, L2_fe) 
 
         self.disp_space = H1_vectorspace
 
         # self.diag_stress_space = fdrk.FunctionSpace(self.domain, Hcurl_fe)
         # self.offdiag_stress_space = L2_space
 
-        self.stress_space = fdrk.FunctionSpace(self.domain, "Regge", pol_degree)
+        self.stress_space = fdrk.FunctionSpace(self.domain, "Regge", pol_degree-1)
 
         # mixed_space = self.disp_space * self.diag_stress_space * self.offdiag_stress_space
         mixed_space = self.disp_space * self.stress_space

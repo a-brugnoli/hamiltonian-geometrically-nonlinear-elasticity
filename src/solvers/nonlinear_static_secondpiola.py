@@ -23,7 +23,7 @@ class NonLinearStaticSolverGradSecPiola:
         H1_vectorspace = fdrk.VectorFunctionSpace(self.domain, H1_fe)
         L2_symtensorspace = fdrk.TensorFunctionSpace(self.domain, L2_fe) 
 
-        print("Function space displacement description:", H1_vectorspace.ufl_element())
+        # print("Function space displacement description:", H1_vectorspace.ufl_element())
 
         self.disp_space = H1_vectorspace
         self.stress_space = L2_symtensorspace

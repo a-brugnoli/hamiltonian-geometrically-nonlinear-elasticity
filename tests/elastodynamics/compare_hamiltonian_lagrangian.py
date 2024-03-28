@@ -18,7 +18,7 @@ import os
 # n_elem_y = 10
 # time_step = 1e-2
 
-pol_degree = 2
+pol_degree = 1
 quad = False
 n_elem_x= 100
 n_elem_y = 10
@@ -29,14 +29,14 @@ n_time  = ceil(T_end/time_step)
 
 problem = CantileverBeam(n_elem_x, n_elem_y, quad)
 
-# solver = HamiltonianDisplacementSolver(problem, 
-#                             time_step, 
-#                             pol_degree)
+solver = HamiltonianDisplacementSolver(problem, 
+                            time_step, 
+                            pol_degree)
 
-solver = NonlinearLagrangianSolver(problem, 
-                                time_step, 
-                                pol_degree,
-                                solver_parameters={})
+# solver = NonlinearLagrangianSolver(problem, 
+#                                 time_step, 
+#                                 pol_degree,
+#                                 solver_parameters={})
 
 
 if isinstance(solver, HamiltonianDisplacementSolver):

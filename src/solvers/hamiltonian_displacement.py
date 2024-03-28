@@ -35,11 +35,14 @@ class HamiltonianDisplacementSolver:
         self.CG1_vectorspace = fdrk.VectorFunctionSpace(problem.domain, "CG", 1)
         self.cfl_vectorfield = fdrk.Function(self.CG1_vectorspace)
 
-        if problem.domain.ufl_cell().is_simplex():
-            displ_vectorspace = fdrk.VectorFunctionSpace(problem.domain, "CG", pol_degree)
-        else:
-            displ_vectorspace = fdrk.VectorFunctionSpace(problem.domain, "S", pol_degree)
+        # if problem.domain.ufl_cell().is_simplex():
+        #     displ_vectorspace = fdrk.VectorFunctionSpace(problem.domain, "CG", pol_degree)
+        # else:
+        #     displ_vectorspace = fdrk.VectorFunctionSpace(problem.domain, "S", pol_degree)
+
+        displ_vectorspace = fdrk.VectorFunctionSpace(problem.domain, "CG", pol_degree)
         space_stress_tensor = fdrk.TensorFunctionSpace(problem.domain, "DG", pol_degree-1, symmetry=True)
+        # space_stress_tensor = fdrk.FunctionSpace(problem.domain, "Regge", pol_degree-1)
 
         print("Function space displacement description:", displ_vectorspace.ufl_element())
 
