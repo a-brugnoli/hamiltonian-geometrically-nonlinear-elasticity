@@ -5,10 +5,9 @@ from src.problems.convergence_static import ConvergenceStatic
 from src.solvers.nonlinear_static_grad import NonLinearStaticSolverGrad
 from src.solvers.nonlinear_static_standard import NonLinearStaticSolverStandard
 from src.solvers.nonlinear_static_secondpiola import NonLinearStaticSolverGradSecPiola
-from src.solvers.nonlinear_static_secondpiola_regge import NonLinearStaticSolverGradSecPiolaRegge
 
 
-problem_id = 2
+problem_id = 3
 solver_id = 3
 
 pol_degree = 2
@@ -25,7 +24,7 @@ match problem_id:
         nx = 30
         ny = 30
         problem = InhomogeneousCompression(nx, ny)
-        num_steps = 300
+        num_steps = 150
     case _:
         print("Invalid problem id") 
 
@@ -37,8 +36,6 @@ match solver_id:
         solver = NonLinearStaticSolverGrad(problem, pol_degree, num_steps)   
     case 3:
         solver = NonLinearStaticSolverGradSecPiola(problem, pol_degree, num_steps)
-    case 4:
-        solver = NonLinearStaticSolverGradSecPiolaRegge(problem, pol_degree, num_steps)
     case _:
         print("Invalid solver id") 
 

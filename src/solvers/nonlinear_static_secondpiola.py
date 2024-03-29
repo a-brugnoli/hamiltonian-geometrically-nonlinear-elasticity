@@ -3,6 +3,7 @@ from src.problems.problem import StaticProblem
 import matplotlib.pyplot as plt
 import time
 from firedrake.petsc import PETSc
+from firedrake.exceptions import ConvergenceError
 
 class NonLinearStaticSolverGradSecPiola:
     def __init__(self, problem: StaticProblem, pol_degree=2, num_steps=35):
@@ -13,36 +14,53 @@ class NonLinearStaticSolverGradSecPiola:
 
         cell = self.domain.ufl_cell()
 
-        if problem.domain.ufl_cell().is_simplex():
-            H1_fe = fdrk.FiniteElement("CG", cell, pol_degree)
-        else:
-            H1_fe = fdrk.FiniteElement("S", cell, pol_degree)
+        assert problem.dim==2
 
-        L2_fe = fdrk.FiniteElement("DG", cell, pol_degree-1)
+        H1_fe = fdrk.FiniteElement("CG", cell, pol_degree)
 
+        
         H1_vectorspace = fdrk.VectorFunctionSpace(self.domain, H1_fe)
-        L2_symtensorspace = fdrk.TensorFunctionSpace(self.domain, L2_fe) 
-
-        # print("Function space displacement description:", H1_vectorspace.ufl_element())
-
         self.disp_space = H1_vectorspace
-        self.stress_space = L2_symtensorspace
 
+        # if problem.domain.ufl_cell().is_simplex():
+        #     Hcurl_fe = fdrk.FiniteElement("N2curl", cell, pol_degree-1,variant="integral")
+        # else:
+        #     # Hcurl_broken_fe = fdrk.BrokenElement(fdrk.FiniteElement("RTCE", cell, pol_degree))
+        #     Hcurl_fe = fdrk.FiniteElement("RTCE", cell, pol_degree)
+        # self.diag_stress_space = fdrk.FunctionSpace(self.domain, Hcurl_fe)
+        # self.offdiag_stress_space = L2_space
+
+        # regge_broken_fe = fdrk.BrokenElement(fdrk.FiniteElement("Regge", cell, pol_degree-1))
+        regge_fe = fdrk.FiniteElement("Regge", cell, pol_degree)
+        regge_space = fdrk.FunctionSpace(problem.domain, regge_fe)
+
+        DG_fe = fdrk.FiniteElement("DG", cell, pol_degree)
+        DG_symtensorspace = fdrk.TensorFunctionSpace(self.domain, DG_fe) 
+
+        self.stress_space = DG_symtensorspace
+
+        # mixed_space = self.disp_space * self.diag_stress_space * self.offdiag_stress_space
         mixed_space = self.disp_space * self.stress_space
 
+        # test_disp, test_diag_second_piola, test_offdiag_second_piola = fdrk.TestFunctions(mixed_space)
         test_disp, test_second_piola = fdrk.TestFunctions(mixed_space)
 
         self.solution = fdrk.Function(mixed_space)
+        # self.displacement, self.diag_second_piola, self.offdiag_second_piola = fdrk.split(self.solution)
         self.displacement, self.second_piola = fdrk.split(self.solution)
 
-        self.solution.sub(0).assign(fdrk.as_vector([0] * problem.dim))
-        self.solution.sub(1).assign(fdrk.as_tensor([([0] * problem.dim) for i in range(problem.dim)]))
+        # test_second_piola = fdrk.as_tensor([[test_diag_second_piola[0], test_offdiag_second_piola], 
+        #                                     [test_offdiag_second_piola, test_diag_second_piola[1]]])
+        
 
+        # self.second_piola = fdrk.as_tensor([[self.diag_second_piola[0], self.offdiag_second_piola], 
+        #                                     [self.offdiag_second_piola, self.diag_second_piola[1]]])
+
+        
         dict_essential_bcs = problem.get_essential_bcs()
         dict_disp_x = dict_essential_bcs["displacement x"]
         dict_disp_y = dict_essential_bcs["displacement y"]
 
-        
         bcs = []
         for subdomain, disp_x in  dict_disp_x.items():
             bcs.append(fdrk.DirichletBC(mixed_space.sub(0).sub(0), disp_x, subdomain))
@@ -105,35 +123,53 @@ class NonLinearStaticSolverGradSecPiola:
         plt.show(block=False)
         plt.pause(0.2)
 
-        tolerance = 1e-9
-        n_iter_max = 20
-        damping_factor_newton = 1
+        not_converged = True
+        kk = 0
+        while not_converged:
 
-        for step in range(self.num_steps):
-            self.loading_factor.assign((step+1)/self.num_steps)
-            PETSc.Sys.Print("step number = %d: load factor is %.0f%%" % (step, self.loading_factor*100))
+            kk+=1
+            PETSc.Sys.Print(f"Main loop iteration number {kk}")
 
-            self.solver.solve()
+            self.solution.sub(0).assign(fdrk.as_vector([0, 0]))
+            self.solution.sub(1).assign(fdrk.as_tensor([[0, 0], 
+                                                        [0, 0]]))
+            
+            for step in range(1,self.num_steps+1):
+                self.loading_factor.assign(step/self.num_steps)
+                PETSc.Sys.Print("step number = %d: load factor is %.1f%%" % (step, self.loading_factor*100))
 
-        # for load_step in range(self.num_steps):
-        #     self.loading_factor.assign((load_step+1)/self.num_steps)
-        #     PETSc.Sys.Print("step number = %d: load factor is %.0f%%" % (load_step, self.loading_factor*100))
+                try:
+                    self.solver.solve()
 
-        #     for iter in range(n_iter_max):
+                    if step == self.num_steps - 1:
+                        not_converged = False
+                        PETSc.Sys.Print(f"Solution converged with {self.num_steps} steps")
 
-        #         self.solver.solve()
-        #         eps = fdrk.norm(self.delta_solution)
-        #         self.solution.assign(self.solution + damping_factor_newton * self.delta_solution)
-        #         PETSc.Sys.Print("iter = %d: the L2 norm of the increment is %8.2E" % (iter, eps))
 
-        #         if eps < tolerance:
-        #             PETSc.Sys.Print("Tolerance reached : exiting Newton loop")
-        #             break
+                except ConvergenceError:
+                    PETSc.Sys.Print("Non linear solver fails to converge increasing number of steps")
+                    self.num_steps += 10
+                    break
 
-            axes.cla()
-            self.plot_displacement(axes)
-            plt.draw()
-            plt.pause(0.2)
+            # for load_step in range(self.num_steps):
+            #     self.loading_factor.assign((load_step+1)/self.num_steps)
+            #     PETSc.Sys.Print("step number = %d: load factor is %.0f%%" % (load_step, self.loading_factor*100))
+
+            #     for iter in range(n_iter_max):
+
+            #         self.solver.solve()
+            #         eps = fdrk.norm(self.delta_solution)
+            #         self.solution.assign(self.solution + damping_factor_newton * self.delta_solution)
+            #         PETSc.Sys.Print("iter = %d: the L2 norm of the increment is %8.2E" % (iter, eps))
+
+            #         if eps < tolerance:
+            #             PETSc.Sys.Print("Tolerance reached : exiting Newton loop")
+            #             break
+
+                axes.cla()
+                self.plot_displacement(axes)
+                plt.draw()
+                plt.pause(0.01)
 
         plt.show()
         

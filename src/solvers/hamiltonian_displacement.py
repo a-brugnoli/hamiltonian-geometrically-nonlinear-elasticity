@@ -41,11 +41,14 @@ class HamiltonianDisplacementSolver:
         #     displ_vectorspace = fdrk.VectorFunctionSpace(problem.domain, "S", pol_degree)
 
         displ_vectorspace = fdrk.VectorFunctionSpace(problem.domain, "CG", pol_degree)
-        space_stress_tensor = fdrk.TensorFunctionSpace(problem.domain, "DG", pol_degree-1, symmetry=True)
+        # space_stress_tensor = fdrk.TensorFunctionSpace(problem.domain, "DG", pol_degree-1, symmetry=True)
+
+        cell = problem.domain.ufl_cell()
+
+        regge_broken_fe = fdrk.BrokenElement(fdrk.FiniteElement("Regge", cell, pol_degree-1))
+        space_stress_tensor = fdrk.FunctionSpace(problem.domain, regge_broken_fe)
+
         # space_stress_tensor = fdrk.FunctionSpace(problem.domain, "Regge", pol_degree-1)
-
-        print("Function space displacement description:", displ_vectorspace.ufl_element())
-
 
         self.space_displacement = displ_vectorspace
         space_energy = displ_vectorspace * space_stress_tensor
