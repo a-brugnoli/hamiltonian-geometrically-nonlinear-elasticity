@@ -52,7 +52,7 @@ def natural_control_follower(test, displacement, traction_data_dict : dict):
     return natural_control
 
 
-def mass_energy(testfunctions, functions, params):
+def mass_form_energy(testfunctions, functions, params):
     
     young_modulus = params["Young modulus"]
     poisson_ratio = params["Poisson ratio"]
@@ -68,7 +68,7 @@ def mass_energy(testfunctions, functions, params):
 
 
 
-def dynamics_energy(testfunctions, functions, displacement_midpoint):
+def dynamics_form_energy(testfunctions, functions, displacement_midpoint):
 
     def_grad_midpoint = def_gradient(displacement_midpoint)
 
@@ -81,15 +81,15 @@ def dynamics_energy(testfunctions, functions, displacement_midpoint):
     return form
     
 
-def operator_energy(time_step, testfunctions, trialfunctions, displacement, params):
+def operator_energy(time_step, testfunctions, trialfunctions, displacement, parameters):
     """
     Construct operators arising from the implicit midpoint discretization of
     the energy part of the system
 
     A = M - 0.5 * dt *  J(d)
     """
-    mass_operator = mass_energy(testfunctions, trialfunctions, params)
-    dynamics_operator = dynamics_energy(testfunctions, trialfunctions, displacement)
+    mass_operator = mass_form_energy(testfunctions, trialfunctions, parameters)
+    dynamics_operator = dynamics_form_energy(testfunctions, trialfunctions, displacement)
 
     lhs_operator = mass_operator - 0.5 * time_step * dynamics_operator
     
@@ -103,8 +103,8 @@ def functional_energy(time_step, testfunctions, old_states, displacement, contro
     b = ( M + 0.5 * dt * J(d_midpoint) ) x_old + B u_midpoint
     """
 
-    mass_functional = mass_energy(testfunctions, old_states, params)
-    dynamics_functional = dynamics_energy(testfunctions, old_states, displacement)
+    mass_functional = mass_form_energy(testfunctions, old_states, params)
+    dynamics_functional = dynamics_form_energy(testfunctions, old_states, displacement)
 
     natural_control = natural_control_follower(testfunctions[0], displacement, control_midpoint_dict)
 

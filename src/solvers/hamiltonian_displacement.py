@@ -1,8 +1,11 @@
 import firedrake as fdrk
 from src.problems.problem import Problem
 from firedrake.petsc import PETSc
-from .utils import mass_energy, natural_control_follower, \
+from utils.utils_elasticity import mass_form_energy, natural_control_follower, \
                                 operator_energy, functional_energy
+
+from utils.common_utils import compute_min_mesh_size
+
 import numpy as np
 
 class HamiltonianDisplacementSolver:
@@ -16,22 +19,7 @@ class HamiltonianDisplacementSolver:
         self.time_step = time_step
         self.problem = problem
         self.jacobian_inverse = fdrk.JacobianInverse(self.problem.domain)
-
-        DG0_space = fdrk.FunctionSpace(self.problem.domain, 'DG', 0)
-        # Define a function on the function space
-        v_DG0 = fdrk.TestFunction(DG0_space)
-        # Compute the diameter of each cell
-        diameters = fdrk.CellSize(self.problem.domain)
-        hvol_form = v_DG0 * diameters * fdrk.dx
-        volume_form = v_DG0 * fdrk.dx
-
-        vector_volh = fdrk.assemble(hvol_form).vector().get_local()
-        vector_vol = fdrk.assemble(volume_form).vector().get_local()
-
-        vector_h = vector_volh / vector_vol
-
-        self.delta_x_min = min(vector_h)
-
+        self.delta_x_min = compute_min_mesh_size(problem.domain)
         self.CG1_vectorspace = fdrk.VectorFunctionSpace(problem.domain, "CG", 1)
         self.cfl_vectorfield = fdrk.Function(self.CG1_vectorspace)
 
@@ -67,6 +55,9 @@ class HamiltonianDisplacementSolver:
         self.displacement_new = fdrk.Function(self.space_displacement)
         self.displacement_midpoint = fdrk.Function(self.space_displacement)
 
+        space_DG = fdrk.TensorFunctionSpace(problem.domain, "DG", pol_degree-1)
+        self.deformation_gradient_new = fdrk.Function(space_DG)
+
         expr_t0 = problem.get_initial_conditions()
 
         velocity_exp = expr_t0["velocity"]
@@ -92,7 +83,8 @@ class HamiltonianDisplacementSolver:
         dict_essential = problem.get_essential_bcs(self.time_energy_new)
 
         velocity_bc_data = dict_essential["velocity"]
-        velocity_bcs = [fdrk.DirichletBC(space_energy.sub(0), item[1], item[0]) for item in velocity_bc_data.items()]
+        velocity_bcs = [fdrk.DirichletBC(space_energy.sub(0), item[1], item[0]) \
+                        for item in velocity_bc_data.items()]
 
         # displacement_bc_data = dict_essential["displacement"]
         # displacement_bcs = [fdrk.DirichletBC(space_displacement, item[1], item[0]) for item in displacement_bc_data.items()]
@@ -111,8 +103,8 @@ class HamiltonianDisplacementSolver:
         # Set solver for the energy part
         states_energy_old = self.state_energy_old.subfunctions
         states_energy_new = self.state_energy_new.subfunctions
-        self.energy_old = 0.5*mass_energy(states_energy_old, states_energy_old, problem.parameters)
-        self.energy_new = 0.5*mass_energy(states_energy_new, states_energy_new, problem.parameters)
+        self.energy_old = 0.5*mass_form_energy(states_energy_old, states_energy_old, problem.parameters)
+        self.energy_new = 0.5*mass_form_energy(states_energy_new, states_energy_new, problem.parameters)
 
         self.power_balance = natural_control_follower(self.state_energy_midpoint.subfunctions[0], 
                                                      self.displacement_old, 

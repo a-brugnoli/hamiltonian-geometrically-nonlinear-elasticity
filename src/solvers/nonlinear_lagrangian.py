@@ -1,7 +1,7 @@
 import firedrake as fdrk
 from src.problems.problem import Problem
 import numpy as np
-from .utils import stiffness_tensor, second_piola_stress, def_gradient,\
+from utils.utils_elasticity import stiffness_tensor, second_piola_stress, def_gradient,\
       first_piola_stress, green_lagrange_strain, natural_control_follower
 
 class NonlinearLagrangianSolver:
