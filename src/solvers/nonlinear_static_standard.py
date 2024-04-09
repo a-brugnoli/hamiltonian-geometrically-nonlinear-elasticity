@@ -82,7 +82,7 @@ class NonLinearStaticSolverStandard:
         int_coordinates = fdrk.Mesh(fdrk.interpolate(self.problem.coordinates_mesh, self.disp_space))        
         fdrk.triplot(int_coordinates, axes=axes)
         plt.show(block=False)
-        plt.pause(0.2)
+        plt.pause(0.01)
 
         for step in range(self.num_steps):
             self.loading_factor.assign((step+1)/self.num_steps)
@@ -93,9 +93,9 @@ class NonLinearStaticSolverStandard:
             axes.cla()
             self.plot_displacement(axes)
             plt.draw()
-            plt.pause(0.2)
+            plt.pause(0.01)
 
-        plt.show(block=False)
+        plt.show()
 
 
     def plot_displacement(self, axes):

@@ -13,7 +13,7 @@ MEDIUM_SIZE = 16
 BIGGER_SIZE = 18
 
 plt.rc('font', size=SMALL_SIZE)          # controls default text sizes
-plt.rc('axes', titlesize=BIGGER_SIZE)     # fontsize of the axes title
+plt.rc('axes', titlesize=BIGGER_SIZE)    # fontsize of the axes title
 plt.rc('axes', labelsize=MEDIUM_SIZE)    # fontsize of the x and y labels
 plt.rc('xtick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
 plt.rc('ytick', labelsize=SMALL_SIZE)    # fontsize of the tick labels
@@ -29,7 +29,7 @@ save_res = True
 nu = fdrk.Constant(0.3)
 h = fdrk.Constant(0.1)
 
-L= 1
+L = 1
 
 # Physical coefficients
 
@@ -47,21 +47,23 @@ C_men = fdrk.Constant(1 / (E * h))
 def gradSym(u):
     return 0.5 * (fdrk.nabla_grad(u) + fdrk.nabla_grad(u).T)
 
-def bending_stiff(curv):
-    m_stress = D_bend * ((1 - nu) * curv + nu * fdrk.Identity(2) * fdrk.tr(curv))
-    return m_stress
 
 def traction_stiff(eps_0):
     n_stress = D_men * ((1 - nu) * eps_0 + nu * fdrk.Identity(2) * fdrk.tr(eps_0))
     return n_stress
 
-def bending_comp(m_stress):
-    curv = C_bend * ((1+nu)*m_stress - nu * fdrk.Identity(2) * fdrk.tr(m_stress))
-    return curv
-
 def traction_comp(n_stress):
     eps_0 = C_men * ((1+nu)*n_stress- nu * fdrk.Identity(2) * fdrk.tr(n_stress))
     return eps_0
+
+def bending_stiff(curv):
+    m_stress = D_bend * ((1 - nu) * curv + nu * fdrk.Identity(2) * fdrk.tr(curv))
+    return m_stress
+
+
+def bending_comp(m_stress):
+    curv = C_bend * ((1+nu)*m_stress - nu * fdrk.Identity(2) * fdrk.tr(m_stress))
+    return curv
 
 
     

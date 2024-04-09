@@ -7,8 +7,8 @@ from src.solvers.nonlinear_static_standard import NonLinearStaticSolverStandard
 from src.solvers.nonlinear_static_secondpiola import NonLinearStaticSolverGradSecPiola
 
 
+solver_id = 1
 problem_id = 3
-solver_id = 3
 
 pol_degree = 2
 
@@ -23,7 +23,7 @@ match problem_id:
     case 3:
         nx = 30
         ny = 30
-        problem = InhomogeneousCompression(nx, ny)
+        problem = InhomogeneousCompression(nx, ny, quad=True)
         num_steps = 150
     case _:
         print("Invalid problem id") 

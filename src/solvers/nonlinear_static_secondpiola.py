@@ -121,7 +121,7 @@ class NonLinearStaticSolverGradSecPiola:
         int_coordinates = fdrk.Mesh(fdrk.interpolate(self.problem.coordinates_mesh, self.disp_space))        
         fdrk.triplot(int_coordinates, axes=axes)
         plt.show(block=False)
-        plt.pause(0.2)
+        plt.pause(0.01)
 
         not_converged = True
         kk = 0
@@ -171,7 +171,7 @@ class NonLinearStaticSolverGradSecPiola:
                 plt.draw()
                 plt.pause(0.01)
 
-        plt.show()
+            plt.show()
         
 
     def plot_displacement(self, axes):
