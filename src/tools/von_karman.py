@@ -1,4 +1,5 @@
 import firedrake as fdrk
+from firedrake.petsc import PETSc
 
 
 def membrane_stiffness(membrane_strain, parameters):
@@ -57,8 +58,8 @@ def mass_form_energy(testfunctions, functions, parameters, membrane_inertia = Tr
     density = parameters["rho"]
     thickness = parameters["h"]
 
-    test_mem_velocity, test_bend_velocity, test_mem_stress, test_bend_stress = testfunctions
-    mem_velocity, bend_velocity, mem_stress, bend_stress = functions
+    test_mem_velocity, test_mem_stress, test_bend_velocity, test_bend_stress = testfunctions
+    mem_velocity, mem_stress, bend_velocity, bend_stress = functions
 
     mem_momentum = density * thickness * mem_velocity
     bend_momentum = density * thickness * bend_velocity
@@ -67,8 +68,8 @@ def mass_form_energy(testfunctions, functions, parameters, membrane_inertia = Tr
     bend_strain = bending_compliance(bend_stress, parameters)
 
     mass_form = fdrk.inner(test_mem_velocity, mem_momentum) * fdrk.dx  + \
-                fdrk.inner(test_bend_velocity, bend_momentum) * fdrk.dx + \
                 fdrk.inner(test_mem_stress, mem_strain) * fdrk.dx + \
+                fdrk.inner(test_bend_velocity, bend_momentum) * fdrk.dx + \
                 fdrk.inner(test_bend_stress, bend_strain) * fdrk.dx
     
     if membrane_inertia:
@@ -80,8 +81,8 @@ def mass_form_energy(testfunctions, functions, parameters, membrane_inertia = Tr
 
 def dynamics_form_energy(testfunctions, functions, vert_displacement, normal):
     
-    test_mem_velocity, test_bend_velocity, test_mem_stress, test_bend_stress = testfunctions
-    mem_velocity, bend_velocity, mem_stress, bend_stress = functions
+    test_mem_velocity, test_mem_stress, test_bend_velocity, test_bend_stress = testfunctions
+    mem_velocity, mem_stress, bend_velocity, bend_stress = functions
 
     dynamics_membrane = - fdrk.inner(fdrk.sym(fdrk.grad(test_mem_velocity)), mem_stress) * fdrk.dx \
                         + fdrk.inner(test_mem_stress, fdrk.sym(fdrk.grad(mem_velocity))) * fdrk.dx 
@@ -95,7 +96,9 @@ def dynamics_form_energy(testfunctions, functions, vert_displacement, normal):
     
     dynamics_coupling = fdrk.inner(test_mem_stress, fdrk.sym(fdrk.outer(fdrk.grad(vert_displacement), fdrk.grad(bend_velocity)))) * fdrk.dx \
         - fdrk.inner(fdrk.sym(fdrk.outer(fdrk.grad(test_bend_velocity), fdrk.grad(vert_displacement))), mem_stress) * fdrk.dx
-        
+    
+    # PETSc.Sys.Print("Eliminating coupling to check linear model")
+            
     dynamics_form = dynamics_membrane + dynamics_bending + dynamics_coupling
     
     return dynamics_form 

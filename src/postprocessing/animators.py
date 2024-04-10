@@ -36,7 +36,7 @@ def animate_vector_displacement(t_frames, list_frames, interval=10, \
     return anim
 
 
-def animate_scalar_displacement(domain, list_frames, interval=10):
+def animate_scalar_displacement(domain, list_frames, interval):
 
     nsp = 16
     fn_plotter = fdrk.FunctionPlotter(domain, num_sample_points=nsp)

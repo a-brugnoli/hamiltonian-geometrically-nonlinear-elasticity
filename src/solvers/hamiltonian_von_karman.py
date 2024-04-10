@@ -1,7 +1,10 @@
 import firedrake as fdrk
 from src.problems.problem import Problem
-from src.tools.von_karman import mass_form_energy, operator_energy, functional_energy
-
+from src.tools.von_karman import mass_form_energy, dynamics_form_energy,\
+    operator_energy, functional_energy
+from firedrake.petsc import PETSc
+from scipy.sparse import csr_matrix
+import matplotlib.pyplot as plt
 
 class HamiltonianVonKarmanSolver:
     def __init__(self,
@@ -14,18 +17,16 @@ class HamiltonianVonKarmanSolver:
         self.time_step = time_step
         self.problem = problem
 
-        deg_eps = 2*(pol_degree - 1)
-
-        space_mem_velocity = fdrk.VectorFunctionSpace(problem.domain, "CG", deg_eps+1)
-        space_bend_velocity = fdrk.FunctionSpace(problem.domain, "CG", pol_degree)
-
-        # space_mem_stress = fdrk.TensorFunctionSpace(problem.domain, "DG", deg_eps, symmetry=True)
-        space_mem_stress = fdrk.FunctionSpace(problem.domain, "Regge", deg_eps)
-        space_bend_stress = fdrk.FunctionSpace(problem.domain, "HHJ", pol_degree - 1)
+        space_mem_velocity = fdrk.VectorFunctionSpace(problem.domain, "CG", pol_degree)
+        space_mem_stress = fdrk.FunctionSpace(problem.domain, "Regge", pol_degree - 1)
+        # space_mem_stress = fdrk.TensorFunctionSpace(problem.domain, "DG", pol_degree - 1, symmetry=True)
 
         self.space_bend_displacement = fdrk.FunctionSpace(problem.domain, "CG", pol_degree)
 
-        space_energy = space_mem_velocity * space_bend_velocity * space_mem_stress * space_bend_stress
+        space_bend_velocity = fdrk.FunctionSpace(problem.domain, "CG", pol_degree)
+        space_bend_stress = fdrk.FunctionSpace(problem.domain, "HHJ", pol_degree - 1)
+
+        space_energy = space_mem_velocity * space_mem_stress * space_bend_velocity * space_bend_stress
 
         tests_energy = fdrk.TestFunctions(space_energy)
         trials_energy = fdrk.TrialFunctions(space_energy)
@@ -43,28 +44,27 @@ class HamiltonianVonKarmanSolver:
 
         expr_t0 = problem.get_initial_conditions()
 
-        bend_displacement_exp = expr_t0["bending displacement"]
-
         mem_velocity_exp = expr_t0["membrane velocity"]
-        bend_velocity_exp = expr_t0["bending velocity"]
-
         mem_stress_exp = expr_t0["membrane stress"]
+
+        bend_displacement_exp = expr_t0["bending displacement"]
+        bend_velocity_exp = expr_t0["bending velocity"]
         bend_stress_exp = expr_t0["bending stress"]
 
-        bend_displacement_t0 = fdrk.interpolate(bend_displacement_exp, self.space_bend_displacement)
 
         mem_velocity_t0 = fdrk.interpolate(mem_velocity_exp, space_energy.sub(0))
-        bend_velocity_t0 = fdrk.interpolate(bend_velocity_exp, space_energy.sub(1))
+        mem_stress_t0 = fdrk.interpolate(mem_stress_exp, space_energy.sub(1))
 
-        mem_stress_t0 = fdrk.interpolate(mem_stress_exp, space_energy.sub(2))
+        bend_velocity_t0 = fdrk.interpolate(bend_velocity_exp, space_energy.sub(2))
         bend_stress_t0 = fdrk.interpolate(bend_stress_exp, space_energy.sub(3))
-        
+
+        bend_displacement_t0 = fdrk.interpolate(bend_displacement_exp, self.space_bend_displacement)
         self.bend_displacement_old.assign(bend_displacement_t0)
 
         self.state_energy_old.sub(0).assign(mem_velocity_t0)
-        self.state_energy_old.sub(1).assign(bend_velocity_t0)
+        self.state_energy_old.sub(1).assign(mem_stress_t0)
 
-        self.state_energy_old.sub(2).assign(mem_stress_t0)
+        self.state_energy_old.sub(2).assign(bend_velocity_t0)
         self.state_energy_old.sub(3).assign(bend_stress_t0)
 
         self.state_energy_midpoint.assign(self.state_energy_old)
@@ -77,25 +77,29 @@ class HamiltonianVonKarmanSolver:
 
         dict_essential = problem.get_essential_bcs(self.time_energy_new)
 
-        # bend_displacement_bc_data = dict_essential["bending displacement"]
-        # bend_displacement_bcs = [fdrk.DirichletBC(self.space_bend_displacement, item[1], item[0]) \
-        #                         for item in bend_displacement_bc_data.items()]
-        
         mem_velocity_bc_data = dict_essential["membrane velocity"]
         mem_velocity_bcs = [fdrk.DirichletBC(space_energy.sub(0), item[1], item[0]) \
                                 for item in mem_velocity_bc_data.items()]
         
         bend_velocity_bc_data = dict_essential["bending velocity"]
-        bend_velocity_bcs = [fdrk.DirichletBC(space_energy.sub(1), item[1], item[0]) \
+        bend_velocity_bcs = [fdrk.DirichletBC(space_energy.sub(2), item[1], item[0]) \
                                 for item in bend_velocity_bc_data.items()]
         
         bend_stress_bc_data = dict_essential["bending stress"]
         bend_stress_bcs = [fdrk.DirichletBC(space_energy.sub(3), item[1], item[0]) \
                                 for item in bend_stress_bc_data.items()]
+        
+        all_bcs = mem_velocity_bcs + bend_velocity_bcs + bend_stress_bcs
+
+        self.mem_velocity_old, self.mem_stress_old, \
+        self.bend_velocity_old, self.bend_stress_old = self.state_energy_old.subfunctions
+
+        self.mem_velocity_new, self.mem_stress_new, \
+        self.bend_velocity_new, self.bend_stress_new = self.state_energy_new.subfunctions
 
         # Set first value for the deformation gradient via Explicit Euler
         self.bend_displacement_midpoint.assign(self.bend_displacement_old \
-                                          + self.time_step/2*self.state_energy_old.sub(1))
+                                          + self.time_step/2*self.bend_velocity_old)
         
         self.bend_displacement_old.assign(self.bend_displacement_midpoint)
 
@@ -110,26 +114,24 @@ class HamiltonianVonKarmanSolver:
         self.energy_old = 0.5*mass_form_energy(states_energy_old, states_energy_old, problem.parameters)
         self.energy_new = 0.5*mass_form_energy(states_energy_new, states_energy_new, problem.parameters)
 
-        a_form = operator_energy(self.time_step, \
+        self.a_form = operator_energy(self.time_step, \
                                 tests_energy, \
                                 trials_energy, \
                                 self.bend_displacement_old, \
                                 problem.parameters, \
                                 problem.normal_versor)
 
-        l_form = functional_energy(self.time_step, \
+        self.l_form = functional_energy(self.time_step, \
                                     tests_energy, \
                                     self.state_energy_old.subfunctions, \
                                     self.bend_displacement_old, \
                                     problem.parameters, \
                                     problem.normal_versor)
 
-        linear_energy_problem = fdrk.LinearVariationalProblem(a_form, \
-                                                            l_form, \
+        linear_energy_problem = fdrk.LinearVariationalProblem(self.a_form, \
+                                                            self.l_form, \
                                                             self.state_energy_new, \
-                                                            mem_velocity_bcs +\
-                                                            bend_velocity_bcs +\
-                                                            bend_stress_bcs)
+                                                            bcs=all_bcs)
     
         self.linear_energy_solver = fdrk.LinearVariationalSolver(linear_energy_problem, \
                                                                 solver_parameters=solver_parameters_energy)
@@ -142,7 +144,7 @@ class HamiltonianVonKarmanSolver:
         self.state_energy_midpoint.assign(0.5*(self.state_energy_old + self.state_energy_new))
 
         # Compute solution for displacement at n+3∕2
-        self.bend_displacement_new.assign(self.bend_displacement_old + self.time_step * self.state_energy_new.sub(1))
+        self.bend_displacement_new.assign(self.bend_displacement_old + self.time_step * self.bend_velocity_new)
 
         self.bend_displacement_midpoint.assign(0.5*(self.bend_displacement_old + \
                                                     self.bend_displacement_new))

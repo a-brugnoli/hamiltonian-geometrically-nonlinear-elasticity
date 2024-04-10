@@ -95,9 +95,9 @@ def j_operator(v_u, v_eps, v_w, v_kap, v_disp, \
             - fdrk.inner(gradSym(v_u), e_eps) * fdrk.dx
             
     j_bend = - fdrk.inner(fdrk.grad(fdrk.grad(v_w)), e_kap) * fdrk.dx \
+        + fdrk.inner(v_kap, fdrk.grad(fdrk.grad(e_w))) * fdrk.dx \
         + fdrk.jump(fdrk.grad(v_w), n_ver) * fdrk.dot(fdrk.dot(e_kap('+'), n_ver('+')), n_ver('+')) * fdrk.dS \
         + fdrk.dot(fdrk.grad(v_w), n_ver) * fdrk.dot(fdrk.dot(e_kap, n_ver), n_ver) * fdrk.ds \
-        + fdrk.inner(v_kap, fdrk.grad(fdrk.grad(e_w))) * fdrk.dx \
         - fdrk.dot(fdrk.dot(v_kap('+'), n_ver('+')), n_ver('+')) * fdrk.jump(fdrk.grad(e_w), n_ver) * fdrk.dS \
         - fdrk.dot(fdrk.dot(v_kap, n_ver), n_ver) * fdrk.dot(fdrk.grad(e_w), n_ver) * fdrk.ds
     

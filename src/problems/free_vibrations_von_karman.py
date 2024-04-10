@@ -40,16 +40,17 @@ class FirstModeVonKarman(Problem):
         bend_disp_0 = self.amplitude * h * fdrk.sin(pi * self.x/ L_x) * fdrk.sin(pi * self.y/ L_y)
 
         mem_velocity_0 = fdrk.Constant((0, 0))
+        mem_stress_0 = fdrk.Constant(((0.0, 0.0), (0.0, 0.0)))
+
         bend_velocity_0 = fdrk.Constant(0)
 
-        mem_stress_0 = fdrk.Constant(((0.0, 0.0), (0.0, 0.0)))
         bending_strain_0 = fdrk.sym(fdrk.grad(fdrk.grad(bend_disp_0)))
         bend_stress_0 = bending_stiffness(bending_strain_0, self.parameters)
 
-        return {"bending displacement": bend_disp_0,
-                "membrane velocity": mem_velocity_0,
-                "bending velocity": bend_velocity_0, 
+        return {"membrane velocity": mem_velocity_0,
                 "membrane stress": mem_stress_0, 
+                "bending displacement": bend_disp_0,
+                "bending velocity": bend_velocity_0, 
                 "bending stress": bend_stress_0
                 }
     
