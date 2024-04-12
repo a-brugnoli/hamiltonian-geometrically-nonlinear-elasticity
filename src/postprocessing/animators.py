@@ -4,8 +4,9 @@ from matplotlib.animation import FuncAnimation
 import firedrake as fdrk
 import src.postprocessing.options
 from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import cm
 
-def animate_vector_displacement(t_frames, list_frames, interval=10, \
+def animate_vector_triplot(list_frames, interval=10, \
                         lim_x=None, lim_y=None, \
                         xlabel=None, ylabel=None, title=None):
 
@@ -17,26 +18,24 @@ def animate_vector_displacement(t_frames, list_frames, interval=10, \
     axes.set_xlabel(xlabel)
     axes.set_ylabel(ylabel)
 
+    axes.set_xlim(lim_x)
+    axes.set_ylim(lim_y)
     
     def update_plot(frame_number):
         # axes.clear()
         axes.cla()
         # plt.clf()
 
-        label_t = 'Time =' + '{0:.2e}'.format(t_frames[frame_number])
         fdrk.triplot(list_frames[frame_number], axes=axes)
-
-        axes.set_xlim(lim_x)
-        axes.set_ylim(lim_y)
 
     axes.set_title(title, loc='center')
 
-    anim = animation.FuncAnimation(fig, update_plot, frames=len(list_frames), interval = interval)
+    anim = FuncAnimation(fig, update_plot, frames=len(list_frames), interval = interval)
 
     return anim
 
 
-def animate_scalar_displacement(domain, list_frames, interval):
+def animate_scalar_tripcolor(domain, list_frames, interval):
 
     nsp = 16
     fn_plotter = fdrk.FunctionPlotter(domain, num_sample_points=nsp)
@@ -51,5 +50,32 @@ def animate_scalar_displacement(domain, list_frames, interval):
         colors.set_array(fn_plotter(q))
 
     anim = FuncAnimation(fig, animate, frames=list_frames, interval=interval)
+
+    return anim
+
+
+def animate_scalar_trisurf(time_frames, list_frames, interval, lim_z = None):
+
+    min_z, max_z = lim_z
+    # Displacement animation
+    fig = plt.figure()
+    axes = fig.add_subplot(111, projection='3d')
+    axes.set_aspect('equal')
+
+    # surf_opts = {'cmap': cm.jet, 'linewidth': 0, 'antialiased': False,\
+    #              'vmin': min_z, 'vmax':max_z}
+
+    def animate(frame_number):
+        axes.clear()
+        time = time_frames[frame_number]
+        time_label = f'Time = {time:.0f} [$\mu$s]'
+        fdrk.trisurf(list_frames[frame_number], axes=axes, label=time_label)
+        axes.set_zlim(lim_z)
+        axes.legend()
+
+    
+    fdrk.trisurf(list_frames[0], axes=axes)
+    # fig.colorbar(surf_plot)
+    anim = FuncAnimation(fig, animate, frames=len(list_frames), interval=interval)
 
     return anim

@@ -96,9 +96,7 @@ def dynamics_form_energy(testfunctions, functions, vert_displacement, normal):
     
     dynamics_coupling = fdrk.inner(test_mem_stress, fdrk.sym(fdrk.outer(fdrk.grad(vert_displacement), fdrk.grad(bend_velocity)))) * fdrk.dx \
         - fdrk.inner(fdrk.sym(fdrk.outer(fdrk.grad(test_bend_velocity), fdrk.grad(vert_displacement))), mem_stress) * fdrk.dx
-    
-    # PETSc.Sys.Print("Eliminating coupling to check linear model")
-            
+                
     dynamics_form = dynamics_membrane + dynamics_bending + dynamics_coupling
     
     return dynamics_form 

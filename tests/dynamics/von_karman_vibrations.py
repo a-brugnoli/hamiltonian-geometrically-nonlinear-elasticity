@@ -2,7 +2,7 @@ import firedrake as fdrk
 import numpy as np
 from math import ceil
 from tqdm import tqdm
-from src.postprocessing.animators import animate_scalar_displacement
+from src.postprocessing.animators import animate_scalar_trisurf, animate_scalar_tripcolor
 import matplotlib.pyplot as plt
 from src.solvers.hamiltonian_von_karman import HamiltonianVonKarmanSolver
 from src.problems.free_vibrations_von_karman import FirstModeVonKarman
@@ -13,7 +13,7 @@ quad = False
 n_elem_x = 10
 n_elem_y = 10
 time_step = 5*10**(-6)
-T_end = 100 * time_step
+T_end = 10 * time_step
 # T_end = 7.5*10**(-3)
 
 n_time  = ceil(T_end/time_step)
@@ -39,16 +39,16 @@ min_z_all = 0
 max_z_all = 0
 
 list_frames_velocity = []
-list_frames_velocity.append(solver.state_energy_old.sub(2))
-time_frames = []
-time_frames.append(0)
+list_frames_velocity.append(solver.bend_velocity_old)
+time_frames_ms = []
+time_frames_ms.append(0)
 
 directory_largedata = "/home/dmsm/a.brugnoli/StoreResults/VonKarman/"
 if not os.path.exists(directory_largedata):
     os.makedirs(directory_largedata, exist_ok=True)
 
 outfile_bend_velocity = fdrk.File(f"{directory_largedata}{str(solver)}/Vertical_velocity.pvd")
-outfile_bend_velocity.write(solver.state_energy_old.sub(2), time=0)
+outfile_bend_velocity.write(solver.bend_velocity_old, time=0)
 
 
 for ii in tqdm(range(1, n_time+1)):
@@ -72,13 +72,17 @@ for ii in tqdm(range(1, n_time+1)):
         if max_z>max_z_all:
             max_z_all = max_z
 
-        list_frames_velocity.append(solver.state_energy_old.sub(2).copy(deepcopy=True))
-        time_frames.append(actual_time)
+        list_frames_velocity.append(solver.bend_velocity_old.copy(deepcopy=True))
+        time_frames_ms.append(10e6 * actual_time)
 
-        outfile_bend_velocity.write(solver.state_energy_old.sub(2), time=actual_time)
+        outfile_bend_velocity.write(solver.bend_velocity_old, time=actual_time)
 
 interval = 10e6 * output_frequency * time_step
-velocity_animation = animate_scalar_displacement(problem.domain, list_frames_velocity, interval=interval)
+# velocity_animation = animate_scalar_tripcolor(problem.domain, list_frames_velocity, interval=interval)
+
+velocity_animation = animate_scalar_trisurf(time_frames_ms, list_frames_velocity,\
+                                            interval=interval, lim_z=(min_z_all, max_z_all))
+
 velocity_animation.save(f"{directory_results}Animation_velocity.mp4", writer="ffmpeg")
 
 # plt.figure()

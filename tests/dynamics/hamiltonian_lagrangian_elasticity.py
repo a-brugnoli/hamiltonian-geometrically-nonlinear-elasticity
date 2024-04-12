@@ -2,7 +2,7 @@ import firedrake as fdrk
 import numpy as np
 from math import ceil
 from tqdm import tqdm
-from src.postprocessing.animators import animate_vector_displacement
+from src.postprocessing.animators import animate_vector_triplot
 import matplotlib.pyplot as plt
 from src.solvers.hamiltonian_elasticity import HamiltonianElasticitySolver
 from src.solvers.nonlinear_lagrangian import NonlinearLagrangianSolver
@@ -121,7 +121,7 @@ interval = 1e3 * output_frequency * time_step
 lim_x = (min_x_all, max_x_all)
 lim_y = (min_y_all, max_y_all)
 
-animation = animate_vector_displacement(time_frames, list_frames, interval, \
+animation = animate_vector_triplot(list_frames, interval, \
                                             lim_x = lim_x, \
                                             lim_y = lim_y )
 
