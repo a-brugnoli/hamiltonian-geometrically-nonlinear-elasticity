@@ -67,13 +67,12 @@ def mass_form_energy(testfunctions, functions, parameters, membrane_inertia = Tr
     mem_strain = membrane_compliance(mem_stress, parameters)
     bend_strain = bending_compliance(bend_stress, parameters)
 
-    mass_form = fdrk.inner(test_mem_velocity, mem_momentum) * fdrk.dx  + \
-                fdrk.inner(test_mem_stress, mem_strain) * fdrk.dx + \
+    mass_form = fdrk.inner(test_mem_stress, mem_strain) * fdrk.dx + \
                 fdrk.inner(test_bend_velocity, bend_momentum) * fdrk.dx + \
                 fdrk.inner(test_bend_stress, bend_strain) * fdrk.dx
     
     if membrane_inertia:
-        pass
+        mass_form+= fdrk.inner(test_mem_velocity, mem_momentum) * fdrk.dx 
 
     return mass_form
 
@@ -96,7 +95,9 @@ def dynamics_form_energy(testfunctions, functions, vert_displacement, normal):
     
     dynamics_coupling = fdrk.inner(test_mem_stress, fdrk.sym(fdrk.outer(fdrk.grad(vert_displacement), fdrk.grad(bend_velocity)))) * fdrk.dx \
         - fdrk.inner(fdrk.sym(fdrk.outer(fdrk.grad(test_bend_velocity), fdrk.grad(vert_displacement))), mem_stress) * fdrk.dx
-                
+
+    PETSc.Sys.Print("Coupling")      
+
     dynamics_form = dynamics_membrane + dynamics_bending + dynamics_coupling
     
     return dynamics_form 

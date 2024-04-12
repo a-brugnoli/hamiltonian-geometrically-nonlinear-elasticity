@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 from src.solvers.hamiltonian_elasticity import HamiltonianElasticitySolver
 from src.solvers.nonlinear_lagrangian import NonlinearLagrangianSolver
 
+from src.tools.common import compute_min_max_mesh
+
 from src.problems.cantilever_beam import CantileverBeam
 import os
 
@@ -42,7 +44,6 @@ if isinstance(solver, HamiltonianElasticitySolver):
     cfl_wave = solver.get_wave_cfl()
     print(f"CFL static value {cfl_wave}")
 
-
 directory_results = f"{os.path.dirname(os.path.abspath(__file__))}/results/{str(solver)}/{str(problem)}/"
 if not os.path.exists(directory_results):
             os.makedirs(directory_results)
@@ -56,15 +57,11 @@ power_balance_vector = np.zeros((n_time, ))
 output_frequency = 10
 displaced_mesh= solver.output_displaced_mesh()
 displaced_coordinates_x = displaced_mesh.coordinates.dat.data[:, 0]
-
-min_x_all = min(displaced_coordinates_x)
-max_x_all = max(displaced_coordinates_x)
-
 displaced_coordinates_y = displaced_mesh.coordinates.dat.data[:, 1]
 
-min_y_all = min(displaced_coordinates_y)
-max_y_all = max(displaced_coordinates_y)
-
+min_max_coords_x = (min(displaced_coordinates_x), max(displaced_coordinates_x))
+min_max_coords_y = (min(displaced_coordinates_y), max(displaced_coordinates_y))
+list_min_max_coords = [min_max_coords_x, min_max_coords_y]
 
 list_frames = []
 time_frames = []
@@ -83,34 +80,13 @@ for ii in tqdm(range(1, n_time+1)):
         # print(f"Worst case CFL {cfl_wave + solver.get_dinamic_cfl()}")
         power_balance_vector[ii-1] = fdrk.assemble(solver.power_balance)
 
-
     solver.update_variables()
-
 
     if ii % output_frequency == 0:
 
         displaced_mesh = solver.output_displaced_mesh()
 
-        displaced_coordinates_x = displaced_mesh.coordinates.dat.data[:, 0]
-
-        min_x = min(displaced_coordinates_x)
-        max_x = max(displaced_coordinates_x)
-
-        if min_x<min_x_all:
-            min_x_all = min_x
-        if max_x>max_x_all:
-            max_x_all = max_x
-
-        displaced_coordinates_y = displaced_mesh.coordinates.dat.data[:, 1]
-
-        min_y = min(displaced_coordinates_y)
-        max_y = max(displaced_coordinates_y)
-        
-        if min_y<min_y_all:
-            min_y_all = min_y
-        if max_y>max_y_all:
-            max_y_all = max_y
-
+        list_min_max_coords = compute_min_max_mesh(displaced_mesh, list_min_max_coords)
 
         list_frames.append(displaced_mesh)
         time_frames.append(actual_time)
@@ -118,8 +94,7 @@ for ii in tqdm(range(1, n_time+1)):
 
 interval = 1e3 * output_frequency * time_step
 
-lim_x = (min_x_all, max_x_all)
-lim_y = (min_y_all, max_y_all)
+lim_x, lim_y  = list_min_max_coords
 
 animation = animate_vector_triplot(list_frames, interval, \
                                             lim_x = lim_x, \

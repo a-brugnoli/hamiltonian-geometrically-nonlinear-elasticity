@@ -3,6 +3,7 @@ import numpy as np
 from math import ceil
 from tqdm import tqdm
 from src.postprocessing.animators import animate_scalar_trisurf, animate_scalar_tripcolor
+from src.tools.common import compute_min_max_function
 import matplotlib.pyplot as plt
 from src.solvers.hamiltonian_von_karman import HamiltonianVonKarmanSolver
 from src.problems.free_vibrations_von_karman import FirstModeVonKarman
@@ -13,17 +14,15 @@ quad = False
 n_elem_x = 10
 n_elem_y = 10
 time_step = 5*10**(-6)
-T_end = 10 * time_step
-# T_end = 7.5*10**(-3)
+T_end = 10**(-2)
 
 n_time  = ceil(T_end/time_step)
 
-problem = FirstModeVonKarman(n_elem_x, n_elem_y)
+problem = FirstModeVonKarman(n_elem_x, n_elem_y, amplitude=0.02)
 
 solver = HamiltonianVonKarmanSolver(problem, 
                             time_step, 
                             pol_degree)
-
 
 directory_results = f"{os.path.dirname(os.path.abspath(__file__))}/results/{str(solver)}/{str(problem)}/"
 if not os.path.exists(directory_results):
@@ -33,15 +32,19 @@ time_vector = np.linspace(0, T_end, num=n_time+1)
 energy_vector = np.zeros((n_time+1, ))
 energy_vector[0] = fdrk.assemble(solver.energy_old)
 
-output_frequency = 1
+output_frequency = 10
 
-min_z_all = 0
-max_z_all = 0
+min_max_vel = (0, 0)
+min_max_disp = (0, 0)
 
-list_frames_velocity = []
-list_frames_velocity.append(solver.bend_velocity_old)
 time_frames_ms = []
 time_frames_ms.append(0)
+
+list_frames_bend_velocity = []
+list_frames_bend_velocity.append(solver.bend_velocity_old)
+
+list_frames_bend_displacement = []
+list_frames_bend_displacement.append(solver.bend_displacement_old)
 
 directory_largedata = "/home/dmsm/a.brugnoli/StoreResults/VonKarman/"
 if not os.path.exists(directory_largedata):
@@ -50,40 +53,40 @@ if not os.path.exists(directory_largedata):
 outfile_bend_velocity = fdrk.File(f"{directory_largedata}{str(solver)}/Vertical_velocity.pvd")
 outfile_bend_velocity.write(solver.bend_velocity_old, time=0)
 
+outfile_bend_displacement = fdrk.File(f"{directory_largedata}{str(solver)}/Vertical_displacement.pvd")
+outfile_bend_displacement.write(solver.bend_displacement_old, time=0)
+
 
 for ii in tqdm(range(1, n_time+1)):
     actual_time = ii*time_step
 
     solver.integrate()
-
     energy_vector[ii] = fdrk.assemble(solver.energy_new)
-
     solver.update_variables()
 
     if ii % output_frequency == 0:
 
-        bend_velocity_vector = solver.bend_velocity_old.vector().get_local()
+        min_max_vel = compute_min_max_function(solver.bend_velocity_old, min_max_vel)
+        min_max_disp = compute_min_max_function(solver.bend_displacement_old, min_max_disp)
 
-        min_z = min(bend_velocity_vector)
-        max_z = max(bend_velocity_vector)
-
-        if min_z<min_z_all:
-            min_z_all = min_z
-        if max_z>max_z_all:
-            max_z_all = max_z
-
-        list_frames_velocity.append(solver.bend_velocity_old.copy(deepcopy=True))
-        time_frames_ms.append(10e6 * actual_time)
+        list_frames_bend_velocity.append(solver.bend_velocity_old.copy(deepcopy=True))
+        list_frames_bend_displacement.append(solver.bend_displacement_old.copy(deepcopy=True))
+        time_frames_ms.append(10e3 * actual_time)
 
         outfile_bend_velocity.write(solver.bend_velocity_old, time=actual_time)
+        outfile_bend_displacement.write(solver.bend_displacement_old, time=actual_time)
 
-interval = 10e6 * output_frequency * time_step
-# velocity_animation = animate_scalar_tripcolor(problem.domain, list_frames_velocity, interval=interval)
+interval = 10e5 * output_frequency * time_step
 
-velocity_animation = animate_scalar_trisurf(time_frames_ms, list_frames_velocity,\
-                                            interval=interval, lim_z=(min_z_all, max_z_all))
+velocity_animation = animate_scalar_trisurf(time_frames_ms, list_frames_bend_velocity,\
+                                            interval=interval, lim_z = min_max_vel)
 
 velocity_animation.save(f"{directory_results}Animation_velocity.mp4", writer="ffmpeg")
+
+displacement_animation = animate_scalar_trisurf(time_frames_ms, list_frames_bend_displacement,\
+                                            interval=interval, lim_z = min_max_disp)
+
+displacement_animation.save(f"{directory_results}Animation_displacement.mp4", writer="ffmpeg")
 
 # plt.figure()
 # plt.plot(time_vector, energy_vector)

@@ -56,25 +56,21 @@ def animate_scalar_tripcolor(domain, list_frames, interval):
 
 def animate_scalar_trisurf(time_frames, list_frames, interval, lim_z = None):
 
-    min_z, max_z = lim_z
     # Displacement animation
     fig = plt.figure()
     axes = fig.add_subplot(111, projection='3d')
     axes.set_aspect('equal')
 
-    # surf_opts = {'cmap': cm.jet, 'linewidth': 0, 'antialiased': False,\
-    #              'vmin': min_z, 'vmax':max_z}
-
     def animate(frame_number):
         axes.clear()
         time = time_frames[frame_number]
-        time_label = f'Time = {time:.0f} [$\mu$s]'
-        fdrk.trisurf(list_frames[frame_number], axes=axes, label=time_label)
+        time_label = f'Time = {time:.2f} [ms]'
+        fdrk.trisurf(list_frames[frame_number], axes=axes, label=time_label, cmap=cm.jet)
         axes.set_zlim(lim_z)
         axes.legend()
 
     
-    fdrk.trisurf(list_frames[0], axes=axes)
+    fdrk.trisurf(list_frames[0], axes=axes, cmap=cm.jet)
     # fig.colorbar(surf_plot)
     anim = FuncAnimation(fig, animate, frames=len(list_frames), interval=interval)
 

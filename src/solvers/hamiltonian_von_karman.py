@@ -33,14 +33,12 @@ class HamiltonianVonKarmanSolver:
 
         self.state_energy_old = fdrk.Function(space_energy)
         self.state_energy_new = fdrk.Function(space_energy)
-        self.state_energy_midpoint = fdrk.Function(space_energy)
 
         self.test_bend_displacement = fdrk.TestFunction(self.space_bend_displacement)
         self.trial_bend_displacement = fdrk.TrialFunction(self.space_bend_displacement)
 
         self.bend_displacement_old = fdrk.Function(self.space_bend_displacement)
         self.bend_displacement_new = fdrk.Function(self.space_bend_displacement)
-        self.bend_displacement_midpoint = fdrk.Function(self.space_bend_displacement)
 
         expr_t0 = problem.get_initial_conditions()
 
@@ -67,11 +65,9 @@ class HamiltonianVonKarmanSolver:
         self.state_energy_old.sub(2).assign(bend_velocity_t0)
         self.state_energy_old.sub(3).assign(bend_stress_t0)
 
-        self.state_energy_midpoint.assign(self.state_energy_old)
         self.state_energy_new.assign(self.state_energy_old)
 
         self.time_energy_old = fdrk.Constant(0)
-        self.time_energy_midpoint = fdrk.Constant(self.time_step/2)
         self.time_energy_new = fdrk.Constant(self.time_step)
         self.actual_time_energy = fdrk.Constant(0)
 
@@ -98,13 +94,11 @@ class HamiltonianVonKarmanSolver:
         self.bend_velocity_new, self.bend_stress_new = self.state_energy_new.subfunctions
 
         # Set first value for the deformation gradient via Explicit Euler
-        self.bend_displacement_midpoint.assign(self.bend_displacement_old \
-                                          + self.time_step/2*self.bend_velocity_old)
         
-        self.bend_displacement_old.assign(self.bend_displacement_midpoint)
+        self.bend_displacement_old.assign(self.bend_displacement_old \
+                                          + self.time_step/2*self.bend_velocity_old)
 
-        self.time_displacement_old= fdrk.Constant(self.time_step/2)
-        self.time_displacement_midpoint = fdrk.Constant(self.time_step)
+        self.time_displacement_old = fdrk.Constant(self.time_step/2)
         self.time_displacement_new = fdrk.Constant(self.time_step + self.time_step/2)
         self.actual_time_displacement = fdrk.Constant(self.time_step/2)
 
@@ -134,20 +128,17 @@ class HamiltonianVonKarmanSolver:
                                                             bcs=all_bcs)
     
         self.linear_energy_solver = fdrk.LinearVariationalSolver(linear_energy_problem, \
-                                                                solver_parameters=solver_parameters_energy)
+                                                            solver_parameters=solver_parameters_energy)
 
 
     def integrate(self):
 
         # First the energy system is advanced at n+1
         self.linear_energy_solver.solve()
-        self.state_energy_midpoint.assign(0.5*(self.state_energy_old + self.state_energy_new))
 
         # Compute solution for displacement at n+3∕2
-        self.bend_displacement_new.assign(self.bend_displacement_old + self.time_step * self.bend_velocity_new)
-
-        self.bend_displacement_midpoint.assign(0.5*(self.bend_displacement_old + \
-                                                    self.bend_displacement_new))
+        self.bend_displacement_new.assign(self.bend_displacement_old \
+                                          + self.time_step * self.bend_velocity_new)
 
         self.actual_time_energy.assign(self.time_energy_new)
         self.actual_time_displacement.assign(self.time_displacement_new)
@@ -158,11 +149,9 @@ class HamiltonianVonKarmanSolver:
         self.bend_displacement_old.assign(self.bend_displacement_new)
 
         self.time_energy_old.assign(self.actual_time_energy)
-        self.time_energy_midpoint.assign(float(self.time_energy_old) + self.time_step/2)
         self.time_energy_new.assign(float(self.time_energy_old) + self.time_step)
 
         self.time_displacement_old.assign(self.actual_time_displacement)
-        self.time_displacement_midpoint.assign(float(self.time_displacement_old) + self.time_step/2)
         self.time_displacement_new.assign(float(self.time_displacement_old) + self.time_step)
 
 
