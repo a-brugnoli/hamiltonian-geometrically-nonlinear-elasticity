@@ -9,7 +9,7 @@ from src.solvers.hamiltonian_von_karman import HamiltonianVonKarmanSolver
 from src.problems.free_vibrations_von_karman import FirstModeVonKarman
 import os
 
-pol_degree = 1
+pol_degree = 2
 quad = False
 n_elem_x = 20
 n_elem_y = 20
@@ -19,7 +19,7 @@ T_end = 7.5 * 10**(-3)
 
 n_time  = ceil(T_end/time_step)
 
-amplitude = 100
+amplitude = 10
 problem = FirstModeVonKarman(n_elem_x, n_elem_y, amplitude=amplitude)
 
 solver = HamiltonianVonKarmanSolver(problem, 

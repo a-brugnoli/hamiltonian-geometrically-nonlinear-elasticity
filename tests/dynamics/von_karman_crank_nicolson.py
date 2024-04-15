@@ -98,13 +98,13 @@ def j_operator(v_u, v_eps, v_w, v_kap, v_disp, \
 
 
 
-def compute_sol(n_elem, deg, amplitude = 0.01):
+def compute_sol(n_elem, deg, amplitude):
 
     L_x, L_y = 0.5, 0.5
     mesh = fdrk.RectangleMesh(n_elem, n_elem, L_x, L_y, quadrilateral=False)
     
     V_u = fdrk.VectorFunctionSpace(mesh, "CG", deg)
-    V_eps = fdrk.TensorFunctionSpace(mesh, "DG", deg-1, symmetry = True)
+    V_eps = fdrk.FunctionSpace(mesh, "Regge", deg-1)
 
     V_w = fdrk.FunctionSpace(mesh, "CG", deg)
     V_kap = fdrk.FunctionSpace(mesh, "HHJ", deg-1)
@@ -135,7 +135,7 @@ def compute_sol(n_elem, deg, amplitude = 0.01):
     bcs.append(bc_disp)
 
     t = 0.
-    T_end = 10**(-2)        # total simulation time
+    T_end = 7.5 * 10**(-3)        # total simulation time
     
     time_step = 5 * 10**(-6)
     t_ = fdrk.Constant(t)
@@ -193,10 +193,12 @@ def compute_sol(n_elem, deg, amplitude = 0.01):
     if not os.path.exists(directory_largedata):
         os.makedirs(directory_largedata, exist_ok=True)
     
-    outfile_bend_velocity = fdrk.File(f"{directory_largedata}/NonLinear/Vertical_velocity.pvd")
+    outfile_bend_velocity = fdrk.File(f"{directory_largedata}\
+                                    /NonLinear/amp_{amplitude}/Vertical_velocity.pvd")
     outfile_bend_velocity.write(e_w_n, time=0)
 
-    outfile_bend_displacement = fdrk.File(f"{directory_largedata}/NonLinear/Vertical_displacement.pvd")
+    outfile_bend_displacement = fdrk.File(f"{directory_largedata}\
+                                    /NonLinear/amp_{amplitude}/Vertical_displacement.pvd")
     outfile_bend_displacement.write(e_disp_n, time=0)
 
     param = {'snes_type': 'newtonls', 'ksp_type': 'preonly', 'pc_type': 'lu'} 
@@ -213,7 +215,7 @@ def compute_sol(n_elem, deg, amplitude = 0.01):
                                             solver_parameters=param)
     
         
-    for ii in tqdm(range(1, n_time)):
+    for ii in tqdm(range(1, n_time+1)):
         actual_time = ii*time_step
 
         e_n1.assign(e_n) #  For initialisation
@@ -239,7 +241,7 @@ def compute_sol(n_elem, deg, amplitude = 0.01):
             outfile_bend_displacement.write(e_disp_n, time=actual_time)
 
 
-    directory_results = f"{os.path.dirname(os.path.abspath(__file__))}/results/VonKarmanNonLinear/FirstMode/"
+    directory_results = f"{os.path.dirname(os.path.abspath(__file__))}/results/VonKarmanNonLinear/FirstMode/amp_{amplitude}/"
     if not os.path.exists(directory_results):
         os.makedirs(directory_results, exist_ok=True)
     interval = 10e5 * output_frequency * time_step
@@ -253,6 +255,27 @@ def compute_sol(n_elem, deg, amplitude = 0.01):
                                                 interval=interval, lim_z = min_max_disp)
 
     displacement_animation.save(f"{directory_results}Animation_displacement.mp4", writer="ffmpeg")
+
+    n_frames = len(time_frames_ms)
+
+    indexes_images = [0, int(n_frames/3), int(2*n_frames/3), int(n_frames-1)]
+
+    print(n_frames, indexes_images)
+
+    for kk in indexes_images:
+        time_image = time_frames_ms[kk]
+
+        fig = plt.figure()
+        axes = fig.add_subplot(111, projection='3d')
+        axes.set_aspect('equal')
+        fdrk.trisurf(list_frames_bend_displacement[kk], axes=axes)
+        axes.set_title(f"Displacement $t={time_image:.1f}$ [ms]", loc='center')
+        axes.set_xlabel("x")
+        axes.set_ylabel("y")
+        axes.set_zlim(min_max_disp)
+
+        plt.savefig(f"{directory_results}Displacement_t{time_image:.1f}.pdf", bbox_inches='tight', dpi='figure', format='pdf')
+
 
     return 
 

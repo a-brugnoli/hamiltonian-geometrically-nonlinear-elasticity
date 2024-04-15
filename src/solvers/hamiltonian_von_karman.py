@@ -36,14 +36,14 @@ class HamiltonianVonKarmanSolver:
         PETSc.Sys.Print(f"Dimension space bending : \
                         {space_bend_velocity.dim() + space_bend_stress.dim()}")
 
-        self.tests_energy = fdrk.TestFunctions(space_energy)
-        self.trials_energy = fdrk.TrialFunctions(space_energy)
+        tests_energy = fdrk.TestFunctions(space_energy)
+        trials_energy = fdrk.TrialFunctions(space_energy)
 
         self.state_energy_old = fdrk.Function(space_energy)
         self.state_energy_new = fdrk.Function(space_energy)
 
-        self.test_bend_displacement = fdrk.TestFunction(self.space_bend_displacement)
-        self.trial_bend_displacement = fdrk.TrialFunction(self.space_bend_displacement)
+        test_bend_displacement = fdrk.TestFunction(self.space_bend_displacement)
+        trial_bend_displacement = fdrk.TrialFunction(self.space_bend_displacement)
 
         self.bend_displacement_old = fdrk.Function(self.space_bend_displacement)
         self.bend_displacement_new = fdrk.Function(self.space_bend_displacement)
@@ -125,8 +125,8 @@ class HamiltonianVonKarmanSolver:
                                             membrane_inertia=membrane_inertia)
 
         self.a_form = operator_energy(self.time_step, \
-                                self.tests_energy, \
-                                self.trials_energy, \
+                                tests_energy, \
+                                trials_energy, \
                                 self.bend_displacement_old, \
                                 problem.parameters, \
                                 problem.normal_versor, \
@@ -141,7 +141,7 @@ class HamiltonianVonKarmanSolver:
         # plt.show()
 
         self.l_form = functional_energy(self.time_step, \
-                                self.tests_energy, \
+                                tests_energy, \
                                 self.states_energy_old, \
                                 self.bend_displacement_old, \
                                 problem.parameters, \
