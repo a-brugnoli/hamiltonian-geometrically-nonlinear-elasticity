@@ -2,11 +2,13 @@ import firedrake as fdrk
 from .problem import Problem
 import numpy as np
 from math import pi
-from src.tools.von_karman import bending_stiffness
+from src.tools.von_karman import bending_stiffness, membrane_stiffness
+from src.tools.common import sym_grad
+
 
 class FirstModeVonKarman(Problem):
 
-    def __init__(self, n_elem_x, n_elem_y, amplitude = 0.01):
+    def __init__(self, n_elem_x, n_elem_y, amplitude):
         L_x = 0.5
         L_y = 0.5
 
@@ -16,11 +18,12 @@ class FirstModeVonKarman(Problem):
         self.x, self.y = self.coordinates_mesh
         self.normal_versor = fdrk.FacetNormal(self.domain)
 
-
         self.amplitude = amplitude
+
         density = fdrk.Constant(7850) 
-        thickness = 0.002
+        thickness = fdrk.Constant(0.002)
         young_modulus = fdrk.Constant(2 * 10**11)
+
         poisson_modulus = fdrk.Constant(0.3)
 
         self.parameters = {"rho": density, 
@@ -39,13 +42,16 @@ class FirstModeVonKarman(Problem):
 
         bend_disp_0 = self.amplitude * h * fdrk.sin(pi * self.x/ L_x) * fdrk.sin(pi * self.y/ L_y)
 
-        mem_velocity_0 = fdrk.Constant((0, 0))
-        mem_stress_0 = fdrk.Constant(((0.0, 0.0), (0.0, 0.0)))
+        mem_strain_0 = 0.5 * fdrk.outer(fdrk.grad(bend_disp_0), fdrk.grad(bend_disp_0))
+        mem_stress_0 = membrane_stiffness(mem_strain_0, self.parameters)
 
+        bending_strain_0 = sym_grad(fdrk.grad(bend_disp_0))
+        bend_stress_0 = bending_stiffness(bending_strain_0, self.parameters)
+
+        mem_velocity_0 = fdrk.Constant((0, 0))
         bend_velocity_0 = fdrk.Constant(0)
 
-        bending_strain_0 = fdrk.sym(fdrk.grad(fdrk.grad(bend_disp_0)))
-        bend_stress_0 = bending_stiffness(bending_strain_0, self.parameters)
+    
 
         return {"membrane velocity": mem_velocity_0,
                 "membrane stress": mem_stress_0, 

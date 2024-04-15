@@ -56,3 +56,7 @@ def compute_min_max_mesh(mesh: fdrk.MeshGeometry, *previous_list_min_max):
         list_tuple.append((present_min, present_max))
 
     return list_tuple
+
+
+def sym_grad(vector):
+    return 0.5 * (fdrk.nabla_grad(vector) + fdrk.nabla_grad(vector).T)

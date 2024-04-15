@@ -8,10 +8,12 @@ import matplotlib.pyplot as plt
 
 class HamiltonianVonKarmanSolver:
     def __init__(self,
-                 problem: Problem,
-                 time_step: float,
-                 pol_degree= 1,
-                 solver_parameters_energy={}):
+                problem: Problem,
+                time_step: float,
+                pol_degree= 1,
+                solver_parameters_energy={}, 
+                membrane_inertia = True,
+                coupling = True):
         
         self.coordinates_mesh = problem.coordinates_mesh
         self.time_step = time_step
@@ -19,7 +21,8 @@ class HamiltonianVonKarmanSolver:
 
         space_mem_velocity = fdrk.VectorFunctionSpace(problem.domain, "CG", pol_degree)
         space_mem_stress = fdrk.FunctionSpace(problem.domain, "Regge", pol_degree - 1)
-        # space_mem_stress = fdrk.TensorFunctionSpace(problem.domain, "DG", pol_degree - 1, symmetry=True)
+        # space_mem_stress = fdrk.TensorFunctionSpace(problem.domain, "DG", \
+                                                    # pol_degree-1, symmetry=True)
 
         self.space_bend_displacement = fdrk.FunctionSpace(problem.domain, "CG", pol_degree)
 
@@ -28,8 +31,13 @@ class HamiltonianVonKarmanSolver:
 
         space_energy = space_mem_velocity * space_mem_stress * space_bend_velocity * space_bend_stress
 
-        tests_energy = fdrk.TestFunctions(space_energy)
-        trials_energy = fdrk.TrialFunctions(space_energy)
+        PETSc.Sys.Print(f"Dimension space membrane : \
+                        {space_mem_velocity.dim() + space_mem_stress.dim()}")
+        PETSc.Sys.Print(f"Dimension space bending : \
+                        {space_bend_velocity.dim() + space_bend_stress.dim()}")
+
+        self.tests_energy = fdrk.TestFunctions(space_energy)
+        self.trials_energy = fdrk.TrialFunctions(space_energy)
 
         self.state_energy_old = fdrk.Function(space_energy)
         self.state_energy_new = fdrk.Function(space_energy)
@@ -85,7 +93,7 @@ class HamiltonianVonKarmanSolver:
         bend_stress_bcs = [fdrk.DirichletBC(space_energy.sub(3), item[1], item[0]) \
                                 for item in bend_stress_bc_data.items()]
         
-        all_bcs = mem_velocity_bcs + bend_velocity_bcs + bend_stress_bcs
+        self.all_bcs = mem_velocity_bcs + bend_velocity_bcs + bend_stress_bcs
 
         self.mem_velocity_old, self.mem_stress_old, \
         self.bend_velocity_old, self.bend_stress_old = self.state_energy_old.subfunctions
@@ -103,29 +111,48 @@ class HamiltonianVonKarmanSolver:
         self.actual_time_displacement = fdrk.Constant(self.time_step/2)
 
         # Set solver for the energy part
-        states_energy_old = self.state_energy_old.subfunctions
-        states_energy_new = self.state_energy_new.subfunctions
-        self.energy_old = 0.5*mass_form_energy(states_energy_old, states_energy_old, problem.parameters)
-        self.energy_new = 0.5*mass_form_energy(states_energy_new, states_energy_new, problem.parameters)
+        self.states_energy_old = self.state_energy_old.subfunctions
+        self.states_energy_new = self.state_energy_new.subfunctions
+
+        self.energy_old = 0.5*mass_form_energy(self.states_energy_old, \
+                                            self.states_energy_old, \
+                                            problem.parameters, \
+                                            membrane_inertia=membrane_inertia)
+        
+        self.energy_new = 0.5*mass_form_energy(self.states_energy_new, \
+                                            self.states_energy_new, \
+                                            self.problem.parameters, \
+                                            membrane_inertia=membrane_inertia)
 
         self.a_form = operator_energy(self.time_step, \
-                                tests_energy, \
-                                trials_energy, \
+                                self.tests_energy, \
+                                self.trials_energy, \
                                 self.bend_displacement_old, \
                                 problem.parameters, \
-                                problem.normal_versor)
+                                problem.normal_versor, \
+                                membrane_inertia=membrane_inertia, \
+                                coupling = coupling)
+        
+        # # Spy matrix to look for error
+        # A_petsc = fdrk.assemble(self.a_form, mat_type='aij').M.handle
+        # A_scipy =  csr_matrix(A_petsc.getValuesCSR()[::-1])
+
+        # plt.spy(A_scipy)
+        # plt.show()
 
         self.l_form = functional_energy(self.time_step, \
-                                    tests_energy, \
-                                    self.state_energy_old.subfunctions, \
-                                    self.bend_displacement_old, \
-                                    problem.parameters, \
-                                    problem.normal_versor)
+                                self.tests_energy, \
+                                self.states_energy_old, \
+                                self.bend_displacement_old, \
+                                problem.parameters, \
+                                problem.normal_versor, \
+                                membrane_inertia=membrane_inertia, \
+                                coupling = coupling)
 
         linear_energy_problem = fdrk.LinearVariationalProblem(self.a_form, \
                                                             self.l_form, \
                                                             self.state_energy_new, \
-                                                            bcs=all_bcs)
+                                                            bcs=self.all_bcs)
     
         self.linear_energy_solver = fdrk.LinearVariationalSolver(linear_energy_problem, \
                                                             solver_parameters=solver_parameters_energy)
