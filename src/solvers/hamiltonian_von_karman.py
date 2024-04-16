@@ -81,17 +81,26 @@ class HamiltonianVonKarmanSolver:
 
         dict_essential = problem.get_essential_bcs(self.time_energy_new)
 
-        mem_velocity_bc_data = dict_essential["membrane velocity"]
-        mem_velocity_bcs = [fdrk.DirichletBC(space_energy.sub(0), item[1], item[0]) \
-                                for item in mem_velocity_bc_data.items()]
-        
-        bend_velocity_bc_data = dict_essential["bending velocity"]
-        bend_velocity_bcs = [fdrk.DirichletBC(space_energy.sub(2), item[1], item[0]) \
+        try:        
+            bend_velocity_bc_data = dict_essential["bending velocity"]
+            bend_velocity_bcs = [fdrk.DirichletBC(space_energy.sub(2), item[1], item[0]) \
                                 for item in bend_velocity_bc_data.items()]
-        
-        bend_stress_bc_data = dict_essential["bending stress"]
-        bend_stress_bcs = [fdrk.DirichletBC(space_energy.sub(3), item[1], item[0]) \
+        except KeyError:
+            bend_velocity_bcs = []
+
+        try:
+            mem_velocity_bc_data = dict_essential["membrane velocity"]
+            mem_velocity_bcs = [fdrk.DirichletBC(space_energy.sub(0), item[1], item[0]) \
+                                for item in mem_velocity_bc_data.items()]
+        except:
+            mem_velocity_bcs = []
+
+        try:
+            bend_stress_bc_data = dict_essential["bending stress"]
+            bend_stress_bcs = [fdrk.DirichletBC(space_energy.sub(3), item[1], item[0]) \
                                 for item in bend_stress_bc_data.items()]
+        except KeyError:
+            bend_stress_bcs = []
         
         self.all_bcs = mem_velocity_bcs + bend_velocity_bcs + bend_stress_bcs
 

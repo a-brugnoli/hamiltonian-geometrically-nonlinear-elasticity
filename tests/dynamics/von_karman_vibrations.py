@@ -11,8 +11,7 @@ import os
 
 pol_degree = 2
 quad = False
-n_elem_x = 20
-n_elem_y = 20
+n_elem = 40
 time_step = 5*10**(-6)
 T_end = 7.5 * 10**(-3)
 # T_end = 30 * time_step
@@ -20,7 +19,7 @@ T_end = 7.5 * 10**(-3)
 n_time  = ceil(T_end/time_step)
 
 amplitude = 10
-problem = FirstModeVonKarman(n_elem_x, n_elem_y, amplitude=amplitude)
+problem = FirstModeVonKarman(n_elem, n_elem, amplitude=amplitude)
 
 solver = HamiltonianVonKarmanSolver(problem, 
                             time_step, 
@@ -29,7 +28,8 @@ solver = HamiltonianVonKarmanSolver(problem,
                             membrane_inertia=False)
 
 absolute_path = os.path.dirname(os.path.abspath(__file__))
-directory_results = f"{absolute_path}/results/{str(solver)}/{str(problem)}/amp_{amplitude}/"
+directory_results = f"{absolute_path}/results/{str(solver)}/{str(problem)}/\
+    n_elem_{n_elem}_deg_{pol_degree}/amp_{amplitude}/"
 if not os.path.exists(directory_results):
     os.makedirs(directory_results)
             
@@ -102,11 +102,7 @@ displacement_animation = animate_scalar_trisurf(time_frames_ms, list_frames_bend
 displacement_animation.save(f"{directory_results}Animation_displacement.mp4", writer="ffmpeg")
 
 n_frames = len(time_frames_ms)
-
 indexes_images = [0, int(n_frames/3), int(2*n_frames/3), int(n_frames-1)]
-
-print(n_frames, indexes_images)
-
 for kk in indexes_images:
     time_image = time_frames_ms[kk]
 

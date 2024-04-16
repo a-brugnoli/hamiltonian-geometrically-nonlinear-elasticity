@@ -66,11 +66,16 @@ class FirstModeVonKarman(Problem):
         Simply supported boundary conditions
         
         """
+        # essential_dict = {"bending displacement": {"on_boundary": fdrk.Constant(0)}, \
+        #                 "membrane velocity": {"on_boundary": fdrk.Constant((0, 0))}, \
+        #                 "bending velocity": {"on_boundary": fdrk.Constant(0)}, \
+        #                 "bending stress" : {"on_boundary": fdrk.Constant(((0.0, 0.0), (0.0, 0.0)))}}
+        
         essential_dict = {"bending displacement": {"on_boundary": fdrk.Constant(0)}, \
-                        "membrane velocity": {"on_boundary": fdrk.Constant((0, 0))}, \
                         "bending velocity": {"on_boundary": fdrk.Constant(0)}, \
                         "bending stress" : {"on_boundary": fdrk.Constant(((0.0, 0.0), (0.0, 0.0)))}}
         
+
         return essential_dict
 
     def get_natural_bcs(self, time_nat):
