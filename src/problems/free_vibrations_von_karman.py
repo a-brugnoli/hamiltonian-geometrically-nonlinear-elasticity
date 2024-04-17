@@ -51,8 +51,6 @@ class FirstModeVonKarman(Problem):
         mem_velocity_0 = fdrk.Constant((0, 0))
         bend_velocity_0 = fdrk.Constant(0)
 
-    
-
         return {"membrane velocity": mem_velocity_0,
                 "membrane stress": mem_stress_0, 
                 "bending displacement": bend_disp_0,
@@ -64,16 +62,14 @@ class FirstModeVonKarman(Problem):
     def get_essential_bcs(self, time_ess):
         """
         Simply supported boundary conditions
-        
+        The in-plane boundary conditions are considered movable: References :
+        Simulations of nonlinear plate dynamics: an accurate and efficient modal algorithm
+        Explicit exactly energy-conserving methods for Hamiltonian systems
         """
-        # essential_dict = {"bending displacement": {"on_boundary": fdrk.Constant(0)}, \
-        #                 "membrane velocity": {"on_boundary": fdrk.Constant((0, 0))}, \
-        #                 "bending velocity": {"on_boundary": fdrk.Constant(0)}, \
-        #                 "bending stress" : {"on_boundary": fdrk.Constant(((0.0, 0.0), (0.0, 0.0)))}}
         
         essential_dict = {"bending displacement": {"on_boundary": fdrk.Constant(0)}, \
-                        "bending velocity": {"on_boundary": fdrk.Constant(0)}, \
-                        "bending stress" : {"on_boundary": fdrk.Constant(((0.0, 0.0), (0.0, 0.0)))}}
+            "bending velocity": {"on_boundary": fdrk.Constant(0)}, \
+            "bending stress" : {"on_boundary": fdrk.Constant(((0.0, 0.0), (0.0, 0.0)))}}
         
 
         return essential_dict

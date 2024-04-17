@@ -87,8 +87,8 @@ def dynamics_form_energy(testfunctions, functions, vert_displacement, normal, co
                         + fdrk.inner(test_mem_stress, fdrk.sym(fdrk.grad(mem_velocity))) * fdrk.dx 
             
     dynamics_bending = - fdrk.inner(fdrk.grad(fdrk.grad(test_bend_velocity)), bend_stress) * fdrk.dx \
-                    + fdrk.inner(test_bend_stress, fdrk.grad(fdrk.grad(bend_velocity))) * fdrk.dx \
     + fdrk.jump(fdrk.grad(test_bend_velocity), normal) * fdrk.dot(fdrk.dot(bend_stress('+'), normal('+')), normal('+')) * fdrk.dS \
+    + fdrk.inner(test_bend_stress, fdrk.grad(fdrk.grad(bend_velocity))) * fdrk.dx \
     - fdrk.dot(fdrk.dot(test_bend_stress('+'), normal('+')), normal('+')) * fdrk.jump(fdrk.grad(bend_velocity), normal) * fdrk.dS \
     + fdrk.dot(fdrk.grad(test_bend_velocity), normal) * fdrk.dot(fdrk.dot(bend_stress, normal), normal) * fdrk.ds \
     - fdrk.dot(fdrk.dot(test_bend_stress, normal), normal) * fdrk.dot(fdrk.grad(bend_velocity), normal) * fdrk.ds

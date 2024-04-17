@@ -9,9 +9,9 @@ from src.solvers.hamiltonian_von_karman import HamiltonianVonKarmanSolver
 from src.problems.free_vibrations_von_karman import FirstModeVonKarman
 import os
 
-pol_degree = 2
+pol_degree = 1
 quad = False
-n_elem = 40
+n_elem = 10
 time_step = 5*10**(-6)
 T_end = 7.5 * 10**(-3)
 # T_end = 30 * time_step
@@ -52,7 +52,8 @@ list_frames_bend_displacement = []
 list_frames_bend_displacement.append(solver.bend_displacement_old.copy(deepcopy=True))
 
 home_dir =os.environ['HOME']
-directory_largedata = f"{home_dir}/StoreResults/VonKarman/"
+directory_largedata = f"{home_dir}/StoreResults/{str(solver)}/{str(problem)}/\
+    n_elem_{n_elem}_deg_{pol_degree}/amp_{amplitude}/"
 if not os.path.exists(directory_largedata):
     os.makedirs(directory_largedata, exist_ok=True)
 
@@ -103,6 +104,7 @@ displacement_animation.save(f"{directory_results}Animation_displacement.mp4", wr
 
 n_frames = len(time_frames_ms)
 indexes_images = [0, int(n_frames/3), int(2*n_frames/3), int(n_frames-1)]
+
 for kk in indexes_images:
     time_image = time_frames_ms[kk]
 
@@ -117,8 +119,6 @@ for kk in indexes_images:
 
     plt.savefig(f"{directory_results}Displacement_t{time_image:.1f}.pdf", bbox_inches='tight', dpi='figure', format='pdf')
 
-
-
 plt.figure()
 plt.plot(time_vector, energy_vector)
 plt.grid(color='0.8', linestyle='-', linewidth=.5)
@@ -126,3 +126,4 @@ plt.xlabel(r'Time')
 plt.title("Energy")
 plt.savefig(f"{directory_results}Energy.pdf", dpi='figure', format='pdf')
 
+plt.close('all')
