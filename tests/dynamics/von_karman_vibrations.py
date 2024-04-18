@@ -7,14 +7,14 @@ from src.tools.common import compute_min_max_function
 import matplotlib.pyplot as plt
 from src.solvers.hamiltonian_von_karman import HamiltonianVonKarmanSolver
 from src.problems.free_vibrations_von_karman import FirstModeVonKarman
-import os
+import os, sys
 
+n_elem = 30
 pol_degree = 1
 quad = False
-n_elem = 10
 time_step = 5*10**(-6)
-T_end = 7.5 * 10**(-3)
-# T_end = 30 * time_step
+# T_end = 7.5 * 10**(-3)
+T_end = 30 * time_step
 
 n_time  = ceil(T_end/time_step)
 
@@ -28,14 +28,24 @@ solver = HamiltonianVonKarmanSolver(problem,
                             membrane_inertia=False)
 
 absolute_path = os.path.dirname(os.path.abspath(__file__))
-directory_results = f"{absolute_path}/results/{str(solver)}/{str(problem)}/\
-    n_elem_{n_elem}_deg_{pol_degree}/amp_{amplitude}/"
+append_to_result_folder = f"n_elem_{n_elem}_deg_{pol_degree}/amp_{amplitude}/"
+
+directory_results = f"{absolute_path}/results/{str(solver)}/{str(problem)}/{append_to_result_folder}"
 if not os.path.exists(directory_results):
     os.makedirs(directory_results)
             
 time_vector = np.linspace(0, T_end, num=n_time+1)
 energy_vector = np.zeros((n_time+1, ))
 energy_vector[0] = fdrk.assemble(solver.energy_old)
+
+L_x, L_y = problem.parameters["L_x"], problem.parameters["L_y"]
+center = (L_x/2, L_y/2)
+
+displacement_at_center = np.zeros((n_time+1, ))
+displacement_at_center[0] = solver.bend_displacement_old.at(center)
+
+velocity_at_center = np.zeros((n_time+1, ))
+velocity_at_center[0] = solver.bend_velocity_old.at(center)
 
 output_frequency = 10
 
@@ -52,17 +62,15 @@ list_frames_bend_displacement = []
 list_frames_bend_displacement.append(solver.bend_displacement_old.copy(deepcopy=True))
 
 home_dir =os.environ['HOME']
-directory_largedata = f"{home_dir}/StoreResults/{str(solver)}/{str(problem)}/\
-    n_elem_{n_elem}_deg_{pol_degree}/amp_{amplitude}/"
+directory_largedata = f"{home_dir}/StoreResults/{str(solver)}/{str(problem)}/{append_to_result_folder}"
 if not os.path.exists(directory_largedata):
     os.makedirs(directory_largedata, exist_ok=True)
 
-outfile_bend_velocity = fdrk.File(f"{directory_largedata}{str(solver)}/Vertical_velocity.pvd")
+outfile_bend_velocity = fdrk.File(f"{directory_largedata}/Vertical_velocity.pvd")
 outfile_bend_velocity.write(solver.bend_velocity_old, time=0)
 
-outfile_bend_displacement = fdrk.File(f"{directory_largedata}{str(solver)}/Vertical_displacement.pvd")
+outfile_bend_displacement = fdrk.File(f"{directory_largedata}/Vertical_displacement.pvd")
 outfile_bend_displacement.write(solver.bend_displacement_old, time=0)
-
 
 for ii in tqdm(range(1, n_time+1)):
     actual_time = ii*time_step
@@ -76,6 +84,8 @@ for ii in tqdm(range(1, n_time+1)):
     # print(f"Residual displacement eq {fdrk.norm(residual_displacement)}")
 
     solver.update_variables()
+    displacement_at_center[ii] = solver.bend_displacement_old.at(center)
+    velocity_at_center[ii] = solver.bend_velocity_old.at(center)
 
     if ii % output_frequency == 0:
 
@@ -88,6 +98,7 @@ for ii in tqdm(range(1, n_time+1)):
 
         outfile_bend_velocity.write(solver.bend_velocity_old, time=actual_time)
         outfile_bend_displacement.write(solver.bend_displacement_old, time=actual_time)
+
 
 
 interval = 10**6 * output_frequency * time_step
@@ -117,13 +128,13 @@ for kk in indexes_images:
     axes.set_ylabel("y")
     axes.set_zlim(min_max_disp)
 
-    plt.savefig(f"{directory_results}Displacement_t{time_image:.1f}.pdf", bbox_inches='tight', dpi='figure', format='pdf')
+    plt.savefig(f"{directory_results}/{append_to_result_folder}/Displacement_t{time_image:.1f}.pdf", bbox_inches='tight', dpi='figure', format='pdf')
 
 plt.figure()
 plt.plot(time_vector, energy_vector)
 plt.grid(color='0.8', linestyle='-', linewidth=.5)
 plt.xlabel(r'Time')
 plt.title("Energy")
-plt.savefig(f"{directory_results}Energy.pdf", dpi='figure', format='pdf')
+plt.savefig(f"{directory_results}/{append_to_result_folder}/Energy.pdf", dpi='figure', format='pdf')
 
 plt.close('all')
