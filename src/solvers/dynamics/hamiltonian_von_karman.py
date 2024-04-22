@@ -31,10 +31,10 @@ class HamiltonianVonKarmanSolver:
 
         space_energy = space_mem_velocity * space_mem_stress * space_bend_velocity * space_bend_stress
 
-        PETSc.Sys.Print(f"Dimension space membrane : \
-                        {space_mem_velocity.dim() + space_mem_stress.dim()}")
-        PETSc.Sys.Print(f"Dimension space bending : \
-                        {space_bend_velocity.dim() + space_bend_stress.dim()}")
+        # PETSc.Sys.Print(f"Dimension space membrane : \
+        #                 {space_mem_velocity.dim() + space_mem_stress.dim()}")
+        # PETSc.Sys.Print(f"Dimension space bending : \
+        #                 {space_bend_velocity.dim() + space_bend_stress.dim()}")
 
         tests_energy = fdrk.TestFunctions(space_energy)
         trials_energy = fdrk.TrialFunctions(space_energy)

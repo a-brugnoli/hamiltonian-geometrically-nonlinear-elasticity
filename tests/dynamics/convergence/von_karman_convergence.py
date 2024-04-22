@@ -57,7 +57,7 @@ if __name__=="__main__":
     if not os.path.exists(directory_results):
         os.makedirs(directory_results)
 
-    n_elem_vec = [5, 10, 15, 20, 25, 30]
+    n_elem_vec = [10, 20, 30, 40, 50]
 
     for n_el in n_elem_vec:
 

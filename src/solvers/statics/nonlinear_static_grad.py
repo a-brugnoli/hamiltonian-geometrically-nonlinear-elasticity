@@ -1,16 +1,12 @@
 import firedrake as fdrk
 from src.problems.problem import StaticProblem
-import matplotlib.pyplot as plt
-import time
-from firedrake.petsc import PETSc
+from src.solvers.statics.nonlinear_static import NonLinearStatic
 
-class NonLinearStaticSolverGrad:
+
+class NonLinearStaticSolverGrad(NonLinearStatic):
     def __init__(self, problem: StaticProblem, pol_degree=2, num_steps=35):
+        super().__init__(problem, num_steps)
         
-        self.domain = problem.domain
-        self.problem = problem
-        self.num_steps = num_steps
-
         cell = self.domain.ufl_cell()
 
         H1_fe = fdrk.FiniteElement("CG", cell, pol_degree)
@@ -42,7 +38,7 @@ class NonLinearStaticSolverGrad:
         self.delta_displacement, self.delta_grad_disp, self.delta_first_piola = self.delta_solution.subfunctions
 
         trial_delta_mixed = fdrk.TrialFunction(mixed_space)
-        trial_delta_disp, trial_delta_grad_disp, trial_delta_first_piola = fdrk.split(trial_delta_mixed)
+        # trial_delta_disp, trial_delta_grad_disp, trial_delta_first_piola = fdrk.split(trial_delta_mixed)
 
         dict_essential_bcs = problem.get_essential_bcs()
         dict_disp_x = dict_essential_bcs["displacement x"]
@@ -61,8 +57,6 @@ class NonLinearStaticSolverGrad:
         dict_traction_y = dict_nat_bcs["traction y"]
 
         res_equilibrium = fdrk.inner(fdrk.grad(test_disp), self.first_piola) * fdrk.dx 
-
-        self.loading_factor = fdrk.Constant(0)
 
         for subdomain, force_x in dict_traction_x.items():
             res_equilibrium -= self.loading_factor * fdrk.inner(test_disp[0], 
@@ -84,30 +78,22 @@ class NonLinearStaticSolverGrad:
         
         actual_res = res_equilibrium + res_def_grad + res_stress
 
-        # H is the gradient of the displacement
-        D_res_u_DP = fdrk.inner(fdrk.grad(test_disp), trial_delta_first_piola) * fdrk.dx 
+        # Linearization of the residual to use a Newton method
+        # D_res_u_DP = fdrk.inner(fdrk.grad(test_disp), trial_delta_first_piola) * fdrk.dx 
 
-        D_res_H_Du = fdrk.inner(test_grad_disp, fdrk.grad(trial_delta_disp))*fdrk.dx
-        D_res_H_DH = fdrk.inner(test_grad_disp, - trial_delta_grad_disp)*fdrk.dx
+        # D_res_H_Du = fdrk.inner(test_grad_disp, fdrk.grad(trial_delta_disp))*fdrk.dx
+        # D_res_H_DH = fdrk.inner(test_grad_disp, - trial_delta_grad_disp)*fdrk.dx
 
-        D_res_P_DH = fdrk.inner(test_first_piola, 
-                                problem.derivative_first_piola(trial_delta_grad_disp, self.grad_disp)) * fdrk.dx
+        # D_res_P_DH = fdrk.inner(test_first_piola, 
+        #                         problem.derivative_first_piola(trial_delta_grad_disp, self.grad_disp)) * fdrk.dx
 
-        D_res_P_DP = fdrk.inner(test_first_piola, - trial_delta_first_piola) * fdrk.dx
+        # D_res_P_DP = fdrk.inner(test_first_piola, - trial_delta_first_piola) * fdrk.dx
 
-        Jacobian = D_res_u_DP \
-                    + D_res_H_DH \
-                    + D_res_H_Du \
-                    + D_res_P_DP \
-                    + D_res_P_DH
-
-        # variational_problem = fdrk.LinearVariationalProblem(Jacobian,
-        #                                                     -actual_res, 
-        #                                                     self.delta_solution, 
-        #                                                     bcs = bcs)
-
-
-        # self.solver = fdrk.LinearVariationalSolver(variational_problem, solver_parameters={})
+        # Jacobian = D_res_u_DP \
+        #             + D_res_H_DH \
+        #             + D_res_H_Du \
+        #             + D_res_P_DP \
+        #             + D_res_P_DH
 
         variational_problem = fdrk.NonlinearVariationalProblem(actual_res, 
                                                                self.solution, 
@@ -115,51 +101,3 @@ class NonLinearStaticSolverGrad:
 
         self.solver = fdrk.NonlinearVariationalSolver(variational_problem)
 
-
-
-    def solve(self):
-
-        fig, axes = plt.subplots()
-        int_coordinates = fdrk.Mesh(fdrk.interpolate(self.problem.coordinates_mesh, self.disp_space))        
-        fdrk.triplot(int_coordinates, axes=axes)
-        plt.show(block=False)
-        plt.pause(0.01)
-
-        tolerance = 1e-9
-        n_iter_max = 20
-        damping_factor_newton = 1
-
-        for step in range(self.num_steps):
-            self.loading_factor.assign((step+1)/self.num_steps)
-            PETSc.Sys.Print("step number = %d: load factor is %.0f%%" % (step, self.loading_factor*100))
-
-            self.solver.solve()
-
-        # for load_step in range(self.num_steps):
-        #     self.loading_factor.assign((load_step+1)/self.num_steps)
-        #     PETSc.Sys.Print("step number = %d: load factor is %.0f%%" % (load_step, self.loading_factor*100))
-
-        #     for iter in range(n_iter_max):
-
-        #         self.solver.solve()
-        #         eps = fdrk.norm(self.delta_solution)
-        #         self.solution.assign(self.solution + damping_factor_newton * self.delta_solution)
-        #         PETSc.Sys.Print("iter = %d: the L2 norm of the increment is %8.2E" % (iter, eps))
-
-        #         if eps < tolerance:
-        #             PETSc.Sys.Print("Tolerance reached : exiting Newton loop")
-        #             break
-
-            axes.cla()
-            self.plot_displacement(axes)
-            plt.draw()
-            plt.pause(0.01)
-
-        plt.show()
-        
-
-    def plot_displacement(self, axes):
-        int_displaced_coordinates = fdrk.Mesh(fdrk.interpolate(self.problem.coordinates_mesh \
-                                                               + self.displacement, self.disp_space))
-
-        fdrk.triplot(int_displaced_coordinates, axes=axes)

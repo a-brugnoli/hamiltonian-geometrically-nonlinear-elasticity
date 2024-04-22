@@ -7,7 +7,7 @@ absolute_path = os.path.dirname(os.path.abspath(__file__))
 
 directory_results = f"{absolute_path}/results/convergence_first_mode/"
 
-n_elem_vec = [4, 8, 16, 30]
+n_elem_vec = [40, 50]
 
 time_convergence = []
 disp_convergence = []
