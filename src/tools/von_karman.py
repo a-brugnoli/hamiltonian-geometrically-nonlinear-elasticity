@@ -2,6 +2,10 @@ import firedrake as fdrk
 from firedrake.petsc import PETSc
 
 
+def sym_grad(vector):
+    return fdrk.sym(fdrk.grad(vector))
+
+
 def membrane_stiffness(membrane_strain, parameters):
     thickness = parameters["h"]
     young_modulus = parameters["E"]
@@ -88,9 +92,9 @@ def dynamics_form_energy(testfunctions, functions, vert_displacement, normal, co
             
     dynamics_bending = - fdrk.inner(fdrk.grad(fdrk.grad(test_bend_velocity)), bend_stress) * fdrk.dx \
     + fdrk.jump(fdrk.grad(test_bend_velocity), normal) * fdrk.dot(fdrk.dot(bend_stress('+'), normal('+')), normal('+')) * fdrk.dS \
+    + fdrk.dot(fdrk.grad(test_bend_velocity), normal) * fdrk.dot(fdrk.dot(bend_stress, normal), normal) * fdrk.ds \
     + fdrk.inner(test_bend_stress, fdrk.grad(fdrk.grad(bend_velocity))) * fdrk.dx \
     - fdrk.dot(fdrk.dot(test_bend_stress('+'), normal('+')), normal('+')) * fdrk.jump(fdrk.grad(bend_velocity), normal) * fdrk.dS \
-    + fdrk.dot(fdrk.grad(test_bend_velocity), normal) * fdrk.dot(fdrk.dot(bend_stress, normal), normal) * fdrk.ds \
     - fdrk.dot(fdrk.dot(test_bend_stress, normal), normal) * fdrk.dot(fdrk.grad(bend_velocity), normal) * fdrk.ds
     
     dynamics_form = dynamics_membrane + dynamics_bending 

@@ -3,7 +3,7 @@ from src.problems.problem import StaticProblem
 from src.solvers.statics.nonlinear_static import NonLinearStatic
 
 class NonLinearStaticSolverStandard(NonLinearStatic):
-    def __init__(self, problem: StaticProblem, pol_degree=2, num_steps=35):
+    def __init__(self, problem: StaticProblem, pol_degree=2, num_steps=1):
         super().__init__(problem, num_steps)
         
         CG_vectorspace = fdrk.VectorFunctionSpace(self.domain, "CG", pol_degree)
