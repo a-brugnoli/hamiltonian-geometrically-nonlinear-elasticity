@@ -74,9 +74,7 @@ class InhomogeneousCompression(StaticProblem):
 
         return {"traction x": {2: fdrk.Constant((0, 0)), 3: fdrk.Constant((0, 0))},
                 "traction y": {1: fdrk.Constant((0, 0)), 2: fdrk.Constant((0, 0)), 4: traction}}
-
-
-
+    
 
     def get_forcing(self):
         return None
