@@ -15,17 +15,16 @@ class CantileverBeam(Problem):
         self.normal_versor = fdrk.FacetNormal(self.domain)
 
         density = fdrk.Constant(1)
-        young_modulus = fdrk.Constant(1000)
-        poisson_modulus = fdrk.Constant(0.3)
+        young_modulus = fdrk.Constant(250)
+        poisson_modulus = fdrk.Constant(0.35)
 
-        self.parameters = {"Density": density, 
-                           "Young modulus": young_modulus, 
-                           "Poisson ratio": poisson_modulus, 
+        self.parameters = {"rho": density, 
+                           "E": young_modulus, 
+                           "nu": poisson_modulus, 
                            }
 
 
     def get_initial_conditions(self):
-        def_gradient_0 = fdrk.as_vector([[1, 0], [0, 1]])
         velocity_0 = fdrk.as_vector([0.0, 0.0])
         stress_0 = fdrk.as_vector([[0, 0], [0, 0]])
 
@@ -33,7 +32,6 @@ class CantileverBeam(Problem):
 
         return {"displacement": displacement_0,
                 "velocity": velocity_0, 
-                "def_gradient": def_gradient_0, 
                 "stress": stress_0, 
                 }
     
@@ -51,14 +49,14 @@ class CantileverBeam(Problem):
         return essential_dict
     
     def get_natural_bcs(self, time_nat):
-        t_coutoff_forcing = fdrk.Constant(5)
+        t_coutoff_forcing = fdrk.Constant(1)
         magnitude_traction = 50
 
         traction_y = time_nat/t_coutoff_forcing *  \
         fdrk.conditional(fdrk.le(time_nat, t_coutoff_forcing), magnitude_traction, 0)
         traction = fdrk.as_vector([fdrk.Constant(0), traction_y])
 
-        return {2: traction}
+        return {2: traction, "follower": True}
 
 
 

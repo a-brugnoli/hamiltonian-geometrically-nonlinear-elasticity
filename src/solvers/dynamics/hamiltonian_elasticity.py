@@ -29,15 +29,12 @@ class HamiltonianElasticitySolver:
         #     displ_vectorspace = fdrk.VectorFunctionSpace(problem.domain, "S", pol_degree)
 
         displ_vectorspace = fdrk.VectorFunctionSpace(problem.domain, "CG", pol_degree)
-        # space_stress_tensor = fdrk.TensorFunctionSpace(problem.domain, "DG", pol_degree-1, symmetry=True)
-
         cell = problem.domain.ufl_cell()
 
-        regge_broken_fe = fdrk.BrokenElement(fdrk.FiniteElement("Regge", cell, pol_degree-1))
+        # regge_broken_fe = fdrk.BrokenElement(fdrk.FiniteElement("Regge", cell, pol_degree-1))
         regge_fe = fdrk.FiniteElement("Regge", cell, pol_degree-1)
         space_stress_tensor = fdrk.FunctionSpace(problem.domain, regge_fe)
-
-        # space_stress_tensor = fdrk.FunctionSpace(problem.domain, "Regge", pol_degree-1)
+        # space_stress_tensor = fdrk.TensorFunctionSpace(problem.domain, "DG", pol_degree-1, symmetry=True)
 
         self.space_displacement = displ_vectorspace
         space_energy = displ_vectorspace * space_stress_tensor
@@ -55,9 +52,6 @@ class HamiltonianElasticitySolver:
         self.displacement_old = fdrk.Function(self.space_displacement)
         self.displacement_new = fdrk.Function(self.space_displacement)
         self.displacement_midpoint = fdrk.Function(self.space_displacement)
-
-        space_DG = fdrk.TensorFunctionSpace(problem.domain, "DG", pol_degree-1)
-        self.deformation_gradient_new = fdrk.Function(space_DG)
 
         expr_t0 = problem.get_initial_conditions()
 
@@ -150,16 +144,16 @@ class HamiltonianElasticitySolver:
 
 
     def get_wave_cfl(self):
-        rho = float(self.problem.parameters["Density"])
-        E = float(self.problem.parameters["Young modulus"])
-        nu = float(self.problem.parameters["Poisson ratio"])
+        rho = float(self.problem.parameters["rho"])
+        E = float(self.problem.parameters["E"])
+        nu = float(self.problem.parameters["nu"])
 
         return self.time_step/self.delta_x_min*np.sqrt(E/rho*((1-nu**2)))
 
 
     def get_dinamic_cfl(self):
 
-        velocity_old = self.state_energy_old.subfunctions[00]
+        velocity_old = self.state_energy_old.subfunctions[0]
 
         self.cfl_vectorfield.assign(fdrk.interpolate(self.time_step * fdrk.dot(self.jacobian_inverse,\
                             velocity_old), self.CG1_vectorspace))

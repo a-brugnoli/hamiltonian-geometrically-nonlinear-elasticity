@@ -4,19 +4,19 @@ from math import ceil
 from tqdm import tqdm
 from src.postprocessing.animators import animate_vector_triplot
 import matplotlib.pyplot as plt
-from src.solvers.hamiltonian_elasticity import HamiltonianElasticitySolver
-from src.solvers.nonlinear_lagrangian import NonlinearLagrangianSolver
+from src.solvers.dynamics.hamiltonian_elasticity import HamiltonianElasticitySolver
+from src.solvers.dynamics.nonlinear_lagrangian import NonlinearLagrangianSolver
 
 from src.tools.common import compute_min_max_mesh
 
 from src.problems.cantilever_beam import CantileverBeam
+from src.problems.dynamic_cook_membrane import DynamicCookMembrane
+
 import os
 
 # # Stable choice non linear Lagrangian
 pol_degree = 1
-quad = False
-n_elem_x= 100
-n_elem_y = 10
+
 time_step = 1e-2
 
 # pol_degree = 1
@@ -28,7 +28,12 @@ time_step = 1e-2
 T_end = 10
 n_time  = ceil(T_end/time_step)
 
-problem = CantileverBeam(n_elem_x, n_elem_y, quad)
+# quad = False
+# n_elem_x= 100
+# n_elem_y = 10
+# problem = CantileverBeam(n_elem_x, n_elem_y, quad)
+
+problem = DynamicCookMembrane(mesh_size=2)
 
 solver = HamiltonianElasticitySolver(problem, 
                             time_step, 
@@ -62,7 +67,6 @@ displaced_coordinates_y = displaced_mesh.coordinates.dat.data[:, 1]
 min_max_coords_x = (min(displaced_coordinates_x), max(displaced_coordinates_x))
 min_max_coords_y = (min(displaced_coordinates_y), max(displaced_coordinates_y))
 list_min_max_coords = [min_max_coords_x, min_max_coords_y]
-
 list_frames = []
 time_frames = []
 list_frames.append(displaced_mesh)
@@ -85,7 +89,6 @@ for ii in tqdm(range(1, n_time+1)):
     if ii % output_frequency == 0:
 
         displaced_mesh = solver.output_displaced_mesh()
-
         list_min_max_coords = compute_min_max_mesh(displaced_mesh, list_min_max_coords)
 
         list_frames.append(displaced_mesh)

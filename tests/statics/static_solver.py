@@ -1,6 +1,6 @@
 from src.preprocessing.basic_plotting import *
 from src.problems.inhomogeneous_compression import InhomogeneousCompression
-from src.problems.cook_membrane import CookMembrane
+from src.problems.static_cook_membrane import CookMembrane
 from src.problems.convergence_static import ConvergenceStatic
 from src.problems.wrinkling_von_karman import Wrinkling
 
@@ -11,8 +11,8 @@ from src.solvers.statics.nonlinear_static_von_karman import NonLinearStaticVonKa
 
 import firedrake as fdrk
 
-problem_id = 4
-solver_id = 4
+problem_id = 2
+solver_id = 1
 pol_degree = 2
 
 match problem_id:
@@ -55,15 +55,3 @@ if isinstance(solver, NonLinearStaticVonKarman):
 else:
     solver.solve()
 
-
-# if isinstance(solver, NonLinearStaticVonKarman):
-
-#     print(f"norm M : {fdrk.norm(solver.bend_moment)}")
-#     print(f"norm w : {fdrk.norm(solver.bend_displacement)}")
-#     fig = plt.figure()
-#     axes = fig.add_subplot(111, projection='3d')
-#     axes.set_aspect('equal')
-
-#     solver.plot_bend_displacement(axes)
-
-#     plt.show()

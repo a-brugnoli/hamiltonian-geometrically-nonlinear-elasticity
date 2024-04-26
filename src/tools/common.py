@@ -32,10 +32,9 @@ def compute_min_max_function(function: fdrk.Function, tuple_min_max):
     return (previous_min, previous_max)
 
 
-def compute_min_max_mesh(mesh: fdrk.MeshGeometry, *previous_list_min_max):
+def compute_min_max_mesh(mesh: fdrk.MeshGeometry, previous_list_min_max):
 
     dim = mesh.geometric_dimension()
-
     assert len(previous_list_min_max)==dim
 
     list_tuple = []
@@ -44,16 +43,20 @@ def compute_min_max_mesh(mesh: fdrk.MeshGeometry, *previous_list_min_max):
         previous_min, previous_max = previous_list_min_max[i]
         coordinates = mesh.coordinates.dat.data[:, i]
 
-        present_min = min(coordinates)
-        present_max = max(coordinates)
+        current_min = min(coordinates)
+        current_max = max(coordinates)
 
-        if present_min < previous_min:
-            previous_min = present_min
+        if current_min < previous_min:
+            actual_min = current_min
+        else:
+            actual_min = previous_min
 
-        if present_max > previous_max:
-            previous_max = present_max
+        if current_max > previous_max:
+            actual_max = current_max
+        else:
+            actual_max = previous_max
 
-        list_tuple.append((present_min, present_max))
+        list_tuple.append([actual_min, actual_max])
 
     return list_tuple
 

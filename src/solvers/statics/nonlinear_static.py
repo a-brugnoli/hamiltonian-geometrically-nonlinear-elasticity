@@ -102,7 +102,7 @@ class NonLinearStatic:
 
     def plot_displacement(self, axes):
         int_displaced_coordinates = fdrk.Mesh(fdrk.interpolate(self.problem.coordinates_mesh \
-                                                               + self.displacement, self.disp_space))
+                                                               + self.displacement, self.displacement.function_space()))
 
         fdrk.triplot(int_displaced_coordinates, axes=axes)
 
@@ -110,4 +110,4 @@ class NonLinearStatic:
     def plot_bend_displacement(self, axes):
         
         # fdrk.trisurf(fdrk.interpolate(self.bend_displacement, self.bend_disp_space), axes=axes)
-        fdrk.tricontourf(fdrk.interpolate(self.bend_displacement, self.bend_disp_space), axes=axes)
+        fdrk.tricontourf(fdrk.interpolate(self.bend_displacement, self.bend_displacement.function_space()), axes=axes)

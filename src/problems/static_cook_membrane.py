@@ -96,4 +96,4 @@ class CookMembrane(StaticProblem):
     
 
     def __str__(self):
-        return "CookMembrane"
+        return "StaticCookMembrane"

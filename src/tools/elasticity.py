@@ -38,25 +38,35 @@ def first_piola_stress(vector, young_modulus, poisson_ratio):
 def natural_control_follower(test, displacement, traction_data_dict : dict):
     F = def_gradient(displacement)
 
+    natural_control = 0 
+
     for item in traction_data_dict.items():
-        id = item[0]
-        value_traction = item[1]
+        if item[0] is "follower":
+            pass
+        else:
+            id = item[0]
+            value_traction = item[1]
 
-        natural_control = 0 
 
-        if id == "on_boundary":
-            natural_control +=fdrk.inner(test, fdrk.dot(F, value_traction))*fdrk.ds
-        else: 
-            natural_control +=fdrk.inner(test, fdrk.dot(F, value_traction))*fdrk.ds(id)
+            if traction_data_dict["follower"]:
+                if id == "on_boundary":
+                    natural_control +=fdrk.inner(test, fdrk.dot(F, value_traction))*fdrk.ds
+                else: 
+                    natural_control +=fdrk.inner(test, fdrk.dot(F, value_traction))*fdrk.ds(id)
+            else:
+                if id == "on_boundary":
+                    natural_control +=fdrk.inner(test, value_traction)*fdrk.ds
+                else: 
+                    natural_control +=fdrk.inner(test, value_traction)*fdrk.ds(id)
 
     return natural_control
 
 
 def mass_form_energy(testfunctions, functions, params):
     
-    young_modulus = params["Young modulus"]
-    poisson_ratio = params["Poisson ratio"]
-    density = params["Density"]
+    young_modulus = params["E"]
+    poisson_ratio = params["nu"]
+    density = params["rho"]
 
     test_velocity, test_stress = testfunctions
     velocity, stress = functions

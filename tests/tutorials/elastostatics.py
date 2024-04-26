@@ -30,7 +30,7 @@ L = dot(f, v)*dx
 uh = Function(V)
 solve(a == L, uh, bcs=bc, solver_parameters={"ksp_monitor": None})
 
-displaced_coordinates = interpolate(SpatialCoordinate(mesh) + uh, V)
+displaced_coordinates = interpolate(SpatialCoordinate(mesh) + uh, uh.function_space())
 displaced_mesh = Mesh(displaced_coordinates)
 
 # NBVAL_IGNORE_OUTPUT
