@@ -5,7 +5,6 @@ from src.tools.elasticity import mass_form_energy, natural_control_follower, \
                                 operator_energy, functional_energy
 
 from src.tools.common import compute_min_mesh_size
-
 import numpy as np
 
 class HamiltonianElasticitySolver:
@@ -142,25 +141,6 @@ class HamiltonianElasticitySolver:
         self.actual_time_energy.assign(self.time_energy_new)
         self.actual_time_displacement.assign(self.time_displacement_new)
 
-
-    def get_wave_cfl(self):
-        rho = float(self.problem.parameters["rho"])
-        E = float(self.problem.parameters["E"])
-        nu = float(self.problem.parameters["nu"])
-
-        return self.time_step/self.delta_x_min*np.sqrt(E/rho*((1-nu**2)))
-
-
-    def get_dinamic_cfl(self):
-
-        velocity_old = self.state_energy_old.subfunctions[0]
-
-        self.cfl_vectorfield.assign(fdrk.interpolate(self.time_step * fdrk.dot(self.jacobian_inverse,\
-                            velocity_old), self.CG1_vectorspace))
-
-        coeff_cfl = np.amax(np.abs(self.cfl_vectorfield.dat.data), axis=1)
-
-        return np.max(coeff_cfl)
 
     def update_variables(self):
         self.state_energy_old.assign(self.state_energy_new)
