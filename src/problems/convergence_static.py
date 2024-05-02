@@ -1,5 +1,6 @@
 import firedrake as fdrk
 from .problem import StaticProblem
+from src.tools.elasticity import first_piola_definition
 
 # Neo Hookean Potentials
 # I_1, I_2, I_3 are the principal invariants of the Cauchy Green deformation tensor C = F^T F
@@ -22,39 +23,17 @@ class ConvergenceStatic(StaticProblem):
         self.x, self.y = self.coordinates_mesh
         self.normal_versor = fdrk.FacetNormal(self.domain)
 
-        self.mu = 1  #N/mm^2
-        self.lamda = 1 #N/mm^2
+        mu = 1  #N/mm^2
+        lamda = 1 #N/mm^2
 
-
-    def first_piola_definition(self, grad_disp):
-        
-        def_grad = fdrk.Identity(self.dim) + grad_disp
-        inv_F_transpose = fdrk.inv(def_grad.T)
-        return self.mu*(def_grad - inv_F_transpose) + self.lamda * fdrk.ln(fdrk.det(def_grad)) * inv_F_transpose
-
-
-    def second_piola_definition(self, cauchy_strain):
-        inv_cauchy_strain = fdrk.inv(cauchy_strain)
-        return self.mu * (fdrk.Identity(self.dim) - inv_cauchy_strain) \
-             + self.lamda/2 * fdrk.ln(fdrk.det(cauchy_strain))*inv_cauchy_strain
-    
-
-    def derivative_first_piola(self, tensor, grad_disp):
-        def_grad = fdrk.Identity(self.dim) + grad_disp
-        invF = fdrk.inv(def_grad)
-        inv_Ftr = fdrk.inv(def_grad.T)
-
-        return self.mu * tensor + (self.mu - self.lamda * fdrk.ln(fdrk.det(def_grad))) \
-                * fdrk.dot(inv_Ftr, fdrk.dot(tensor.T, inv_Ftr)) \
-                + self.lamda * fdrk.tr(fdrk.dot(invF, tensor)) * inv_Ftr
-
+        self.parameters = {"mu": mu, "lamda": lamda}
 
     def get_exact_solution(self):
 
         exact_displacement = fdrk.as_vector([0.5*self.y**3 + 0.5*fdrk.sin(0.5 * fdrk.pi * self.y), 0])
         
         exact_disp_grad = fdrk.grad(exact_displacement)
-        exact_first_piola = self.first_piola_definition(exact_disp_grad)
+        exact_first_piola = first_piola_definition(exact_disp_grad, parameters=self.parameters)
 
         return {"displacement" : exact_displacement,
                 "disp_grad": exact_disp_grad,

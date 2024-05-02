@@ -102,7 +102,8 @@ class NonLinearStatic:
 
     def plot_displacement(self, axes):
         int_displaced_coordinates = fdrk.Mesh(fdrk.interpolate(self.problem.coordinates_mesh \
-                                                               + self.displacement, self.displacement.function_space()))
+                                                               + self.displacement, \
+                                                            self.disp_space))
 
         fdrk.triplot(int_displaced_coordinates, axes=axes)
 

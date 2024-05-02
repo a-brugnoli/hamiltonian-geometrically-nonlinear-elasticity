@@ -22,20 +22,6 @@ class StaticProblem(Problem):
 
 
     @abstractmethod
-    def second_piola_definition(self):
-        pass
-
-
-    @abstractmethod
-    def first_piola_definition(self):
-        pass
-
-
-    @abstractmethod
-    def derivative_first_piola(self):
-        pass
-
-    @abstractmethod
     def get_forcing(self):
         pass
 

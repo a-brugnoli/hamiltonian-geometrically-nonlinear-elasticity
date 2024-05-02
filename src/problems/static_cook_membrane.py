@@ -31,42 +31,11 @@ class CookMembrane(StaticProblem):
         self.x, self.y = self.coordinates_mesh
         self.normal_versor = fdrk.FacetNormal(self.domain)
 
-        self.mu = 80.194  #N/mm^2
-        self.lamda = 400889.8 #N/mm^2
+        mu = 80.194  #N/mm^2
+        lamda = 400889.8 #N/mm^2
 
-
-    def energy_definition(self, grad_disp):
-        def_grad = fdrk.Identity(self.dim) + grad_disp
-        Cauchy_strain = fdrk.dot(def_grad.T, def_grad) 
-        J = fdrk.det(def_grad)
-        W = self.mu/2 * (fdrk.tr(Cauchy_strain) - 2) \
-            - self.mu * fdrk.ln(J) \
-            + self.lamda/2 * (fdrk.ln(J))**2
-        return W
-    
-
-    def second_piola_definition(self, cauchy_strain):
-        inv_cauchy_strain = fdrk.inv(cauchy_strain)
-        return self.mu * (fdrk.Identity(self.dim) - inv_cauchy_strain) \
-             + self.lamda/2 * fdrk.ln(fdrk.det(cauchy_strain))*inv_cauchy_strain
-
-
-    def first_piola_definition(self, grad_disp):
-        def_grad = fdrk.Identity(self.dim) + grad_disp
-        inv_F_transpose = fdrk.inv(def_grad.T)
-        J = fdrk.det(def_grad)
-        return self.mu*(def_grad - inv_F_transpose) + self.lamda * fdrk.ln(J) * inv_F_transpose
-
-
-    def derivative_first_piola(self, tensor, grad_disp):
-        def_grad = fdrk.Identity(self.dim) + grad_disp
-        invF = fdrk.inv(def_grad)
-        inv_Ftr = fdrk.inv(def_grad.T)
-
-        return self.mu * tensor + (self.mu - self.lamda * fdrk.ln(fdrk.det(def_grad))) \
-                * fdrk.dot(inv_Ftr, fdrk.dot(tensor.T, inv_Ftr)) \
-                + self.lamda * fdrk.tr(fdrk.dot(invF, tensor)) * inv_Ftr
-
+        self.parameters = {"mu": mu, "lamda": lamda}
+        
 
     def get_essential_bcs(self) -> dict:
         """

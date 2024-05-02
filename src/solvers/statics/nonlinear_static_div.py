@@ -1,6 +1,8 @@
 import firedrake as fdrk
 from src.problems.problem import StaticProblem
 from src.solvers.statics.nonlinear_static import NonLinearStatic
+from src.tools.elasticity import first_piola_definition
+
 
 class NonLinearStaticSolverDiv(NonLinearStatic):
     def __init__(self, problem: StaticProblem, pol_degree=1, num_steps = 1):
@@ -78,7 +80,8 @@ class NonLinearStaticSolverDiv(NonLinearStatic):
             res_def_grad += fdrk.dot(test_grad_disp, problem.normal_versor)[1]*disp_y*fdrk.ds(subdomain)
 
         res_stress = fdrk.inner(test_first_piola, 
-                                problem.first_piola_definition(self.grad_disp) - self.first_piola) * fdrk.dx
+                                first_piola_definition(self.grad_disp, problem.parameters) \
+                                - self.first_piola) * fdrk.dx
         
         actual_res = res_equilibrium + res_def_grad + res_stress
         

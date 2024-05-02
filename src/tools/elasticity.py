@@ -26,13 +26,32 @@ def green_lagrange_strain(vector):
     return 1/2*(fdrk.grad(vector).T + fdrk.grad(vector) + fdrk.dot(fdrk.grad(vector).T, fdrk.grad(vector)))
 
 
-def second_piola_stress(vector, young_modulus, poisson_ratio):
-    return stiffness_tensor(green_lagrange_strain(vector), young_modulus, poisson_ratio)
-    
+def first_piola_definition(grad_disp, parameters, dim = 2):
+        mu = parameters["mu"]
+        lamda = parameters["lamda"]
+        def_grad = fdrk.Identity(dim) + grad_disp
+        inv_F_transpose = fdrk.inv(def_grad).T
+        return mu*(def_grad - inv_F_transpose) + lamda * fdrk.ln(fdrk.det(def_grad)) * inv_F_transpose
 
-def first_piola_stress(vector, young_modulus, poisson_ratio):
-    return fdrk.dot(def_gradient(vector), second_piola_stress(vector, young_modulus, poisson_ratio))
 
+def second_piola_definition(green_strain, parameters, dim = 2):
+    mu = parameters["mu"]
+    lamda = parameters["lamda"]
+    inv_cauchy_strain = fdrk.inv(green_strain)
+    return mu * (fdrk.Identity(dim) - inv_cauchy_strain) \
+            + lamda/2 * fdrk.ln(fdrk.det(green_strain))*inv_cauchy_strain
+
+
+def derivative_first_piola(tensor, grad_disp, parameters, dim = 2):
+    mu = parameters["mu"]
+    lamda = parameters["lamda"]
+    def_grad = fdrk.Identity(dim) + grad_disp
+    invF = fdrk.inv(def_grad)
+    inv_Ftr = fdrk.inv(def_grad).T
+
+    return mu * tensor + (mu - lamda * fdrk.ln(fdrk.det(def_grad))) \
+            * fdrk.dot(inv_Ftr, fdrk.dot(tensor.T, inv_Ftr)) \
+            + lamda * fdrk.tr(fdrk.dot(invF, tensor)) * inv_Ftr
 
 
 def natural_control_follower(test, displacement, traction_data_dict : dict):
@@ -41,7 +60,7 @@ def natural_control_follower(test, displacement, traction_data_dict : dict):
     natural_control = 0 
 
     for item in traction_data_dict.items():
-        if item[0] is "follower":
+        if item[0]=="follower":
             pass
         else:
             id = item[0]
@@ -75,7 +94,6 @@ def mass_form_energy(testfunctions, functions, params):
     strain = compliance(stress, young_modulus, poisson_ratio)
 
     return fdrk.inner(test_velocity, linear_momentum) * fdrk.dx + fdrk.inner(test_stress, strain)*fdrk.dx
-
 
 
 def dynamics_form_energy(testfunctions, functions, displacement_midpoint):

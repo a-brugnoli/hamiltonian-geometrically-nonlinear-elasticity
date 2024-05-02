@@ -11,8 +11,8 @@ from src.solvers.statics.nonlinear_static_von_karman import NonLinearStaticVonKa
 
 import firedrake as fdrk
 
-problem_id = 2
-solver_id = 1
+problem_id = 3
+solver_id = 3
 pol_degree = 2
 
 match problem_id:
@@ -26,7 +26,7 @@ match problem_id:
     case 3:
         nx = 30
         ny = 30
-        problem = InhomogeneousCompression(nx, ny, quad=True)
+        problem = InhomogeneousCompression(nx, ny, quad=False)
         num_steps = 150
     case 4:
         nx = 64
