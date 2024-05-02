@@ -27,11 +27,11 @@ def green_lagrange_strain(vector):
 
 
 def first_piola_definition(grad_disp, parameters, dim = 2):
-        mu = parameters["mu"]
-        lamda = parameters["lamda"]
-        def_grad = fdrk.Identity(dim) + grad_disp
-        inv_F_transpose = fdrk.inv(def_grad).T
-        return mu*(def_grad - inv_F_transpose) + lamda * fdrk.ln(fdrk.det(def_grad)) * inv_F_transpose
+    mu = parameters["mu"]
+    lamda = parameters["lamda"]
+    def_grad = fdrk.Identity(dim) + grad_disp
+    inv_F_transpose = fdrk.inv(def_grad).T
+    return mu*(def_grad - inv_F_transpose) + lamda * fdrk.ln(fdrk.det(def_grad)) * inv_F_transpose
 
 
 def second_piola_definition(green_strain, parameters, dim = 2):

@@ -12,7 +12,10 @@ def solve_twisting_column(n_elem, pol_degree):
     stress_space = strain_space
 
     mixed_space = disp_space * strain_space * stress_space
-
     test_velocity, test_strain, test_stress = fdrk.TestFunctions(mixed_space)
 
     solution = fdrk.Function(mixed_space)
+
+    displacement = fdrk.Function(disp_space)
+
+
