@@ -2,6 +2,8 @@ import firedrake as fdrk
 from .problem import DynamicProblem
 from math import pi
 import matplotlib.pyplot as plt
+import numpy as np
+
 
 class TwistingColumn(DynamicProblem):
 
@@ -10,6 +12,18 @@ class TwistingColumn(DynamicProblem):
         self.domain = fdrk.BoxMesh(n_elem_x, n_elem_y, n_elem_z, Lx=1, Ly=1, Lz=6)
         self.dim = self.domain.geometric_dimension()
 
+        self.domain.coordinates.dat.data[:, 0] -= 0.5
+        self.domain.coordinates.dat.data[:, 1] -= 0.5
+        angle = pi/4
+        rotated_x_coordinate = np.cos(angle) * self.domain.coordinates.dat.data[:, 0] \
+                            - np.sin(angle) * self.domain.coordinates.dat.data[:, 1]
+        
+        rotated_y_coordinate = np.sin(angle) * self.domain.coordinates.dat.data[:, 0] \
+                             + np.cos(angle) * self.domain.coordinates.dat.data[:, 1]
+
+        self.domain.coordinates.dat.data[:, 0] = rotated_x_coordinate
+        self.domain.coordinates.dat.data[:, 1] = rotated_y_coordinate
+        
         # fig = plt.figure()
         # axes = fig.add_subplot(111, projection='3d')
         # fdrk.triplot(self.domain, axes=axes)
@@ -17,8 +31,9 @@ class TwistingColumn(DynamicProblem):
         # plt.show()
 
         self.coordinates_mesh = fdrk.SpatialCoordinate(self.domain)
-
         self.x, self.y, self.z = self.coordinates_mesh
+
+        
         self.normal_versor = fdrk.FacetNormal(self.domain)
 
         self.parameters = {"rho": 1.1*10**3, # kg/m^3 
@@ -28,8 +43,7 @@ class TwistingColumn(DynamicProblem):
     def get_initial_conditions(self):
 
         omega = 100 # rag/s
-        angular_velocity_0 = fdrk.as_vector([0, 0, omega*fdrk.sin(pi *self.z/12)])
-        velocity_0 = fdrk.cross(angular_velocity_0, fdrk.as_vector([self.x, self.y, self.z]))
+        velocity_0 = omega*fdrk.sin(pi *self.z/12) * fdrk.as_vector([self.x, -self.y, 0])
 
         displacement_0 = fdrk.as_vector([0, 0, 0])
         strain_0 = fdrk.as_tensor([[0, 0, 0], 

@@ -17,9 +17,14 @@ class HamiltonianNeoHookeanSolver:
         self.time_step = time_step
         self.problem = problem
         self.dim = problem.dim
+
+        rho = self.problem.parameters["rho"]
+        E = self.problem.parameters["E"]
+        nu = self.problem.parameters["nu"]
         
         self.space_displacement = fdrk.VectorFunctionSpace(problem.domain, "CG", pol_degree)
         self.space_strain = fdrk.FunctionSpace(problem.domain, "Regge", pol_degree - 1)
+        # self.space_strain = fdrk.TensorFunctionSpace(problem.domain, "DG", pol_degree - 1, symmetry = True)
         self.space_stress = self.space_strain
 
         space_energy = self.space_displacement * self.space_strain * self.space_stress
@@ -43,10 +48,15 @@ class HamiltonianNeoHookeanSolver:
         displacement_t0 = fdrk.interpolate(displacement_exp, self.space_displacement)
         velocity_t0 = fdrk.interpolate(velocity_exp, space_energy.sub(0))
         strain_t0 = fdrk.interpolate(strain_exp, space_energy.sub(1))
-        
+
+        cauchy_strain_t0 = 2 * strain_t0 + fdrk.Identity(self.dim)
+        stress_t0 = fdrk.interpolate(second_piola_definition(cauchy_strain_t0, E, nu),\
+                                      self.space_stress)
+
         self.displacement_old.assign(displacement_t0)
         self.state_energy_old.sub(0).assign(velocity_t0)
         self.state_energy_old.sub(1).assign(strain_t0)
+        self.state_energy_old.sub(2).assign(stress_t0)
 
         self.state_energy_new.assign(self.state_energy_old)
 
@@ -75,30 +85,25 @@ class HamiltonianNeoHookeanSolver:
 
         self.velocity_midpoint = 0.5*(self.velocity_new + self.velocity_old)
         self.strain_midpoint = 0.5*(self.strain_new + self.strain_old)
-        
-        rho = self.problem.parameters["rho"]
-        E = self.problem.parameters["E"]
-        nu = self.problem.parameters["nu"]
+        self.stress_midpoint = 0.5*(self.stress_new + self.stress_old)
 
         F_midpoint = fdrk.Identity(self.dim) + fdrk.grad(self.displacement_old)
         residual_vel_eq = fdrk.inner(self.test_velocity, rho*(self.velocity_new - self.velocity_old)/self.time_step)*fdrk.dx \
-        + fdrk.inner(fdrk.grad(self.test_velocity), fdrk.dot(F_midpoint, self.strain_midpoint))*fdrk.dx
+        + fdrk.inner(fdrk.grad(self.test_velocity), fdrk.dot(F_midpoint, self.stress_midpoint))*fdrk.dx
         
         residual_strain_eq = fdrk.inner(self.test_strain, (self.strain_new - self.strain_old)/self.time_step) * fdrk.dx \
         - fdrk.inner(self.test_strain, fdrk.dot(F_midpoint.T, fdrk.grad(self.velocity_midpoint))) * fdrk.dx
 
-        caunchy_new = 2*self.strain_new + fdrk.Identity(self.dim) 
-        psi = energy_density_neo_hookean(caunchy_new, E, nu)
-        deformation_energy = psi * fdrk.dx
-        residual_stress_eq = fdrk.inner(self.test_strain, self.stress_new) * fdrk.dx \
-            - fdrk.derivative(deformation_energy, self.strain_new, self.test_strain)
+        cauchy_strain = 2 * self.strain_new + fdrk.Identity(self.dim)
+        residual_stress_eq = fdrk.inner(self.test_stress, self.stress_new\
+                            - second_piola_definition(cauchy_strain, E, nu)) * fdrk.dx 
+                        
         
         residual = residual_vel_eq + residual_strain_eq + residual_stress_eq
 
-        nonlinear_problem = fdrk.NonlinearVariationalSolver(residual, self.state_energy_new, velocity_bcs)
+        nonlinear_problem = fdrk.NonlinearVariationalProblem(residual, self.state_energy_new, bcs = velocity_bcs)
 
-        self.nonlinear_solver = fdrk.NonlinearVariationalSolver(nonlinear_problem, solver_parameters)
-
+        self.nonlinear_solver = fdrk.NonlinearVariationalSolver(nonlinear_problem, solver_parameters = solver_parameters)
 
 
     def integrate(self):
@@ -138,10 +143,13 @@ class HamiltonianNeoHookeanSolver:
 
         cauchy_strain = 2 * strain + fdrk.Identity(self.dim)
 
-        kinetic_energy = 1/2 * fdrk.inner(velocity, velocity)*fdrk.dx 
-        deformation_energy = 1/2 * energy_density_neo_hookean(cauchy_strain, E, nu)*fdrk.dx
+        kinetic_energy = 1/2 * fdrk.inner(velocity, rho*velocity)*fdrk.dx 
+        deformation_energy = energy_density_neo_hookean(cauchy_strain, E, nu)*fdrk.dx
 
         return kinetic_energy + deformation_energy
+
+    def __str__(self):
+        return "HamiltonianNeoHookeanSolver"
 
 
 def energy_density_neo_hookean(cauchy_strain, young_modulus, poisson_ratio):
@@ -153,8 +161,22 @@ def energy_density_neo_hookean(cauchy_strain, young_modulus, poisson_ratio):
     J = fdrk.sqrt(fdrk.det(cauchy_strain))
 
     deviatoric_part = 1/2 * mu * (J**(-2/3) * fdrk.tr(cauchy_strain) - 3)
-    volumetric_part = 1/4 * (J**2 - 1) - 1/2*kappa*fdrk.ln(J)
+    volumetric_part = 1/4 * kappa * (J**2 - 1) - 1/2*kappa*fdrk.ln(J)
 
-    return deviatoric_part + volumetric_part
+    return volumetric_part + deviatoric_part
 
 
+def second_piola_definition(cauchy_strain, young_modulus, poisson_ratio):
+
+    mu = young_modulus / (2*(1 + poisson_ratio))
+    lamda = young_modulus*poisson_ratio/((1 - 2*poisson_ratio)*(1 + poisson_ratio))
+    kappa = lamda + 2/3 * mu
+
+    J = fdrk.sqrt(fdrk.det(cauchy_strain))
+
+    dpsi_vol_dC = 1/4*kappa*(J**2 - 1)*fdrk.inv(cauchy_strain)
+
+    dpsi_dev_dC = 1/2*mu*J**(-2/3)*(fdrk.Identity(3) \
+                                    - 1/3*fdrk.tr(cauchy_strain)*fdrk.inv(cauchy_strain))
+
+    return 2*(dpsi_vol_dC + dpsi_dev_dC)

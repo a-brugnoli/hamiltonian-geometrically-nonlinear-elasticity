@@ -4,7 +4,7 @@ from math import ceil
 from tqdm import tqdm
 from src.postprocessing.animators import animate_vector_triplot
 import matplotlib.pyplot as plt
-from src.solvers.dynamics.hamiltonian_st_venant import HamiltonianElasticitySolver
+from src.solvers.dynamics.hamiltonian_st_venant import HamiltonianSaintVenantSolver
 from src.solvers.dynamics.nonlinear_lagrangian import NonlinearLagrangianSolver
 
 from src.tools.common import compute_min_max_mesh

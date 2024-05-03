@@ -183,4 +183,4 @@ class HamiltonianSaintVenantSolver:
 
 
     def __str__(self):
-        return "HamiltonianSaintVenantElasticitySolver"
+        return "HamiltonianSaintVenantSolver"

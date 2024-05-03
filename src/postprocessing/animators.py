@@ -6,30 +6,41 @@ import src.postprocessing.options
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 
-def animate_vector_triplot(list_frames, interval=10, \
-                        lim_x=None, lim_y=None, \
-                        xlabel=None, ylabel=None, title=None):
+def animate_vector_triplot(list_frames, interval=10, three_dim = False, \
+                    lim_x=None, lim_y=None, lim_z=None, \
+                    xlabel=None, ylabel=None, zlabel=None, title=None):
 
-    fig, axes = plt.subplots()
-
-    fdrk.triplot(list_frames[0], axes=axes)
+    fig = plt.figure()
+    if three_dim:
+        axes = fig.add_subplot(111, projection='3d')
+    else:
+        axes = fig.add_subplot(111)
 
     axes.set_aspect("equal")
     axes.set_xlabel(xlabel)
     axes.set_ylabel(ylabel)
-
     axes.set_xlim(lim_x)
     axes.set_ylim(lim_y)
+
+    if three_dim:
+        axes.set_zlabel(zlabel)
+        axes.set_zlim(lim_z)
     
     def update_plot(frame_number):
-        # axes.clear()
-        axes.cla()
+        axes.clear()
+        # axes.cla()
         # plt.clf()
+        axes.set_xlim(lim_x)
+        axes.set_ylim(lim_y)
+        if three_dim:
+            axes.set_zlim(lim_z)
+
 
         fdrk.triplot(list_frames[frame_number], axes=axes)
 
     axes.set_title(title, loc='center')
 
+    fdrk.triplot(list_frames[0], axes=axes)
     anim = FuncAnimation(fig, update_plot, frames=len(list_frames), interval = interval)
 
     return anim

@@ -5,7 +5,7 @@ from tqdm import tqdm
 from src.postprocessing.animators import animate_scalar_trisurf, animate_scalar_tripcolor
 from src.tools.common import compute_min_max_function
 import matplotlib.pyplot as plt
-from src.solvers.hamiltonian_von_karman import HamiltonianVonKarmanSolver
+from src.solvers.dynamics.hamiltonian_von_karman import HamiltonianVonKarmanSolver
 from src.problems.free_vibrations_von_karman import FirstModeVonKarman
 import os, sys
 
