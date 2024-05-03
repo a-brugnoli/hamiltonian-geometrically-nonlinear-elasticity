@@ -8,7 +8,7 @@ from src.tools.common import compute_min_mesh_size
 
 import numpy as np
 
-class HamiltonianElasticitySolver:
+class HamiltonianSaintVenantSolver:
     def __init__(self,
                  problem: Problem,
                  time_step: float,
