@@ -16,7 +16,7 @@ class ConvergenceStatic(StaticProblem):
     def __init__(self, n_elem_x, n_elem_y, quad=False):
 
         self.domain = fdrk.UnitSquareMesh(n_elem_x, n_elem_y, quadrilateral=quad)
-        self.dim = self.domain.geometric_dimension()
+        self.dim = self.domain.topological_dimension()
 
         self.coordinates_mesh = fdrk.SpatialCoordinate(self.domain)
 

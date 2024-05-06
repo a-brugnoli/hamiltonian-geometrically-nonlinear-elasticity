@@ -21,7 +21,7 @@ class InhomogeneousCompression(StaticProblem):
                                          Ly = self.length_side, 
                                          quadrilateral=quad)
         
-        self.dim = self.domain.geometric_dimension()
+        self.dim = self.domain.topological_dimension()
 
         self.coordinates_mesh = fdrk.SpatialCoordinate(self.domain)
         self.x, self.y = self.coordinates_mesh

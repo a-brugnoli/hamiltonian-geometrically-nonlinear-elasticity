@@ -19,7 +19,7 @@ class CookMembrane(StaticProblem):
 
         create_cook_membrane(mesh_size)
         self.domain = fdrk.Mesh('cook_membrane.msh')
-        self.dim = self.domain.geometric_dimension()
+        self.dim = self.domain.topological_dimension()
 
         # fig, axes = plt.subplots()
         # fdrk.triplot(self.domain, axes=axes)

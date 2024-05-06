@@ -18,11 +18,7 @@ class HamiltonianSaintVenantSolver:
         self.coordinates_mesh = problem.coordinates_mesh
         self.time_step = time_step
         self.problem = problem
-        self.jacobian_inverse = fdrk.JacobianInverse(self.problem.domain)
-        self.delta_x_min = compute_min_mesh_size(problem.domain)
-        self.CG1_vectorspace = fdrk.VectorFunctionSpace(problem.domain, "CG", 1)
-        self.cfl_vectorfield = fdrk.Function(self.CG1_vectorspace)
-
+        
         # if problem.domain.ufl_cell().is_simplex():
         #     displ_vectorspace = fdrk.VectorFunctionSpace(problem.domain, "CG", pol_degree)
         # else:
@@ -142,25 +138,6 @@ class HamiltonianSaintVenantSolver:
         self.actual_time_energy.assign(self.time_energy_new)
         self.actual_time_displacement.assign(self.time_displacement_new)
 
-
-    def get_wave_cfl(self):
-        rho = float(self.problem.parameters["rho"])
-        E = float(self.problem.parameters["E"])
-        nu = float(self.problem.parameters["nu"])
-
-        return self.time_step/self.delta_x_min*np.sqrt(E/rho*((1-nu**2)))
-
-
-    def get_dinamic_cfl(self):
-
-        velocity_old = self.state_energy_old.subfunctions[0]
-
-        self.cfl_vectorfield.assign(fdrk.interpolate(self.time_step * fdrk.dot(self.jacobian_inverse,\
-                            velocity_old), self.CG1_vectorspace))
-
-        coeff_cfl = np.amax(np.abs(self.cfl_vectorfield.dat.data), axis=1)
-
-        return np.max(coeff_cfl)
 
     def update_variables(self):
         self.state_energy_old.assign(self.state_energy_new)

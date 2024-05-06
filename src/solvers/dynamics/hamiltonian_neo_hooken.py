@@ -1,6 +1,7 @@
 import firedrake as fdrk
 from src.problems.problem import Problem
 from firedrake.petsc import PETSc
+from src.tools.common import compute_time_step
 
 import numpy as np
 
@@ -8,19 +9,17 @@ import numpy as np
 class HamiltonianNeoHookeanSolver:
     def __init__(self,
                  problem: Problem,
-                 time_step: float,
                  pol_degree= 1,
                  solver_parameters={}):
         
 
         self.coordinates_mesh = problem.coordinates_mesh
-        self.time_step = time_step
         self.problem = problem
         self.dim = problem.dim
 
-        rho = self.problem.parameters["rho"]
-        E = self.problem.parameters["E"]
-        nu = self.problem.parameters["nu"]
+        self.density = self.problem.parameters["rho"]
+        self.mu = self.problem.parameters["mu"]
+        self.kappa = self.problem.parameters["kappa"]
         
         self.space_displacement = fdrk.VectorFunctionSpace(problem.domain, "CG", pol_degree)
         self.space_strain = fdrk.FunctionSpace(problem.domain, "Regge", pol_degree - 1)
@@ -50,8 +49,9 @@ class HamiltonianNeoHookeanSolver:
         strain_t0 = fdrk.interpolate(strain_exp, space_energy.sub(1))
 
         cauchy_strain_t0 = 2 * strain_t0 + fdrk.Identity(self.dim)
-        stress_t0 = fdrk.interpolate(second_piola_definition(cauchy_strain_t0, E, nu),\
-                                      self.space_stress)
+        stress_t0 = fdrk.interpolate(second_piola_definition(cauchy_strain_t0, \
+                                                            self.mu, self.kappa),\
+                                                            self.space_stress)
 
         self.displacement_old.assign(displacement_t0)
         self.state_energy_old.sub(0).assign(velocity_t0)
@@ -61,6 +61,10 @@ class HamiltonianNeoHookeanSolver:
         self.state_energy_new.assign(self.state_energy_old)
 
         # Set first value for the deformation gradient via Explicit Euler
+        self.time_step = compute_time_step(self.problem.domain, \
+                                        self.displacement_old, \
+                                        self.problem.parameters)
+        
         self.displacement_old.assign(self.displacement_old + self.time_step/2*self.state_energy_old.sub(0))
 
         self.time_displacement_old= fdrk.Constant(self.time_step/2)
@@ -88,7 +92,7 @@ class HamiltonianNeoHookeanSolver:
         self.stress_midpoint = 0.5*(self.stress_new + self.stress_old)
 
         F_midpoint = fdrk.Identity(self.dim) + fdrk.grad(self.displacement_old)
-        residual_vel_eq = fdrk.inner(self.test_velocity, rho*(self.velocity_new - self.velocity_old)/self.time_step)*fdrk.dx \
+        residual_vel_eq = fdrk.inner(self.test_velocity, self.density*(self.velocity_new - self.velocity_old)/self.time_step)*fdrk.dx \
         + fdrk.inner(fdrk.grad(self.test_velocity), fdrk.dot(F_midpoint, self.stress_midpoint))*fdrk.dx
         
         residual_strain_eq = fdrk.inner(self.test_strain, (self.strain_new - self.strain_old)/self.time_step) * fdrk.dx \
@@ -96,7 +100,9 @@ class HamiltonianNeoHookeanSolver:
 
         cauchy_strain = 2 * self.strain_new + fdrk.Identity(self.dim)
         residual_stress_eq = fdrk.inner(self.test_stress, self.stress_new\
-                            - second_piola_definition(cauchy_strain, E, nu)) * fdrk.dx 
+                            - second_piola_definition(cauchy_strain, \
+                                                    self.mu, \
+                                                    self.kappa)) * fdrk.dx 
                         
         
         residual = residual_vel_eq + residual_strain_eq + residual_stress_eq
@@ -112,7 +118,6 @@ class HamiltonianNeoHookeanSolver:
         # Compute solution for displacement at n+3∕2
         self.displacement_new.assign(self.displacement_old + self.time_step * self.state_energy_new.sub(0))
 
-
         self.actual_time_energy.assign(self.time_energy_new)
         self.actual_time_displacement.assign(self.time_displacement_new)
 
@@ -121,6 +126,10 @@ class HamiltonianNeoHookeanSolver:
         self.state_energy_old.assign(self.state_energy_new)
         self.displacement_old.assign(self.displacement_new)
 
+        self.time_step.assign(compute_time_step(self.problem.domain, \
+                                        self.displacement_old, \
+                                        self.problem.parameters))
+        
         self.time_energy_old.assign(self.actual_time_energy)
         self.time_energy_new.assign(float(self.time_energy_old) + self.time_step)
 
@@ -136,15 +145,12 @@ class HamiltonianNeoHookeanSolver:
 
 
     def energy(self, velocity, strain):
-
-        rho = self.problem.parameters["rho"]
-        E = self.problem.parameters["E"]
-        nu = self.problem.parameters["nu"]
-
         cauchy_strain = 2 * strain + fdrk.Identity(self.dim)
 
-        kinetic_energy = 1/2 * fdrk.inner(velocity, rho*velocity)*fdrk.dx 
-        deformation_energy = energy_density_neo_hookean(cauchy_strain, E, nu)*fdrk.dx
+        kinetic_energy = 1/2 * fdrk.inner(velocity, self.density*velocity)*fdrk.dx 
+        deformation_energy = energy_density_neo_hookean(cauchy_strain, \
+                                                        self.mu, \
+                                                        self.kappa)*fdrk.dx
 
         return kinetic_energy + deformation_energy
 
@@ -152,12 +158,8 @@ class HamiltonianNeoHookeanSolver:
         return "HamiltonianNeoHookeanSolver"
 
 
-def energy_density_neo_hookean(cauchy_strain, young_modulus, poisson_ratio):
+def energy_density_neo_hookean(cauchy_strain, mu, kappa):
         
-    mu = young_modulus / (2*(1 + poisson_ratio))
-    lamda = young_modulus*poisson_ratio/((1 - 2*poisson_ratio)*(1 + poisson_ratio))
-    kappa = lamda + 2/3*mu
-
     J = fdrk.sqrt(fdrk.det(cauchy_strain))
 
     deviatoric_part = 1/2 * mu * (J**(-2/3) * fdrk.tr(cauchy_strain) - 3)
@@ -166,17 +168,15 @@ def energy_density_neo_hookean(cauchy_strain, young_modulus, poisson_ratio):
     return volumetric_part + deviatoric_part
 
 
-def second_piola_definition(cauchy_strain, young_modulus, poisson_ratio):
+def second_piola_definition(cauchy_strain, mu, kappa):
 
-    mu = young_modulus / (2*(1 + poisson_ratio))
-    lamda = young_modulus*poisson_ratio/((1 - 2*poisson_ratio)*(1 + poisson_ratio))
-    kappa = lamda + 2/3 * mu
 
     J = fdrk.sqrt(fdrk.det(cauchy_strain))
 
+    dpsi_dev_dC = 1/2*mu*J**(-2/3)*(fdrk.Identity(3) \
+                                        - 1/3*fdrk.tr(cauchy_strain)*fdrk.inv(cauchy_strain))
+
     dpsi_vol_dC = 1/4*kappa*(J**2 - 1)*fdrk.inv(cauchy_strain)
 
-    dpsi_dev_dC = 1/2*mu*J**(-2/3)*(fdrk.Identity(3) \
-                                    - 1/3*fdrk.tr(cauchy_strain)*fdrk.inv(cauchy_strain))
-
-    return 2*(dpsi_vol_dC + dpsi_dev_dC)
+    
+    return 2*(dpsi_dev_dC + dpsi_vol_dC)

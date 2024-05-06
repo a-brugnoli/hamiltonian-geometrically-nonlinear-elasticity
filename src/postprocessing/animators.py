@@ -21,10 +21,11 @@ def animate_vector_triplot(list_frames, interval=10, three_dim = False, \
     axes.set_ylabel(ylabel)
     axes.set_xlim(lim_x)
     axes.set_ylim(lim_y)
-
     if three_dim:
         axes.set_zlabel(zlabel)
-        axes.set_zlim(lim_z)
+
+    fdrk.triplot(list_frames[0], axes=axes)
+
     
     def update_plot(frame_number):
         axes.clear()
@@ -34,13 +35,12 @@ def animate_vector_triplot(list_frames, interval=10, three_dim = False, \
         axes.set_ylim(lim_y)
         if three_dim:
             axes.set_zlim(lim_z)
-
-
+        
         fdrk.triplot(list_frames[frame_number], axes=axes)
+        
 
     axes.set_title(title, loc='center')
 
-    fdrk.triplot(list_frames[0], axes=axes)
     anim = FuncAnimation(fig, update_plot, frames=len(list_frames), interval = interval)
 
     return anim

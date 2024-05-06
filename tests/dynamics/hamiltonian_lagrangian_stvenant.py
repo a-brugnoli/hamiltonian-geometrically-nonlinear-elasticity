@@ -28,14 +28,14 @@ time_step = 1e-2
 T_end = 10
 n_time  = ceil(T_end/time_step)
 
-# quad = False
-# n_elem_x= 100
-# n_elem_y = 10
-# problem = CantileverBeam(n_elem_x, n_elem_y, quad)
+quad = False
+n_elem_x= 100
+n_elem_y = 10
+problem = CantileverBeam(n_elem_x, n_elem_y, quad)
 
-problem = DynamicCookMembrane(mesh_size=2)
+# problem = DynamicCookMembrane(mesh_size=2)
 
-solver = HamiltonianElasticitySolver(problem, 
+solver = HamiltonianSaintVenantSolver(problem, 
                             time_step, 
                             pol_degree)
 
@@ -44,10 +44,6 @@ solver = HamiltonianElasticitySolver(problem,
 #                                 pol_degree,
 #                                 solver_parameters={})
 
-
-if isinstance(solver, HamiltonianElasticitySolver):
-    cfl_wave = solver.get_wave_cfl()
-    print(f"CFL static value {cfl_wave}")
 
 directory_results = f"{os.path.dirname(os.path.abspath(__file__))}/results/{str(solver)}/{str(problem)}/"
 if not os.path.exists(directory_results):
@@ -80,7 +76,7 @@ for ii in tqdm(range(1, n_time+1)):
 
     energy_vector[ii] = fdrk.assemble(solver.energy_new)
 
-    if isinstance(solver, HamiltonianElasticitySolver):
+    if isinstance(solver, HamiltonianSaintVenantSolver):
         # print(f"Worst case CFL {cfl_wave + solver.get_dinamic_cfl()}")
         power_balance_vector[ii-1] = fdrk.assemble(solver.power_balance)
 
@@ -133,7 +129,7 @@ plt.legend()
 plt.title("Energy")
 plt.savefig(f"{directory_results}Energy.eps", dpi='figure', format='eps')
 
-if isinstance(solver, HamiltonianElasticitySolver):
+if isinstance(solver, HamiltonianSaintVenantSolver):
     plt.figure()
     plt.plot(time_vector[1:], np.diff(energy_vector) - time_step * power_balance_vector)
     # plt.plot(time_vector[1:], np.diff(energy_vector_linear) - power_balance_vector_linear, label=f"Linear")
