@@ -1,23 +1,27 @@
 import firedrake as fdrk
-from src.problems.problem import Problem
+from src.problems.problem import DynamicProblem
 from firedrake.petsc import PETSc
-from src.tools.elasticity import mass_form_energy, natural_control_follower, \
-                                operator_energy, functional_energy
+from src.tools.elasticity import natural_control_follower, \
+                                operator_energy, functional_energy,\
+                                stiffness_tensor, mass_form_energy
 
-from src.tools.common import compute_min_mesh_size
+from src.tools.common import compute_time_step
 
 import numpy as np
 
 class HamiltonianSaintVenantSolver:
     def __init__(self,
-                 problem: Problem,
-                 time_step: float,
+                 problem: DynamicProblem,
                  pol_degree= 1,
                  solver_parameters_energy={}):
         
         self.coordinates_mesh = problem.coordinates_mesh
-        self.time_step = time_step
         self.problem = problem
+
+        self.density = self.problem.parameters["rho"]
+        self.E = self.problem.parameters["E"]
+        self.nu = self.problem.parameters["nu"]
+        
         
         # if problem.domain.ufl_cell().is_simplex():
         #     displ_vectorspace = fdrk.VectorFunctionSpace(problem.domain, "CG", pol_degree)
@@ -47,13 +51,14 @@ class HamiltonianSaintVenantSolver:
 
         self.displacement_old = fdrk.Function(self.space_displacement)
         self.displacement_new = fdrk.Function(self.space_displacement)
-        self.displacement_midpoint = fdrk.Function(self.space_displacement)
 
         expr_t0 = problem.get_initial_conditions()
 
-        velocity_exp = expr_t0["velocity"]
-        stress_exp = expr_t0["stress"]
         displacement_exp = expr_t0["displacement"]
+        velocity_exp = expr_t0["velocity"]
+        strain_exp = expr_t0["strain"]
+
+        stress_exp = stiffness_tensor(strain_exp, self.E, self.nu)
 
         displacement_t0 = fdrk.interpolate(displacement_exp, self.space_displacement)
         velocity_t0 = fdrk.interpolate(velocity_exp, space_energy.sub(0))
@@ -65,11 +70,20 @@ class HamiltonianSaintVenantSolver:
 
         self.state_energy_midpoint.assign(self.state_energy_old)
         self.state_energy_new.assign(self.state_energy_old)
-
+        
+        # Compute time step using wave speed for non linear behaviour
+        self.time_step = compute_time_step(self.problem.domain, \
+                                        self.displacement_old, \
+                                        self.problem.parameters, 
+                                        alpha_cfl=0.5, 
+                                        saint_venant=True)
+        
         self.time_energy_old = fdrk.Constant(0)
         self.time_energy_midpoint = fdrk.Constant(self.time_step/2)
         self.time_energy_new = fdrk.Constant(self.time_step)
         self.actual_time_energy = fdrk.Constant(0)
+
+        # Boundary conditions
 
         dict_essential = problem.get_essential_bcs(self.time_energy_new)
 
@@ -82,9 +96,10 @@ class HamiltonianSaintVenantSolver:
 
         natural_bcs = problem.get_natural_bcs(self.time_energy_midpoint)
 
+
+
         # Set first value for the deformation gradient via Explicit Euler
-        self.displacement_midpoint.assign(self.displacement_old + self.time_step/2*self.state_energy_old.sub(0))
-        self.displacement_old.assign(self.displacement_midpoint)
+        self.displacement_old.assign(self.displacement_old + self.time_step/2*self.state_energy_old.sub(0))
 
         self.time_displacement_old= fdrk.Constant(self.time_step/2)
         self.time_displacement_midpoint = fdrk.Constant(self.time_step)
@@ -116,9 +131,9 @@ class HamiltonianSaintVenantSolver:
                                     problem.parameters)
 
         linear_energy_problem = fdrk.LinearVariationalProblem(a_form, \
-                                                                l_form, \
-                                                                self.state_energy_new, \
-                                                                velocity_bcs)
+                                                            l_form, \
+                                                            self.state_energy_new, \
+                                                            velocity_bcs)
         
         self.linear_energy_solver = fdrk.LinearVariationalSolver(linear_energy_problem, \
                                                                 solver_parameters=solver_parameters_energy)
@@ -133,8 +148,6 @@ class HamiltonianSaintVenantSolver:
         # Compute solution for displacement at n+3∕2
         self.displacement_new.assign(self.displacement_old + self.time_step * self.state_energy_new.sub(0))
 
-        self.displacement_midpoint.assign(0.5*(self.displacement_old + self.displacement_new))
-
         self.actual_time_energy.assign(self.time_energy_new)
         self.actual_time_displacement.assign(self.time_displacement_new)
 
@@ -143,12 +156,17 @@ class HamiltonianSaintVenantSolver:
         self.state_energy_old.assign(self.state_energy_new)
         self.displacement_old.assign(self.displacement_new)
 
+        self.time_step.assign(compute_time_step(self.problem.domain, \
+                                        self.displacement_old, \
+                                        self.problem.parameters,
+                                        alpha_cfl=0.5, 
+                                        saint_venant=True))
+
         self.time_energy_old.assign(self.actual_time_energy)
         self.time_energy_midpoint.assign(float(self.time_energy_old) + self.time_step/2)
         self.time_energy_new.assign(float(self.time_energy_old) + self.time_step)
 
         self.time_displacement_old.assign(self.actual_time_displacement)
-        self.time_displacement_midpoint.assign(float(self.time_displacement_old) + self.time_step/2)
         self.time_displacement_new.assign(float(self.time_displacement_old) + self.time_step)
 
 

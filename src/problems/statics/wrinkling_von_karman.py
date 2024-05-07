@@ -1,5 +1,5 @@
 import firedrake as fdrk
-from .problem import StaticProblem
+from ..problem import StaticProblem
 from src.tools.von_karman import bending_stiffness
 from math import pi
 class Wrinkling(StaticProblem):

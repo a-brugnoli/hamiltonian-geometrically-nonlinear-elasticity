@@ -1,22 +1,20 @@
 import firedrake as fdrk
-from .problem import DynamicProblem
+from ..problem import DynamicProblem
 from math import pi
 import matplotlib.pyplot as plt
 import numpy as np
 
 
-class BendingColumn(DynamicProblem):
+class TwistingColumn(DynamicProblem):
 
     def __init__(self, n_elem_x, n_elem_y, n_elem_z):
 
         self.domain = fdrk.BoxMesh(n_elem_x, n_elem_y, n_elem_z, Lx=1, Ly=1, Lz=6)
-        self.dim = self.domain.topological_dimension()
+        self.dim = self.domain.geometric_dimension()
 
         self.domain.coordinates.dat.data[:, 0] -= 0.5
         self.domain.coordinates.dat.data[:, 1] -= 0.5
-
-        offset = 5.2 * pi/180
-        angle = pi/4 - offset
+        angle = pi/4
         rotated_x_coordinate = np.cos(angle) * self.domain.coordinates.dat.data[:, 0] \
                             - np.sin(angle) * self.domain.coordinates.dat.data[:, 1]
         
@@ -48,10 +46,12 @@ class BendingColumn(DynamicProblem):
         self.parameters = {"rho": 1.1*10**3, # kg/m^3 
                            "mu": mu, 
                            "kappa": kappa}
+        
 
     def get_initial_conditions(self):
 
-        velocity_0 =fdrk.as_vector([5/3*self.z, 0, 0])
+        omega = 100 # rag/s
+        velocity_0 = omega*fdrk.sin(pi *self.z/12) * fdrk.as_vector([self.x, -self.y, 0])
 
         displacement_0 = fdrk.as_vector([0, 0, 0])
         strain_0 = fdrk.as_tensor([[0, 0, 0], 
@@ -62,7 +62,6 @@ class BendingColumn(DynamicProblem):
                 "velocity": velocity_0, 
                 "strain": strain_0
                 }
-
 
     def get_essential_bcs(self, time_ess):
         """
@@ -87,4 +86,4 @@ class BendingColumn(DynamicProblem):
     
 
     def __str__(self):
-        return "BendingColumn"
+        return "TwisitingColumn"

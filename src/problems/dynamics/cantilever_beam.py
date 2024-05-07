@@ -1,5 +1,5 @@
 import firedrake as fdrk
-from .problem import Problem
+from ..problem import Problem
 import numpy as np
 
 class CantileverBeam(Problem):
@@ -14,9 +14,9 @@ class CantileverBeam(Problem):
         self.x, self.y = self.coordinates_mesh
         self.normal_versor = fdrk.FacetNormal(self.domain)
 
-        density = fdrk.Constant(1)
-        young_modulus = fdrk.Constant(1000)
-        poisson_ratio = fdrk.Constant(0.3)
+        density = 1
+        young_modulus = 1000
+        poisson_ratio = 0.3
 
         mu = young_modulus / (2*(1 + poisson_ratio))
         lamda = young_modulus*poisson_ratio/((1 - 2*poisson_ratio)*(1 + poisson_ratio))
@@ -31,13 +31,13 @@ class CantileverBeam(Problem):
 
     def get_initial_conditions(self):
         velocity_0 = fdrk.as_vector([0.0, 0.0])
-        stress_0 = fdrk.as_vector([[0, 0], [0, 0]])
+        strain_0 = fdrk.as_vector([[0, 0], [0, 0]])
 
         displacement_0 = fdrk.as_vector([0.0, 0.0])
 
         return {"displacement": displacement_0,
                 "velocity": velocity_0, 
-                "stress": stress_0, 
+                "strain": strain_0, 
                 }
     
 

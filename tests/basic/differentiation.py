@@ -1,5 +1,5 @@
 import firedrake as fdrk
-from src.solvers.dynamics.hamiltonian_neo_hooken import energy_density_neo_hookean, second_piola_definition
+from src.solvers.dynamics.hamiltonian_neo_hookean import energy_density_neo_hookean, second_piola_definition
 
 E = 1
 nu = 0.3

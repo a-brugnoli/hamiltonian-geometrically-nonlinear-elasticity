@@ -1,5 +1,5 @@
 import firedrake as fdrk
-from .problem import StaticProblem
+from ..problem import StaticProblem
 from src.tools.elasticity import first_piola_definition
 
 # Neo Hookean Potentials

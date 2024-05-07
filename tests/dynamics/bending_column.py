@@ -1,23 +1,29 @@
 import firedrake as fdrk
-import numpy as np
-from src.postprocessing.animators import animate_vector_triplot
 import matplotlib.pyplot as plt
-from src.solvers.dynamics.hamiltonian_neo_hooken import HamiltonianNeoHookeanSolver
+from src.postprocessing.animators import animate_vector_triplot
+
+from src.solvers.dynamics.hamiltonian_neo_hookean import HamiltonianNeoHookeanSolver
+from src.solvers.dynamics.hamiltonian_st_venant import HamiltonianSaintVenantSolver
 from src.tools.common import compute_min_max_mesh
-from src.problems.twisting_column import TwistingColumn
-from src.problems.bending_column import BendingColumn
+from src.problems.dynamics.twisting_column import TwistingColumn
+from src.problems.dynamics.bending_column import BendingColumn
 import os
 from firedrake.petsc import PETSc
+import time
+import numpy as np
 
 pol_degree = 1
 T_end = 2
 
 # problem = TwistingColumn(n_elem_x=6, n_elem_y=6, n_elem_z=36)
-problem = BendingColumn(n_elem_x=12, n_elem_y=12, n_elem_z=72)
+# problem = BendingColumn(n_elem_x=12, n_elem_y=12, n_elem_z=72)
+problem = BendingColumn(n_elem_x=6, n_elem_y=6, n_elem_z=36)
 
-solver = HamiltonianNeoHookeanSolver(problem, 
+# solver = HamiltonianNeoHookeanSolver(problem, 
+#                                     pol_degree)
+
+solver = HamiltonianSaintVenantSolver(problem, 
                                     pol_degree)
-
 
 directory_results = f"{os.path.dirname(os.path.abspath(__file__))}/results/{str(solver)}/{str(problem)}/"
 if not os.path.exists(directory_results):
@@ -34,9 +40,15 @@ outfile_displacement.write(solver.displacement_old, time=0)
 time_vector = []
 time_vector.append(0)
 energy_vector = []
-energy_vector.append(fdrk.assemble(solver.energy(solver.velocity_old, solver.strain_old)))
+if isinstance(solver, HamiltonianNeoHookeanSolver):
+    energy_vector.append(fdrk.assemble(solver.energy(solver.velocity_new, solver.strain_new)))
+else:
+    energy_vector.append(fdrk.assemble(solver.energy_old))
 
-output_frequency = 1
+time_step_vec = []
+
+output_frequency = 10
+
 displaced_mesh= solver.output_displaced_mesh()
 displaced_coordinates_x = displaced_mesh.coordinates.dat.data[:, 0]
 displaced_coordinates_y = displaced_mesh.coordinates.dat.data[:, 1]
@@ -54,21 +66,35 @@ time_frames.append(0)
 
 ii = 0
 actual_time = float(solver.actual_time_energy)
+computing_time = 0
+
 while actual_time < T_end:
 
+    start_iteration = time.time()
     solver.integrate()
+    end_iteration = time.time()
+    elapsed_iteration = end_iteration - start_iteration
+    computing_time += elapsed_iteration
 
-    energy_vector.append(fdrk.assemble(solver.energy(solver.velocity_new, solver.strain_new)))
+    if isinstance(solver, HamiltonianNeoHookeanSolver):
+        energy_vector.append(fdrk.assemble(solver.energy(solver.velocity_new, solver.strain_new)))
+    else:
+        energy_vector.append(fdrk.assemble(solver.energy_new))
+
+    time_step_vec.append(float(solver.time_step))
 
     solver.update_variables()
 
     actual_time = float(solver.actual_time_energy)
-
     time_vector.append(actual_time)
+    time_fraction = actual_time/T_end
 
-    PETSc.Sys.Print(f"Actual time {actual_time:.3f}. Percentage : {actual_time/T_end*100:.1f}%")
-
+    expected_total_computing_time = computing_time/time_fraction
+    expected_remaining_time = expected_total_computing_time - computing_time
     ii+=1
+    PETSc.Sys.Print(f"Iteration number {ii}. Actual time {actual_time:.3f}. Percentage : {time_fraction*100:.1f}%")
+    PETSc.Sys.Print(f"Total computing time {computing_time:.1f}. Expected time to end : {expected_remaining_time/60:.1f} (min)")
+
     if ii % output_frequency == 0:
 
         displaced_mesh = solver.output_displaced_mesh()
@@ -79,15 +105,10 @@ while actual_time < T_end:
 
         outfile_displacement.write(solver.displacement_old, time=actual_time)
 
-average_time_step = np.mean(np.diff(np.array(time_frames)))
-interval = 10**2 * output_frequency * average_time_step
-print(f"Interval {interval}")
+
 lim_x, lim_y, lim_z  = list_min_max_coords
 
-print(f"Lim x : {lim_x}")
-print(f"Lim y : {lim_y}")
-print(f"Lim z : {lim_z}")
-
+interval = 10**3 * output_frequency * sum(time_step_vec)/len(time_step_vec)
 animation = animate_vector_triplot(list_frames, interval, \
                                     lim_x = lim_x, \
                                     lim_y = lim_y, \
@@ -97,7 +118,8 @@ animation.save(f"{directory_results}Animation_displacement.mp4", writer="ffmpeg"
 
 
 n_frames = len(time_frames)
-indexes_images = [0, int(n_frames/2), int(n_frames-1)]
+indexes_images = [0, int(n_frames/4), int(n_frames/2), \
+                    int(3*n_frames/4), int(n_frames-1)]
 
 for kk in indexes_images:
     time_image = time_frames[kk]
@@ -118,7 +140,6 @@ for kk in indexes_images:
 
 plt.figure()
 plt.plot(time_vector, energy_vector)
-# plt.plot(time_vector, energy_vector_linear, label=f"Linear")
 plt.grid(color='0.8', linestyle='-', linewidth=.5)
 plt.xlabel('Time')
 plt.legend()

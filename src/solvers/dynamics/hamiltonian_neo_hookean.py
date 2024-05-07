@@ -1,14 +1,12 @@
 import firedrake as fdrk
-from src.problems.problem import Problem
+from src.problems.problem import DynamicProblem
 from firedrake.petsc import PETSc
 from src.tools.common import compute_time_step
-
-import numpy as np
 
 
 class HamiltonianNeoHookeanSolver:
     def __init__(self,
-                 problem: Problem,
+                 problem: DynamicProblem,
                  pol_degree= 1,
                  solver_parameters={}):
         

@@ -9,24 +9,25 @@ from src.solvers.dynamics.nonlinear_lagrangian import NonlinearLagrangianSolver
 
 from src.tools.common import compute_min_max_mesh
 
-from src.problems.cantilever_beam import CantileverBeam
-from src.problems.dynamic_cook_membrane import DynamicCookMembrane
+from src.problems.dynamics.cantilever_beam import CantileverBeam
+from src.problems.dynamics.dynamic_cook_membrane import DynamicCookMembrane
+import time
+from firedrake.petsc import PETSc
+
 
 import os
 
 # # Stable choice non linear Lagrangian
 pol_degree = 1
 
-time_step = 1e-2
-
 # pol_degree = 1
 # quad = False
 # n_elem_x= 100
 # n_elem_y = 10
-# time_step = 1e-2
 
 T_end = 10
-n_time  = ceil(T_end/time_step)
+# time_step = 1e-2
+# n_time  = ceil(T_end/time_step)
 
 quad = False
 n_elem_x= 100
@@ -35,9 +36,7 @@ problem = CantileverBeam(n_elem_x, n_elem_y, quad)
 
 # problem = DynamicCookMembrane(mesh_size=2)
 
-solver = HamiltonianSaintVenantSolver(problem, 
-                            time_step, 
-                            pol_degree)
+solver = HamiltonianSaintVenantSolver(problem, pol_degree)
 
 # solver = NonlinearLagrangianSolver(problem, 
 #                                 time_step, 
@@ -49,11 +48,13 @@ directory_results = f"{os.path.dirname(os.path.abspath(__file__))}/results/{str(
 if not os.path.exists(directory_results):
             os.makedirs(directory_results)
             
-time_vector = np.linspace(0, T_end, num=n_time+1)
-energy_vector = np.zeros((n_time+1, ))
-energy_vector[0] = fdrk.assemble(solver.energy_old)
 
-power_balance_vector = np.zeros((n_time, ))
+time_vector = []
+time_vector.append(0)
+energy_vector = []
+energy_vector.append(fdrk.assemble(solver.energy_old))
+time_step_vec = []
+power_balance_vector = []
 
 output_frequency = 10
 displaced_mesh= solver.output_displaced_mesh()
@@ -68,19 +69,37 @@ time_frames = []
 list_frames.append(displaced_mesh)
 time_frames.append(0)
 
+ii = 0
+actual_time = float(solver.actual_time_energy)
+computing_time = 0
 
-for ii in tqdm(range(1, n_time+1)):
-    actual_time = ii*time_step
+while actual_time < T_end:
 
+    start_iteration = time.time()
     solver.integrate()
+    end_iteration = time.time()
+    elapsed_iteration = end_iteration - start_iteration
+    computing_time += elapsed_iteration
 
-    energy_vector[ii] = fdrk.assemble(solver.energy_new)
+    energy_vector.append(fdrk.assemble(solver.energy_new))
+    time_step_vec.append(float(solver.time_step))
 
     if isinstance(solver, HamiltonianSaintVenantSolver):
         # print(f"Worst case CFL {cfl_wave + solver.get_dinamic_cfl()}")
-        power_balance_vector[ii-1] = fdrk.assemble(solver.power_balance)
+        power_balance_vector.append(fdrk.assemble(solver.power_balance))
 
     solver.update_variables()
+
+    actual_time = float(solver.actual_time_energy)
+    time_vector.append(actual_time)
+    time_fraction = actual_time/T_end
+
+    expected_total_computing_time = computing_time/time_fraction
+    expected_remaining_time = expected_total_computing_time - computing_time
+    ii+=1
+    PETSc.Sys.Print(f"Iteration number {ii}. Actual time {actual_time:.3f}. Percentage : {time_fraction*100:.1f}%")
+    PETSc.Sys.Print(f"Expected time to end : {expected_remaining_time:.1f} (s).")
+
 
     if ii % output_frequency == 0:
 
@@ -91,7 +110,7 @@ for ii in tqdm(range(1, n_time+1)):
         time_frames.append(actual_time)
 
 
-interval = 1e3 * output_frequency * time_step
+interval = 1e3 * output_frequency * sum(time_step_vec)/len(time_step_vec)
 
 lim_x, lim_y  = list_min_max_coords
 
@@ -106,12 +125,12 @@ n_frames = len(list_frames)-1
 indexes_images = [int(n_frames/4), int(n_frames/2), int(3*n_frames/4), int(n_frames)]
 
 for kk in indexes_images:
-    time_image = "{:.1f}".format(time_step * output_frequency * kk) 
+    time_image = "{:.1f}".format(time_vector[kk] * output_frequency) 
 
     fig, axes = plt.subplots()
     axes.set_aspect("equal")
     fdrk.triplot(list_frames[kk], axes=axes)
-    axes.set_title(f"Displacement at time $t={time_image}$" + r"$[\mathrm{s}]$", loc='center')
+    axes.set_title(f"Displacement at time $t={time_image}$ [s].", loc='center')
     axes.set_xlabel("x")
     axes.set_ylabel("y")
     axes.set_xlim(lim_x)
@@ -124,17 +143,20 @@ plt.figure()
 plt.plot(time_vector, energy_vector)
 # plt.plot(time_vector, energy_vector_linear, label=f"Linear")
 plt.grid(color='0.8', linestyle='-', linewidth=.5)
-plt.xlabel(r'Time')
+plt.xlabel('Time')
 plt.legend()
 plt.title("Energy")
 plt.savefig(f"{directory_results}Energy.eps", dpi='figure', format='eps')
 
+
+
 if isinstance(solver, HamiltonianSaintVenantSolver):
     plt.figure()
-    plt.plot(time_vector[1:], np.diff(energy_vector) - time_step * power_balance_vector)
+    dt_power = [dt * power_t for dt, power_t in zip(time_step_vec, power_balance_vector)]
+    plt.plot(time_vector[1:], np.diff(energy_vector) - dt_power)
     # plt.plot(time_vector[1:], np.diff(energy_vector_linear) - power_balance_vector_linear, label=f"Linear")
     plt.grid(color='0.8', linestyle='-', linewidth=.5)
-    plt.xlabel(r'Time')
+    plt.xlabel('Time')
     plt.legend()
     plt.title("Power balance conservation")
     plt.savefig(f"{directory_results}Power.eps", dpi='figure', format='eps')

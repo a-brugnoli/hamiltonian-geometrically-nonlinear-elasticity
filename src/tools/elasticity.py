@@ -9,7 +9,7 @@ def stiffness_tensor(strain, young_modulus, poisson_ratio):
     return stress 
 
 
-def compliance(stress, young_modulus, poisson_ratio):
+def compliance_tensor(stress, young_modulus, poisson_ratio):
     dim = stress.ufl_shape[0]
     # Compliance tensor for generic dimensions
     strain = 1 /(young_modulus) * ((1+poisson_ratio)*stress \
@@ -59,24 +59,26 @@ def natural_control_follower(test, displacement, traction_data_dict : dict):
 
     natural_control = 0 
 
-    for item in traction_data_dict.items():
-        if item[0]=="follower":
-            pass
-        else:
-            id = item[0]
-            value_traction = item[1]
+    if traction_data_dict:
 
-
-            if traction_data_dict["follower"]:
-                if id == "on_boundary":
-                    natural_control +=fdrk.inner(test, fdrk.dot(F, value_traction))*fdrk.ds
-                else: 
-                    natural_control +=fdrk.inner(test, fdrk.dot(F, value_traction))*fdrk.ds(id)
+        for item in traction_data_dict.items():
+            if item[0]=="follower":
+                pass
             else:
-                if id == "on_boundary":
-                    natural_control +=fdrk.inner(test, value_traction)*fdrk.ds
-                else: 
-                    natural_control +=fdrk.inner(test, value_traction)*fdrk.ds(id)
+                id = item[0]
+                value_traction = item[1]
+
+
+                if traction_data_dict["follower"]:
+                    if id == "on_boundary":
+                        natural_control +=fdrk.inner(test, fdrk.dot(F, value_traction))*fdrk.ds
+                    else: 
+                        natural_control +=fdrk.inner(test, fdrk.dot(F, value_traction))*fdrk.ds(id)
+                else:
+                    if id == "on_boundary":
+                        natural_control +=fdrk.inner(test, value_traction)*fdrk.ds
+                    else: 
+                        natural_control +=fdrk.inner(test, value_traction)*fdrk.ds(id)
 
     return natural_control
 
@@ -91,7 +93,7 @@ def mass_form_energy(testfunctions, functions, params):
     velocity, stress = functions
 
     linear_momentum = density * velocity
-    strain = compliance(stress, young_modulus, poisson_ratio)
+    strain = compliance_tensor(stress, young_modulus, poisson_ratio)
 
     return fdrk.inner(test_velocity, linear_momentum) * fdrk.dx + fdrk.inner(test_stress, strain)*fdrk.dx
 

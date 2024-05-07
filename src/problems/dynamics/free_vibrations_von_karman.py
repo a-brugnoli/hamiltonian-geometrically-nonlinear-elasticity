@@ -1,5 +1,5 @@
 import firedrake as fdrk
-from .problem import Problem
+from ..problem import Problem
 import numpy as np
 from math import pi
 from src.tools.von_karman import bending_stiffness, membrane_stiffness

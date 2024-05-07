@@ -2,7 +2,7 @@ import firedrake as fdrk
 import numpy as np
 
 def compute_time_step(domain : fdrk.MeshGeometry, displacement : fdrk.Function, \
-                      parameters, alpha_cfl = 0.9):
+                      parameters, alpha_cfl = 0.9, saint_venant = False):
     
     ndim = domain.topological_dimension()
     density = parameters["rho"]
@@ -16,19 +16,21 @@ def compute_time_step(domain : fdrk.MeshGeometry, displacement : fdrk.Function, 
     DG0_space = fdrk.FunctionSpace(domain, 'DG', 0)
     vector_J = fdrk.assemble(fdrk.interpolate(fdrk.det(fdrk.Identity(ndim)\
                              + fdrk.grad(displacement)), DG0_space)).vector().get_local()
-    vector_Jinv = np.reciprocal(vector_J)
 
     DG0_space_displaced = fdrk.FunctionSpace(displaced_domain, 'DG', 0)
     diameters = fdrk.CellSize(displaced_domain)
     vector_h = fdrk.assemble(fdrk.interpolate(diameters, DG0_space_displaced)).vector().get_local()
 
     actual_density = density/vector_J
-    actual_kappa = kappa * (vector_J + vector_Jinv)/2
+
+    vector_Jinv = np.reciprocal(vector_J)
+    if saint_venant:
+        actual_kappa = kappa 
+    else:
+        actual_kappa = kappa * (vector_J + vector_Jinv)/2
 
     vector_dt = alpha_cfl * vector_h / np.sqrt((actual_kappa + 4/3*mu)/actual_density)
-    min_dt = min(vector_dt)
-
-    delta_t = fdrk.Constant(min_dt)
+    delta_t = fdrk.Constant(min(vector_dt))
 
     return delta_t
 

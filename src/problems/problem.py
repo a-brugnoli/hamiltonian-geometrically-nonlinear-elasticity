@@ -42,6 +42,10 @@ class DynamicProblem(Problem):
 
 
     @abstractmethod
+    def get_initial_conditions(self):
+        pass
+
+    @abstractmethod
     def get_forcing(self, time: fdrk.Constant):
         pass
 

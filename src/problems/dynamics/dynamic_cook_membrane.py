@@ -1,8 +1,7 @@
 import firedrake as fdrk
-from .problem import DynamicProblem
+from ..problem import DynamicProblem
 from src.meshing.cook_membrane import create_cook_membrane
 import matplotlib.pyplot as plt
-from src.tools.elasticity import compliance
 
 class DynamicCookMembrane(DynamicProblem):
 

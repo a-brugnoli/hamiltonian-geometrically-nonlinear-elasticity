@@ -1,5 +1,5 @@
 import firedrake as fdrk
-from .problem import StaticProblem
+from ..problem import StaticProblem
 import numpy as np
 from src.meshing.cook_membrane import create_cook_membrane
 import matplotlib.pyplot as plt
