@@ -27,7 +27,7 @@ solver = HamiltonianSaintVenantSolver(problem,
 
 directory_results = f"{os.path.dirname(os.path.abspath(__file__))}/results/{str(solver)}/{str(problem)}/"
 if not os.path.exists(directory_results):
-            os.makedirs(directory_results)
+    os.makedirs(directory_results)
 
 home_dir =os.environ['HOME']
 directory_largedata = f"{home_dir}/StoreResults/{str(solver)}/{str(problem)}/"

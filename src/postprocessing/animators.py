@@ -19,6 +19,8 @@ def animate_vector_triplot(list_frames, interval=10, three_dim = False, \
     axes.set_aspect("equal")
     axes.set_xlabel(xlabel)
     axes.set_ylabel(ylabel)
+    axes.set_title(title, loc='center')
+
     axes.set_xlim(lim_x)
     axes.set_ylim(lim_y)
     if three_dim:
@@ -38,9 +40,6 @@ def animate_vector_triplot(list_frames, interval=10, three_dim = False, \
         
         fdrk.triplot(list_frames[frame_number], axes=axes)
         
-
-    axes.set_title(title, loc='center')
-
     anim = FuncAnimation(fig, update_plot, frames=len(list_frames), interval = interval)
 
     return anim
@@ -65,23 +64,26 @@ def animate_scalar_tripcolor(domain, list_frames, interval):
     return anim
 
 
-def animate_scalar_trisurf(time_frames, list_frames, interval, lim_z = None):
-
+def animate_scalar_trisurf(time_frames, list_frames, interval,\
+                           title=None, xlabel=None, ylabel=None, lim_z = None):
     vmin, vmax = lim_z
-
     # Displacement animation
     fig = plt.figure()
     axes = fig.add_subplot(111, projection='3d')
     axes.set_aspect('equal')
-
+    
     def animate(frame_number):
         axes.clear()
         time = time_frames[frame_number]
-        time_label = f'Time = {time:.2f} [ms]'
+        time_label = f'Time = {time:.2f}' + r'$\; \mathrm{[ms]}$'
         fdrk.trisurf(list_frames[frame_number], axes=axes, \
                      label=time_label, cmap=cm.jet, vmin=vmin, vmax = vmax)
-        axes.set_zlim(lim_z)
+        axes.set_xlabel(xlabel)
+        axes.set_ylabel(ylabel)
+        axes.set_title(title, loc='center')
         axes.legend()
+        axes.set_zlim(lim_z)
+
 
     
     fdrk.trisurf(list_frames[0], axes=axes, cmap=cm.jet, \
