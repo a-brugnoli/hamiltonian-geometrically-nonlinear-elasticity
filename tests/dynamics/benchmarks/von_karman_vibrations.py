@@ -13,7 +13,7 @@ n_elem = 30
 pol_degree = 1
 quad = False
 time_step = 5*10**(-6)
-T_end = 7.5 * 10**(-3)
+T_end = 30 * 10**(-3)
 # T_end = 30 * time_step
 
 n_time  = ceil(T_end/time_step)

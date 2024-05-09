@@ -10,7 +10,6 @@ from src.problems.dynamics.bending_column import BendingColumn
 import os
 from firedrake.petsc import PETSc
 import time
-import numpy as np
 
 pol_degree = 1
 T_end = 2
