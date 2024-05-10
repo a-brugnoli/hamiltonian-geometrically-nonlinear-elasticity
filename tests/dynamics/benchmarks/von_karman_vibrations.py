@@ -47,7 +47,7 @@ displacement_at_center[0] = solver.bend_displacement_old.at(center)
 velocity_at_center = np.zeros((n_time+1, ))
 velocity_at_center[0] = solver.bend_velocity_old.at(center)
 
-output_frequency = 10
+output_frequency = 30
 
 min_max_vel = (0, 0)
 min_max_disp = (0, 0)
@@ -72,6 +72,11 @@ outfile_bend_velocity.write(solver.bend_velocity_old, time=0)
 outfile_bend_displacement = fdrk.File(f"{directory_largedata}/Vertical_displacement.pvd")
 outfile_bend_displacement.write(solver.bend_displacement_old, time=0)
 
+directory_frames = f"{directory_largedata}/frames/"
+if not os.path.exists(directory_frames):
+    os.makedirs(directory_frames, exist_ok=True)
+
+kk=1
 for ii in tqdm(range(1, n_time+1)):
     actual_time = ii*time_step
 
@@ -92,53 +97,74 @@ for ii in tqdm(range(1, n_time+1)):
         min_max_vel = compute_min_max_function(solver.bend_velocity_old, min_max_vel)
         min_max_disp = compute_min_max_function(solver.bend_displacement_old, min_max_disp)
 
-        list_frames_bend_velocity.append(solver.bend_velocity_old.copy(deepcopy=True))
-        list_frames_bend_displacement.append(solver.bend_displacement_old.copy(deepcopy=True))
+        # list_frames_bend_velocity.append(solver.bend_velocity_old.copy(deepcopy=True))
+        # list_frames_bend_displacement.append(solver.bend_displacement_old.copy(deepcopy=True))
         time_frames_ms.append(10**3 * actual_time)
 
         outfile_bend_velocity.write(solver.bend_velocity_old, time=actual_time)
         outfile_bend_displacement.write(solver.bend_displacement_old, time=actual_time)
 
+        time_image = 10**3 * actual_time
+        fig = plt.figure()
+        axes = fig.add_subplot(111, projection='3d')
+        axes.set_aspect('equal')
+        fdrk.trisurf(solver.bend_displacement_old, axes=axes)
+        axes.set_title(f"$w(t={time_image:.1f}$" + r"$\; [\mathrm{ms}]$)", loc='center')
+        axes.set_xlabel(r"$x [\mathrm{m}]$")
+        axes.set_ylabel(r"$y [\mathrm{m}]$")
+        axes.set_zlim(min_max_disp)
+
+        
+        plt.savefig(f"{directory_frames}Displacement_{kk}.pdf", \
+                    bbox_inches='tight', pad_inches=0.3, dpi='figure', format='pdf')
+
+        plt.close()
+
+        kk+=1
 
 
-interval = 10**6 * output_frequency * time_step
+# interval = 10**6 * output_frequency * time_step
 
-velocity_animation = animate_scalar_trisurf(time_frames_ms, list_frames_bend_velocity,\
-                        interval=interval, lim_z = min_max_vel, \
-                        title = "Velocity", xlabel= r"$x [\mathrm{m}]$", ylabel = r"$y [\mathrm{m}]$")
+# velocity_animation = animate_scalar_trisurf(time_frames_ms, list_frames_bend_velocity,\
+#                         interval=interval, lim_z = min_max_vel, \
+#                         title = "Velocity", xlabel= r"$x [\mathrm{m}]$", ylabel = r"$y [\mathrm{m}]$")
 
 
-velocity_animation.save(f"{directory_results}Animation_velocity.mp4", writer="ffmpeg")
+# velocity_animation.save(f"{directory_results}Animation_velocity.mp4", writer="ffmpeg")
 
-displacement_animation = animate_scalar_trisurf(time_frames_ms, list_frames_bend_displacement,\
-                        interval=interval, lim_z = min_max_disp, \
-                        title = "Displacement", xlabel= r"$x [\mathrm{m}]$", ylabel = r"$y [\mathrm{m}]$")
+# displacement_animation = animate_scalar_trisurf(time_frames_ms, list_frames_bend_displacement,\
+#                         interval=interval, lim_z = min_max_disp, \
+#                         title = "Displacement", xlabel= r"$x [\mathrm{m}]$", ylabel = r"$y [\mathrm{m}]$")
 
-displacement_animation.save(f"{directory_results}Animation_displacement.mp4", writer="ffmpeg")
+# displacement_animation.save(f"{directory_results}Animation_displacement.mp4", writer="ffmpeg")
 
-n_frames = len(time_frames_ms)
-indexes_images = [0, int(n_frames/3), int(2*n_frames/3), int(n_frames-1)]
+# n_frames = len(time_frames_ms)
+# indexes_images = [0, int(n_frames/3), int(2*n_frames/3), int(n_frames-1)]
 
-for kk in indexes_images:
-    time_image = time_frames_ms[kk]
+# for kk in range(n_frames):
+#     time_image = time_frames_ms[kk]
 
-    fig = plt.figure()
-    axes = fig.add_subplot(111, projection='3d')
-    axes.set_aspect('equal')
-    fdrk.trisurf(list_frames_bend_displacement[kk], axes=axes)
-    axes.set_title(f"$w(t={time_image:.1f}$" + r"$\; [\mathrm{ms}]$)", loc='center')
-    axes.set_xlabel(r"$x [\mathrm{m}]$")
-    axes.set_ylabel(r"$y [\mathrm{m}]$")
-    axes.set_zlim(min_max_disp)
+#     fig = plt.figure()
+#     axes = fig.add_subplot(111, projection='3d')
+#     axes.set_aspect('equal')
+#     fdrk.trisurf(list_frames_bend_displacement[kk], axes=axes)
+#     axes.set_title(f"$w(t={time_image:.1f}$" + r"$\; [\mathrm{ms}]$)", loc='center')
+#     axes.set_xlabel(r"$x [\mathrm{m}]$")
+#     axes.set_ylabel(r"$y [\mathrm{m}]$")
+#     axes.set_zlim(min_max_disp)
 
-    plt.savefig(f"{directory_results}/Displacement_t{time_image:.1f}.pdf", \
-                bbox_inches='tight', pad_inches=0.3, dpi='figure', format='pdf')
+#     plt.savefig(f"{directory_largedata}/frames/Displacement_{kk}.pdf", \
+#                 bbox_inches='tight', pad_inches=0.3, dpi='figure', format='pdf')
 
-plt.figure()
-plt.plot(time_vector_ms, energy_vector)
-plt.grid(color='0.8', linestyle='-', linewidth=.5)
-plt.xlabel(r"Time $[\mathrm{ms}]$")
-plt.title("Energy")
-plt.savefig(f"{directory_results}/Energy.pdf", dpi='figure', format='pdf')
+    # plt.savefig(f"{directory_largedata}/Displacement_t{time_image:.1f}.pdf", \
+    #             bbox_inches='tight', pad_inches=0.3, dpi='figure', format='pdf')
 
-plt.close('all')
+    #     plt.close()
+
+# plt.figure()
+# plt.plot(time_vector_ms, energy_vector)
+# plt.grid(color='0.8', linestyle='-', linewidth=.5)
+# plt.xlabel(r"Time $[\mathrm{ms}]$")
+# plt.title("Energy")
+# plt.savefig(f"{directory_results}/Energy.pdf", dpi='figure', format='pdf')
+

@@ -140,7 +140,7 @@ for kk in indexes_images:
 plt.figure()
 plt.plot(time_vector, energy_vector)
 plt.grid(color='0.8', linestyle='-', linewidth=.5)
-plt.xlabel('Time')
+plt.xlabel('Time $\mathrm[s]$')
 plt.legend()
 plt.title("Energy")
 plt.savefig(f"{directory_results}Energy.pdf", bbox_inches='tight', dpi='figure', format='pdf')
