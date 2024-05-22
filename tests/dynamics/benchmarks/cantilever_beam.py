@@ -5,7 +5,7 @@ from tqdm import tqdm
 from src.postprocessing.animators import animate_vector_triplot
 import matplotlib.pyplot as plt
 from src.solvers.dynamics.hamiltonian_st_venant import HamiltonianSaintVenantSolver
-from src.solvers.dynamics.nonlinear_lagrangian import NonlinearLagrangianSolver
+from src.solvers.dynamics.nonlinear_lagrangian_implicit import NonlinearLagrangianSolver
 
 from src.tools.common import compute_min_max_mesh
 
@@ -76,7 +76,7 @@ computing_time = 0
 while actual_time < T_end:
 
     start_iteration = time.time()
-    solver.integrate()
+    solver.advance()
     end_iteration = time.time()
     elapsed_iteration = end_iteration - start_iteration
     computing_time += elapsed_iteration

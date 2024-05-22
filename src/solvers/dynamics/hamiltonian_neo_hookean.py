@@ -135,7 +135,7 @@ class HamiltonianNeoHookeanSolver:
         self.time_displacement_new.assign(float(self.time_displacement_old) + self.time_step)
 
 
-    def output_displaced_mesh(self):
+    def compute_displaced_mesh(self):
         displaced_coordinates = fdrk.interpolate(self.coordinates_mesh 
                                             + self.displacement_old, self.space_displacement)
 

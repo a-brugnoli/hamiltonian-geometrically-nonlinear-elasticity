@@ -1,15 +1,11 @@
 import firedrake as fdrk
 from src.problems.problem import DynamicProblem
-from firedrake.petsc import PETSc
 from src.tools.elasticity import natural_control_follower, \
                                 operator_energy, functional_energy,\
                                 stiffness_tensor, mass_form_energy
-
 from src.tools.common import compute_time_step
 
-import numpy as np
-
-class HamiltonianSaintVenantSolver:
+class HamiltonianSaintVenantSolverStaticCondensation:
     def __init__(self,
                 problem: DynamicProblem,
                 pol_degree= 1,
@@ -23,18 +19,7 @@ class HamiltonianSaintVenantSolver:
         self.E = self.problem.parameters["E"]
         self.nu = self.problem.parameters["nu"]
         
-        
-        # if problem.domain.ufl_cell().is_simplex():
-        #     displ_vectorspace = fdrk.VectorFunctionSpace(problem.domain, "CG", pol_degree)
-        # else:
-        #     displ_vectorspace = fdrk.VectorFunctionSpace(problem.domain, "S", pol_degree)
-
         displ_vectorspace = fdrk.VectorFunctionSpace(problem.domain, "CG", pol_degree)
-        cell = problem.domain.ufl_cell()
-
-        # regge_broken_fe = fdrk.BrokenElement(fdrk.FiniteElement("Regge", cell, pol_degree-1))
-        # regge_fe = fdrk.FiniteElement("Regge", cell, pol_degree-1)
-        # space_stress_tensor = fdrk.FunctionSpace(problem.domain, regge_fe)
         space_stress_tensor = fdrk.TensorFunctionSpace(problem.domain, "DG", pol_degree-1, symmetry=True)
 
         self.space_displacement = displ_vectorspace
@@ -89,15 +74,10 @@ class HamiltonianSaintVenantSolver:
         dict_essential = problem.get_essential_bcs(self.time_energy_new)
 
         velocity_bc_data = dict_essential["velocity"]
-        velocity_bcs = [fdrk.DirichletBC(space_energy.sub(0), item[1], item[0]) \
+        velocity_bcs = [fdrk.DirichletBC(displ_vectorspace, item[1], item[0]) \
                         for item in velocity_bc_data.items()]
 
-        # displacement_bc_data = dict_essential["displacement"]
-        # displacement_bcs = [fdrk.DirichletBC(space_displacement, item[1], item[0]) for item in displacement_bc_data.items()]
-
         natural_bcs = problem.get_natural_bcs(self.time_energy_midpoint)
-
-
 
         # Set first value for the deformation gradient via Explicit Euler
         self.displacement_old.assign(self.displacement_old + self.time_step/2*self.state_energy_old.sub(0))
@@ -117,7 +97,6 @@ class HamiltonianSaintVenantSolver:
                                                      self.displacement_old, 
                                                      natural_bcs)
 
-        
         a_form = operator_energy(self.time_step, \
                                 tests_energy, \
                                 trials_energy, \
@@ -130,20 +109,37 @@ class HamiltonianSaintVenantSolver:
                                     self.displacement_old, \
                                     natural_bcs, 
                                     problem.parameters)
-
-        linear_energy_problem = fdrk.LinearVariationalProblem(a_form, \
-                                                            l_form, \
-                                                            self.state_energy_new, \
-                                                            velocity_bcs)
         
-        self.linear_energy_solver = fdrk.LinearVariationalSolver(linear_energy_problem, \
-                                                                solver_parameters=solver_parameters_energy)
+        # Apply static condensation to solve for velocity only
+
+        A_tensor = fdrk.Tensor(a_form) 
+        self.A_blocks = A_tensor.blocks
+
+        A_velocity = self.A_blocks[0, 0] \
+            - self.A_blocks[0, 1] * self.A_blocks[1, 1].inv * self.A_blocks[1, 0]
+
+        b_vector = fdrk.Tensor(l_form)
+        self.b_blocks = b_vector.blocks
+
+        b_velocity = self.b_blocks[0] \
+            - self.A_blocks[0, 1] * self.A_blocks[1, 1].inv * self.b_blocks[1]
+
+        self.velocity_new = fdrk.Function(displ_vectorspace)
+        linear_velocity_problem  = fdrk.LinearVariationalProblem(A_velocity, b_velocity, \
+                                                                self.velocity_new, \
+                                                                velocity_bcs)
+
+        self.linear_velocity_solver = fdrk.LinearVariationalSolver(linear_velocity_problem, \
+                                    solver_parameters=solver_parameters_energy)
 
 
     def advance(self):
 
         # First the energy system is advanced at n+1
-        self.linear_energy_solver.solve()
+        self.linear_velocity_solver.solve()
+
+        self._assemble_solution()
+
         self.state_energy_midpoint.assign(0.5*(self.state_energy_old + self.state_energy_new))
 
         # Compute solution for displacement at n+3∕2
@@ -171,6 +167,20 @@ class HamiltonianSaintVenantSolver:
         self.time_displacement_new.assign(float(self.time_displacement_old) + self.time_step)
 
 
+    
+    def _assemble_solution(self):
+
+        local_velocity = fdrk.AssembledVector(self.velocity_new)
+
+        stress_new = fdrk.assemble(self.A_blocks[1, 1].inv * (self.b_blocks[1] \
+                                    - self.A_blocks[1, 0] * local_velocity))
+        
+        coeff_stress = stress_new.vector().get_local()
+
+        self.state_energy_new.sub(0).assign(self.velocity_new)
+        self.state_energy_new.sub(1).vector().set_local(coeff_stress)
+
+
     def compute_displaced_mesh(self):
         displaced_coordinates = fdrk.interpolate(self.coordinates_mesh 
                                             + self.displacement_old, self.space_displacement)
@@ -179,4 +189,4 @@ class HamiltonianSaintVenantSolver:
 
 
     def __str__(self):
-        return "HamiltonianSaintVenantSolver"
+        return "HamiltonianSaintVenantSolverStaticCondensation"

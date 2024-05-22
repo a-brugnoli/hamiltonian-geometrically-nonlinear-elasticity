@@ -1,4 +1,8 @@
 import firedrake as fdrk
+from src.tools.common import compute_min_max_mesh
+import time
+from firedrake.petsc import PETSc
+
 
 def stiffness_tensor(strain, young_modulus, poisson_ratio):
     dim = strain.ufl_shape[0]
@@ -26,32 +30,32 @@ def green_lagrange_strain(vector):
     return 1/2*(fdrk.grad(vector).T + fdrk.grad(vector) + fdrk.dot(fdrk.grad(vector).T, fdrk.grad(vector)))
 
 
-def first_piola_definition(grad_disp, parameters, dim = 2):
-    mu = parameters["mu"]
-    lamda = parameters["lamda"]
-    def_grad = fdrk.Identity(dim) + grad_disp
-    inv_F_transpose = fdrk.inv(def_grad).T
-    return mu*(def_grad - inv_F_transpose) + lamda * fdrk.ln(fdrk.det(def_grad)) * inv_F_transpose
+# def first_piola_definition(grad_disp, parameters, dim = 2):
+#     mu = parameters["mu"]
+#     lamda = parameters["lamda"]
+#     def_grad = fdrk.Identity(dim) + grad_disp
+#     inv_F_transpose = fdrk.inv(def_grad).T
+#     return mu*(def_grad - inv_F_transpose) + lamda * fdrk.ln(fdrk.det(def_grad)) * inv_F_transpose
 
 
-def second_piola_definition(green_strain, parameters, dim = 2):
-    mu = parameters["mu"]
-    lamda = parameters["lamda"]
-    inv_cauchy_strain = fdrk.inv(green_strain)
-    return mu * (fdrk.Identity(dim) - inv_cauchy_strain) \
-            + lamda/2 * fdrk.ln(fdrk.det(green_strain))*inv_cauchy_strain
+# def second_piola_definition(green_strain, parameters, dim = 2):
+#     mu = parameters["mu"]
+#     lamda = parameters["lamda"]
+#     inv_cauchy_strain = fdrk.inv(green_strain)
+#     return mu * (fdrk.Identity(dim) - inv_cauchy_strain) \
+#             + lamda/2 * fdrk.ln(fdrk.det(green_strain))*inv_cauchy_strain
 
 
-def derivative_first_piola(tensor, grad_disp, parameters, dim = 2):
-    mu = parameters["mu"]
-    lamda = parameters["lamda"]
-    def_grad = fdrk.Identity(dim) + grad_disp
-    invF = fdrk.inv(def_grad)
-    inv_Ftr = fdrk.inv(def_grad).T
+# def derivative_first_piola(tensor, grad_disp, parameters, dim = 2):
+#     mu = parameters["mu"]
+#     lamda = parameters["lamda"]
+#     def_grad = fdrk.Identity(dim) + grad_disp
+#     invF = fdrk.inv(def_grad)
+#     inv_Ftr = fdrk.inv(def_grad).T
 
-    return mu * tensor + (mu - lamda * fdrk.ln(fdrk.det(def_grad))) \
-            * fdrk.dot(inv_Ftr, fdrk.dot(tensor.T, inv_Ftr)) \
-            + lamda * fdrk.tr(fdrk.dot(invF, tensor)) * inv_Ftr
+#     return mu * tensor + (mu - lamda * fdrk.ln(fdrk.det(def_grad))) \
+#             * fdrk.dot(inv_Ftr, fdrk.dot(tensor.T, inv_Ftr)) \
+#             + lamda * fdrk.tr(fdrk.dot(invF, tensor)) * inv_Ftr
 
 
 def natural_control_follower(test, displacement, traction_data_dict : dict):
@@ -142,3 +146,89 @@ def functional_energy(time_step, testfunctions, old_states, displacement, contro
                                 + time_step * natural_control
     
     return rhs_functional
+
+
+
+def integrate(solver, T_end : float, outfile_displacement, \
+              output_frequency = 10, collect_frames = True):
+        
+        outfile_displacement.write(solver.displacement_old, time=0)
+
+        time_vector = []
+        time_vector.append(0)
+        energy_vector = []
+        energy_vector.append(fdrk.assemble(solver.energy_old))
+        
+        time_step_vec = []
+
+        time_frames = []
+        time_frames.append(0)
+        list_mesh = []
+        list_displacement = []
+
+        if collect_frames:
+            displaced_mesh= solver.compute_displaced_mesh()
+            list_mesh.append(displaced_mesh)
+
+            list_displacement.append(solver.displacement_old.copy(deepcopy=True))
+
+            displaced_coordinates_x = displaced_mesh.coordinates.dat.data[:, 0]
+            displaced_coordinates_y = displaced_mesh.coordinates.dat.data[:, 1]
+            displaced_coordinates_z = displaced_mesh.coordinates.dat.data[:, 2]
+
+            min_max_coords_x = (min(displaced_coordinates_x), max(displaced_coordinates_x))
+            min_max_coords_y = (min(displaced_coordinates_y), max(displaced_coordinates_y))
+            min_max_coords_z = (min(displaced_coordinates_z), max(displaced_coordinates_z))
+
+            list_min_max_coords = [min_max_coords_x, min_max_coords_y, min_max_coords_z]
+
+        ii = 0
+        actual_time = float(solver.actual_time_energy)
+        computing_time = 0
+
+        while actual_time < T_end:
+
+            start_iteration = time.time()
+            solver.advance()
+            end_iteration = time.time()
+            elapsed_iteration = end_iteration - start_iteration
+            computing_time += elapsed_iteration
+
+            energy_vector.append(fdrk.assemble(solver.energy_new))
+            time_step_vec.append(float(solver.time_step))
+
+            solver.update_variables()
+
+            actual_time = float(solver.actual_time_energy)
+            time_vector.append(actual_time)
+            time_fraction = actual_time/T_end
+
+            expected_total_computing_time = computing_time/time_fraction
+            expected_remaining_time = expected_total_computing_time - computing_time
+            ii+=1
+            PETSc.Sys.Print(f"Iteration number {ii}. Actual time {actual_time:.3f}. Percentage : {time_fraction*100:.1f}%")
+            PETSc.Sys.Print(f"Total computing time {computing_time:.1f}. Expected time to end : {expected_remaining_time/60:.1f} (min)")
+
+            if ii % output_frequency == 0:
+
+                time_frames.append(actual_time)
+                outfile_displacement.write(solver.displacement_old, time=actual_time)
+
+                if collect_frames:
+                    displaced_mesh = solver.compute_displaced_mesh()
+                    list_min_max_coords = compute_min_max_mesh(displaced_mesh, list_min_max_coords)
+                    list_mesh.append(displaced_mesh)
+                    list_displacement.append(solver.displacement_old.copy(deepcopy=True))
+
+
+        dict_result = {"time": time_vector,
+                    "energy": energy_vector, 
+                    "time frames": time_frames, 
+                    "time steps" : time_step_vec, 
+                    "displacement mesh": list_mesh, 
+                    "displacement solution": list_displacement, 
+                    "minmax displacement": list_min_max_coords, 
+                    "computing time": computing_time}
+        
+        
+        return dict_result

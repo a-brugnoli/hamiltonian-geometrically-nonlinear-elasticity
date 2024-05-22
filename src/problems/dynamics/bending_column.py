@@ -49,7 +49,8 @@ class BendingColumn(DynamicProblem):
                         "E": young_modulus, 
                         "nu":poisson_ratio,
                         "mu": mu, 
-                        "kappa": kappa}
+                        "kappa": kappa, \
+                        "lamda": lamda}
 
     def get_initial_conditions(self):
 

@@ -129,7 +129,7 @@ class LinearLagrangianSolver:
                         + 0.5 * fdrk.inner(self.strain_new, self.stress_new)*fdrk.dx
         
 
-    def integrate(self):
+    def advance(self):
         self.displacement_solver.solve()
         self.acceleration_new.assign(1/(self.beta*self.time_step**2)*(self.displacement_new -self.displacement_old \
                                                                       - self.time_step * self.velocity_old) \
@@ -158,7 +158,7 @@ class LinearLagrangianSolver:
         self.time_new.assign(float(self.time_old) + self.time_step)
 
 
-    def output_displaced_mesh(self):
+    def compute_displaced_mesh(self):
         displaced_coordinates = fdrk.interpolate(self.problem.coordinates_mesh 
                                             + self.displacement_old, self.CG_vectorspace)
 

@@ -1,11 +1,12 @@
 import firedrake as fdrk
-from src.problems.problem import Problem
+from src.problems.problem import DynamicProblem
 import numpy as np
-from src.tools.elasticity import stiffness_tensor, first_piola_definition, green_lagrange_strain, natural_control_follower
+from src.tools.elasticity import stiffness_tensor, def_gradient, \
+      green_lagrange_strain, natural_control_follower
 
-class NonlinearLagrangianSolver:
+class NonlinearLagrangianImplicitSolver:
     def __init__(self,
-                 problem: Problem,
+                 problem: DynamicProblem,
                  time_step: float,
                  pol_degree= 1,
                  solver_parameters= {}):
@@ -36,10 +37,10 @@ class NonlinearLagrangianSolver:
         self.second_piola_stress_new = stiffness_tensor(self.green_lagrange_strain_new, \
                                                         E, nu)
 
-        self.first_piola_stress_old = first_piola_definition(fdrk.grad(self.displacement_old), \
-                                                            problem.parameters)
-        self.first_piola_stress_new = first_piola_definition(fdrk.grad(self.displacement_new), \
-                                                        problem.parameters)
+        self.first_piola_stress_old = fdrk.dot(def_gradient(self.displacement_old), \
+                                    self.second_piola_stress_old)
+        self.first_piola_stress_new = fdrk.dot(def_gradient(self.displacement_new), \
+                                    self.second_piola_stress_new)
 
         self.velocity_old = fdrk.Function(self.CG_vectorspace)
         self.velocity_new = fdrk.Function(self.CG_vectorspace)
@@ -124,7 +125,7 @@ class NonlinearLagrangianSolver:
                         + 0.5 * fdrk.inner(self.green_lagrange_strain_new, self.second_piola_stress_new)*fdrk.dx
         
 
-    def integrate(self):
+    def advance(self):
         self.displacement_solver.solve()
         self.acceleration_new.assign(1/(self.beta*self.time_step**2)*(self.displacement_new -self.displacement_old \
                                                                       - self.time_step * self.velocity_old) \
@@ -153,7 +154,7 @@ class NonlinearLagrangianSolver:
         self.time_new.assign(float(self.time_old) + self.time_step)
 
 
-    def output_displaced_mesh(self):
+    def compute_displaced_mesh(self):
         displaced_coordinates = fdrk.interpolate(self.problem.coordinates_mesh 
                                             + self.displacement_old, self.CG_vectorspace)
 
