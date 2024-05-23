@@ -75,11 +75,11 @@ class HamiltonianVonKarmanSolver:
 
         self.state_energy_new.assign(self.state_energy_old)
 
-        self.time_energy_old = fdrk.Constant(0)
-        self.time_energy_new = fdrk.Constant(self.time_step)
-        self.actual_time_energy = fdrk.Constant(0)
+        self.time_old = fdrk.Constant(0)
+        self.time_new = fdrk.Constant(self.time_step)
+        self.actual_time = fdrk.Constant(0)
 
-        dict_essential = problem.get_essential_bcs(self.time_energy_new)
+        dict_essential = problem.get_essential_bcs(self.time_new)
 
         try:        
             bend_velocity_bc_data = dict_essential["bending velocity"]
@@ -176,7 +176,7 @@ class HamiltonianVonKarmanSolver:
         self.bend_displacement_new.assign(self.bend_displacement_old \
                                           + self.time_step * self.bend_velocity_new)
 
-        self.actual_time_energy.assign(self.time_energy_new)
+        self.actual_time.assign(self.time_new)
         self.actual_time_displacement.assign(self.time_displacement_new)
 
 
@@ -184,8 +184,8 @@ class HamiltonianVonKarmanSolver:
         self.state_energy_old.assign(self.state_energy_new)
         self.bend_displacement_old.assign(self.bend_displacement_new)
 
-        self.time_energy_old.assign(self.actual_time_energy)
-        self.time_energy_new.assign(float(self.time_energy_old) + self.time_step)
+        self.time_old.assign(self.actual_time)
+        self.time_new.assign(float(self.time_old) + self.time_step)
 
         self.time_displacement_old.assign(self.actual_time_displacement)
         self.time_displacement_new.assign(float(self.time_displacement_old) + self.time_step)

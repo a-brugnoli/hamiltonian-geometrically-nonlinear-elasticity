@@ -1,7 +1,7 @@
 import firedrake as fdrk
 from src.problems.problem import StaticProblem
 from src.solvers.statics.nonlinear_static import NonLinearStatic
-from src.tools.elasticity import second_piola_definition
+from src.tools.elasticity import second_piola_neohookean
 
 
 class NonLinearStaticSolverGradSecPiola(NonLinearStatic):
@@ -76,7 +76,7 @@ class NonLinearStaticSolverGradSecPiola(NonLinearStatic):
         cauchy_strain = fdrk.dot(def_gradient.T, def_gradient)
         
         res_stress = fdrk.inner(test_second_piola, 
-                                second_piola_definition(cauchy_strain, problem.parameters) \
+                                second_piola_neohookean(cauchy_strain, problem.parameters) \
                                 - self.second_piola) * fdrk.dx
         
         actual_res = res_equilibrium  + res_stress

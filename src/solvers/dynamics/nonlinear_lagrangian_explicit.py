@@ -9,11 +9,12 @@ class NonlinearLagrangianExplicitSolver:
     def __init__(self,
                  problem: DynamicProblem,
                  pol_degree= 1,
-                 alpha_cfl = 0.8,
+                 coeff_cfl = 0.8,
                  solver_parameters= {}):
         
         # Set times 
         self.problem = problem
+        self.coeff_clf = coeff_cfl
 
         rho = problem.parameters["rho"]
         E = problem.parameters["E"]
@@ -26,19 +27,15 @@ class NonlinearLagrangianExplicitSolver:
         self.displacement_new = fdrk.Function(self.CG_vectorspace)
 
         self.green_lagrange_strain_old = green_lagrange_strain(self.displacement_old)
-        self.green_lagrange_strain_new = green_lagrange_strain(self.displacement_new)
-
-        self.second_piola_stress_old = stiffness_tensor(self.green_lagrange_strain_old, \
-                                                        E, nu)
-        self.second_piola_stress_new = stiffness_tensor(self.green_lagrange_strain_new, \
-                                                        E, nu)
-
+        self.second_piola_stress_old = stiffness_tensor(self.green_lagrange_strain_old, E, nu)
         self.first_piola_stress_old = fdrk.dot(def_gradient(self.displacement_old), \
                                     self.second_piola_stress_old)
+        
+        self.green_lagrange_strain_new = green_lagrange_strain(self.displacement_new)
+        self.second_piola_stress_new = stiffness_tensor(self.green_lagrange_strain_new, E, nu)
         self.first_piola_stress_new = fdrk.dot(def_gradient(self.displacement_new), \
                                     self.second_piola_stress_new)
         
-
         self.velocity_old = fdrk.Function(self.CG_vectorspace)
         self.velocity_new = fdrk.Function(self.CG_vectorspace)
 
@@ -59,28 +56,26 @@ class NonlinearLagrangianExplicitSolver:
         self.time_step = compute_time_step(self.problem.domain, \
                                         self.displacement_old, \
                                         self.problem.parameters, 
-                                        alpha_cfl=alpha_cfl, 
-                                        saint_venant=True)
+                                        coeff_cfl=coeff_cfl)
         
         self.time_old = fdrk.Constant(0)
         self.time_midpoint = fdrk.Constant(self.time_step/2)
         self.time_new = fdrk.Constant(self.time_step)
-        self.actual_time_energy = fdrk.Constant(0)
+        self.actual_time = fdrk.Constant(0)
 
         # Boundary conditions 
         dict_essential = problem.get_essential_bcs(self.time_new)
         disp_bc_data = dict_essential["displacement"]
 
         bcs_displacement = []
-        bcs_acceleration_0 = []
-        boundary_nodes = []
+        bcs_acceleration = []
         for item in disp_bc_data.items():
             id_bc = item[0]
             value_bc = item[1]
 
             bc_item = fdrk.DirichletBC(self.CG_vectorspace, value_bc, id_bc)
             bcs_displacement.append(bc_item)
-            bcs_acceleration_0.append(fdrk.DirichletBC(self.CG_vectorspace, fdrk.as_vector([0] * problem.dim), id_bc))
+            bcs_acceleration.append(fdrk.DirichletBC(self.CG_vectorspace, fdrk.as_vector([0] * problem.dim), id_bc))
 
 
         # Set initial acceleration
@@ -91,10 +86,9 @@ class NonlinearLagrangianExplicitSolver:
         l_acceleration_0 = - fdrk.inner(fdrk.grad(test_CG), self.first_piola_stress_old)*fdrk.dx \
                            + natural_control_follower(test_CG, self.displacement_old, traction_data_old)
        
-        fdrk.solve(oper_acceleration == l_acceleration_0, self.acceleration_old, bcs=bcs_acceleration_0)
+        fdrk.solve(oper_acceleration == l_acceleration_0, self.acceleration_old, bcs=bcs_acceleration)
         # Set non linear solver for the displacement
 
-        self.gamma = 1/2
         traction_data_midpoint = problem.get_natural_bcs(self.time_midpoint)
 
         l_acceration = - fdrk.inner(fdrk.grad(test_CG), self.first_piola_stress_new)*fdrk.dx \
@@ -103,8 +97,7 @@ class NonlinearLagrangianExplicitSolver:
         linear_problem_acceleration = fdrk.LinearVariationalProblem(oper_acceleration, 
                                                             l_acceration,
                                                             self.acceleration_new, 
-                                                            bcs=bcs_displacement)
-        
+                                                            bcs=bcs_acceleration)
         
         self.acceleration_solver = fdrk.LinearVariationalSolver(linear_problem_acceleration,
                                                 solver_parameters=solver_parameters)
@@ -117,15 +110,15 @@ class NonlinearLagrangianExplicitSolver:
         
 
     def advance(self):
-        self.displacement_new.assign(self.displacement_old + self.time_step * self.velocity_old \
-                                    + self.time_step**2/2 * self.acceleration_old)
+        self.displacement_new.assign(self.displacement_old \
+                                    + self.time_step * self.velocity_old \
+                                    + 0.5 * self.time_step**2 * self.acceleration_old)
 
         self.acceleration_solver.solve()
         self.velocity_new.assign(self.velocity_old 
-            + self.time_step*((1-self.gamma)*self.acceleration_old \
-                              + self.gamma*self.acceleration_new))
+            + 0.5*self.time_step*(self.acceleration_old + self.acceleration_new))
         
-        self.actual_time_energy.assign(self.time_new)
+        self.actual_time.assign(self.time_new)
         
 
     def update_variables(self):
@@ -136,10 +129,9 @@ class NonlinearLagrangianExplicitSolver:
         self.time_step.assign(compute_time_step(self.problem.domain, \
                                         self.displacement_old, \
                                         self.problem.parameters,
-                                        alpha_cfl=self.alpha_cfl, 
-                                        saint_venant=True))
+                                        coeff_cfl=self.coeff_clf))
 
-        self.time_old.assign(self.actual_time_energy)
+        self.time_old.assign(self.actual_time)
         self.time_midpoint.assign(float(self.time_old) + self.time_step/2)
         self.time_new.assign(float(self.time_old) + self.time_step)
 
@@ -152,7 +144,7 @@ class NonlinearLagrangianExplicitSolver:
     
 
     def __str__(self):
-        return "NonlinearLagrangianSolver"
+        return "NonlinearLagrangianExplicitSolver"
     
     
 

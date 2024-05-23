@@ -38,6 +38,7 @@ class BendingColumn(DynamicProblem):
         
         self.normal_versor = fdrk.FacetNormal(self.domain)
 
+        density = 1.1*10**3
         young_modulus = 17*10**6
         poisson_ratio = 0.3
 
@@ -45,7 +46,7 @@ class BendingColumn(DynamicProblem):
         lamda = young_modulus*poisson_ratio/((1 - 2*poisson_ratio)*(1 + poisson_ratio))
         kappa = lamda + 2/3*mu
 
-        self.parameters = {"rho": 1.1*10**3, # kg/m^3 
+        self.parameters = {"rho": density, # kg/m^3 
                         "E": young_modulus, 
                         "nu":poisson_ratio,
                         "mu": mu, 

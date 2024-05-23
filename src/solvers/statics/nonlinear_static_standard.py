@@ -1,7 +1,7 @@
 import firedrake as fdrk
 from src.problems.problem import StaticProblem
 from src.solvers.statics.nonlinear_static import NonLinearStatic
-from src.tools.elasticity import first_piola_definition
+from src.tools.elasticity import first_piola_neohookean
 
 class NonLinearStaticSolverStandard(NonLinearStatic):
     def __init__(self, problem: StaticProblem, pol_degree=2, num_steps=1):
@@ -32,7 +32,7 @@ class NonLinearStaticSolverStandard(NonLinearStatic):
         dict_traction_x = dict_nat_bcs["traction x"]
         dict_traction_y = dict_nat_bcs["traction y"]
 
-        first_piola = first_piola_definition(fdrk.grad(self.solution), problem.parameters)
+        first_piola = first_piola_neohookean(fdrk.grad(self.solution), problem.parameters)
 
         res_equilibrium = fdrk.inner(fdrk.grad(test_disp), first_piola) * fdrk.dx 
 

@@ -9,7 +9,8 @@ class CantileverBeam(Problem):
         L_y = 10
 
         self.domain = fdrk.RectangleMesh(n_elem_x, n_elem_y, L_x, L_y, originX=0, originY=0, quadrilateral=quad)
-
+        self.dim = self.domain.topological_dimension()
+        
         self.coordinates_mesh = fdrk.SpatialCoordinate(self.domain)
         self.x, self.y = self.coordinates_mesh
         self.normal_versor = fdrk.FacetNormal(self.domain)

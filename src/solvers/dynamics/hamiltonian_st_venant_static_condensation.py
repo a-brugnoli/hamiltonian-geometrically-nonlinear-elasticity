@@ -9,18 +9,20 @@ class HamiltonianSaintVenantSolverStaticCondensation:
     def __init__(self,
                 problem: DynamicProblem,
                 pol_degree= 1,
-                alpha_cfl = 0.8,
+                coeff_cfl = 0.8,
                 solver_parameters_energy={}):
         
         self.coordinates_mesh = problem.coordinates_mesh
         self.problem = problem
+        self.coeff_cfl = coeff_cfl
 
         self.density = self.problem.parameters["rho"]
         self.E = self.problem.parameters["E"]
         self.nu = self.problem.parameters["nu"]
         
         displ_vectorspace = fdrk.VectorFunctionSpace(problem.domain, "CG", pol_degree)
-        space_stress_tensor = fdrk.TensorFunctionSpace(problem.domain, "DG", pol_degree-1, symmetry=True)
+        space_stress_tensor = fdrk.TensorFunctionSpace(problem.domain, "DG", pol_degree-1, \
+                                                    symmetry=True)
 
         self.space_displacement = displ_vectorspace
         space_energy = displ_vectorspace * space_stress_tensor
@@ -61,29 +63,27 @@ class HamiltonianSaintVenantSolverStaticCondensation:
         self.time_step = compute_time_step(self.problem.domain, \
                                         self.displacement_old, \
                                         self.problem.parameters, 
-                                        alpha_cfl=alpha_cfl, 
-                                        saint_venant=True)
+                                        coeff_cfl=coeff_cfl)
         
-        self.time_energy_old = fdrk.Constant(0)
-        self.time_energy_midpoint = fdrk.Constant(self.time_step/2)
-        self.time_energy_new = fdrk.Constant(self.time_step)
-        self.actual_time_energy = fdrk.Constant(0)
+        self.time_old = fdrk.Constant(0)
+        self.time_midpoint = fdrk.Constant(self.time_step/2)
+        self.time_new = fdrk.Constant(self.time_step)
+        self.actual_time = fdrk.Constant(0)
 
         # Boundary conditions
 
-        dict_essential = problem.get_essential_bcs(self.time_energy_new)
+        dict_essential = problem.get_essential_bcs(self.time_new)
 
         velocity_bc_data = dict_essential["velocity"]
         velocity_bcs = [fdrk.DirichletBC(displ_vectorspace, item[1], item[0]) \
                         for item in velocity_bc_data.items()]
 
-        natural_bcs = problem.get_natural_bcs(self.time_energy_midpoint)
+        natural_bcs = problem.get_natural_bcs(self.time_midpoint)
 
         # Set first value for the deformation gradient via Explicit Euler
         self.displacement_old.assign(self.displacement_old + self.time_step/2*self.state_energy_old.sub(0))
 
         self.time_displacement_old= fdrk.Constant(self.time_step/2)
-        self.time_displacement_midpoint = fdrk.Constant(self.time_step)
         self.time_displacement_new = fdrk.Constant(self.time_step + self.time_step/2)
         self.actual_time_displacement = fdrk.Constant(self.time_step/2)
 
@@ -145,7 +145,7 @@ class HamiltonianSaintVenantSolverStaticCondensation:
         # Compute solution for displacement at n+3∕2
         self.displacement_new.assign(self.displacement_old + self.time_step * self.state_energy_new.sub(0))
 
-        self.actual_time_energy.assign(self.time_energy_new)
+        self.actual_time.assign(self.time_new)
         self.actual_time_displacement.assign(self.time_displacement_new)
 
 
@@ -156,12 +156,11 @@ class HamiltonianSaintVenantSolverStaticCondensation:
         self.time_step.assign(compute_time_step(self.problem.domain, \
                                         self.displacement_old, \
                                         self.problem.parameters,
-                                        alpha_cfl=0.5, 
-                                        saint_venant=True))
+                                        coeff_cfl=self.coeff_cfl))
 
-        self.time_energy_old.assign(self.actual_time_energy)
-        self.time_energy_midpoint.assign(float(self.time_energy_old) + self.time_step/2)
-        self.time_energy_new.assign(float(self.time_energy_old) + self.time_step)
+        self.time_old.assign(self.actual_time)
+        self.time_midpoint.assign(float(self.time_old) + self.time_step/2)
+        self.time_new.assign(float(self.time_old) + self.time_step)
 
         self.time_displacement_old.assign(self.actual_time_displacement)
         self.time_displacement_new.assign(float(self.time_displacement_old) + self.time_step)

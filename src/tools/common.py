@@ -2,7 +2,7 @@ import firedrake as fdrk
 import numpy as np
 
 def compute_time_step(domain : fdrk.MeshGeometry, displacement : fdrk.Function, \
-                      parameters, alpha_cfl = 0.9, saint_venant = False):
+                      parameters, coeff_cfl = 0.8):
     
     ndim = domain.topological_dimension()
     density = parameters["rho"]
@@ -24,12 +24,10 @@ def compute_time_step(domain : fdrk.MeshGeometry, displacement : fdrk.Function, 
     actual_density = density/vector_J
 
     vector_Jinv = np.reciprocal(vector_J)
-    if saint_venant:
-        actual_kappa = kappa 
-    else:
-        actual_kappa = kappa * (vector_J + vector_Jinv)/2
+    
+    actual_kappa = kappa * (vector_J + vector_Jinv)/2
 
-    vector_dt = alpha_cfl * vector_h / np.sqrt((actual_kappa + 4/3*mu)/actual_density)
+    vector_dt = coeff_cfl * vector_h / np.sqrt((actual_kappa + 4/3*mu)/actual_density)
     delta_t = fdrk.Constant(min(vector_dt))
 
     return delta_t

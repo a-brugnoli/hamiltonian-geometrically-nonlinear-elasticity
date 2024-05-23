@@ -1,20 +1,18 @@
 import firedrake as fdrk
 import numpy as np
-from math import ceil
-from tqdm import tqdm
 from src.postprocessing.animators import animate_vector_triplot
 import matplotlib.pyplot as plt
 from src.solvers.dynamics.hamiltonian_st_venant import HamiltonianSaintVenantSolver
-from src.solvers.dynamics.nonlinear_lagrangian_implicit import NonlinearLagrangianSolver
-
+from src.solvers.dynamics.hamiltonian_st_venant_static_condensation \
+    import HamiltonianSaintVenantSolverStaticCondensation
+from src.solvers.dynamics.nonlinear_lagrangian_implicit import NonlinearLagrangianImplicitSolver
+from src.solvers.dynamics.nonlinear_lagrangian_explicit import NonlinearLagrangianExplicitSolver
 from src.tools.common import compute_min_max_mesh
 
 from src.problems.dynamics.cantilever_beam import CantileverBeam
 from src.problems.dynamics.dynamic_cook_membrane import DynamicCookMembrane
 import time
 from firedrake.petsc import PETSc
-
-
 import os
 
 # # Stable choice non linear Lagrangian
@@ -25,8 +23,8 @@ pol_degree = 1
 # n_elem_x= 100
 # n_elem_y = 10
 
-T_end = 10
-# time_step = 1e-2
+T_end = 0.17
+time_step = 1e-2
 # n_time  = ceil(T_end/time_step)
 
 quad = False
@@ -36,12 +34,17 @@ problem = CantileverBeam(n_elem_x, n_elem_y, quad)
 
 # problem = DynamicCookMembrane(mesh_size=2)
 
-solver = HamiltonianSaintVenantSolver(problem, pol_degree)
+# solver = HamiltonianSaintVenantSolver(problem, pol_degree)
+# solver = HamiltonianSaintVenantSolverStaticCondensation(problem, pol_degree)
 
-# solver = NonlinearLagrangianSolver(problem, 
+# solver = NonlinearLagrangianImplicitSolver(problem, 
 #                                 time_step, 
 #                                 pol_degree,
 #                                 solver_parameters={})
+solver = NonlinearLagrangianExplicitSolver(problem, 
+                                pol_degree,
+                                solver_parameters={}, 
+                                coeff_cfl=0.36)
 
 
 directory_results = f"{os.path.dirname(os.path.abspath(__file__))}/results/{str(solver)}/{str(problem)}/"
@@ -57,7 +60,7 @@ time_step_vec = []
 power_balance_vector = []
 
 output_frequency = 10
-displaced_mesh= solver.output_displaced_mesh()
+displaced_mesh= solver.compute_displaced_mesh()
 displaced_coordinates_x = displaced_mesh.coordinates.dat.data[:, 0]
 displaced_coordinates_y = displaced_mesh.coordinates.dat.data[:, 1]
 
@@ -70,7 +73,7 @@ list_frames.append(displaced_mesh)
 time_frames.append(0)
 
 ii = 0
-actual_time = float(solver.actual_time_energy)
+actual_time = float(solver.actual_time)
 computing_time = 0
 
 while actual_time < T_end:
@@ -84,13 +87,13 @@ while actual_time < T_end:
     energy_vector.append(fdrk.assemble(solver.energy_new))
     time_step_vec.append(float(solver.time_step))
 
-    if isinstance(solver, HamiltonianSaintVenantSolver):
-        # print(f"Worst case CFL {cfl_wave + solver.get_dinamic_cfl()}")
+    if isinstance(solver, HamiltonianSaintVenantSolver) \
+        or isinstance(solver, HamiltonianSaintVenantSolverStaticCondensation):
         power_balance_vector.append(fdrk.assemble(solver.power_balance))
 
     solver.update_variables()
 
-    actual_time = float(solver.actual_time_energy)
+    actual_time = float(solver.actual_time)
     time_vector.append(actual_time)
     time_fraction = actual_time/T_end
 
@@ -100,10 +103,11 @@ while actual_time < T_end:
     PETSc.Sys.Print(f"Iteration number {ii}. Actual time {actual_time:.3f}. Percentage : {time_fraction*100:.1f}%")
     PETSc.Sys.Print(f"Expected time to end : {expected_remaining_time:.1f} (s).")
 
-
+    PETSc.Sys.Print(f'Actual time step {time_step_vec[-1]}')
+    
     if ii % output_frequency == 0:
 
-        displaced_mesh = solver.output_displaced_mesh()
+        displaced_mesh = solver.compute_displaced_mesh()
         list_min_max_coords = compute_min_max_mesh(displaced_mesh, list_min_max_coords)
 
         list_frames.append(displaced_mesh)
@@ -150,7 +154,8 @@ plt.savefig(f"{directory_results}Energy.eps", dpi='figure', format='eps')
 
 
 
-if isinstance(solver, HamiltonianSaintVenantSolver):
+if isinstance(solver, HamiltonianSaintVenantSolver) \
+    or isinstance(solver, HamiltonianSaintVenantSolverStaticCondensation):
     plt.figure()
     dt_power = [dt * power_t for dt, power_t in zip(time_step_vec, power_balance_vector)]
     plt.plot(time_vector[1:], np.diff(energy_vector) - dt_power)

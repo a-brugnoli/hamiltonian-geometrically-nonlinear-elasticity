@@ -30,32 +30,32 @@ def green_lagrange_strain(vector):
     return 1/2*(fdrk.grad(vector).T + fdrk.grad(vector) + fdrk.dot(fdrk.grad(vector).T, fdrk.grad(vector)))
 
 
-# def first_piola_definition(grad_disp, parameters, dim = 2):
-#     mu = parameters["mu"]
-#     lamda = parameters["lamda"]
-#     def_grad = fdrk.Identity(dim) + grad_disp
-#     inv_F_transpose = fdrk.inv(def_grad).T
-#     return mu*(def_grad - inv_F_transpose) + lamda * fdrk.ln(fdrk.det(def_grad)) * inv_F_transpose
+def first_piola_neohookean(grad_disp, parameters, dim = 2):
+    mu = parameters["mu"]
+    lamda = parameters["lamda"]
+    def_grad = fdrk.Identity(dim) + grad_disp
+    inv_F_transpose = fdrk.inv(def_grad).T
+    return mu*(def_grad - inv_F_transpose) + lamda * fdrk.ln(fdrk.det(def_grad)) * inv_F_transpose
 
 
-# def second_piola_definition(green_strain, parameters, dim = 2):
-#     mu = parameters["mu"]
-#     lamda = parameters["lamda"]
-#     inv_cauchy_strain = fdrk.inv(green_strain)
-#     return mu * (fdrk.Identity(dim) - inv_cauchy_strain) \
-#             + lamda/2 * fdrk.ln(fdrk.det(green_strain))*inv_cauchy_strain
+def second_piola_neohookean(green_strain, parameters, dim = 2):
+    mu = parameters["mu"]
+    lamda = parameters["lamda"]
+    inv_cauchy_strain = fdrk.inv(green_strain)
+    return mu * (fdrk.Identity(dim) - inv_cauchy_strain) \
+            + lamda/2 * fdrk.ln(fdrk.det(green_strain))*inv_cauchy_strain
 
 
-# def derivative_first_piola(tensor, grad_disp, parameters, dim = 2):
-#     mu = parameters["mu"]
-#     lamda = parameters["lamda"]
-#     def_grad = fdrk.Identity(dim) + grad_disp
-#     invF = fdrk.inv(def_grad)
-#     inv_Ftr = fdrk.inv(def_grad).T
+def derivative_first_piola_neohookean(tensor, grad_disp, parameters, dim = 2):
+    mu = parameters["mu"]
+    lamda = parameters["lamda"]
+    def_grad = fdrk.Identity(dim) + grad_disp
+    invF = fdrk.inv(def_grad)
+    inv_Ftr = fdrk.inv(def_grad).T
 
-#     return mu * tensor + (mu - lamda * fdrk.ln(fdrk.det(def_grad))) \
-#             * fdrk.dot(inv_Ftr, fdrk.dot(tensor.T, inv_Ftr)) \
-#             + lamda * fdrk.tr(fdrk.dot(invF, tensor)) * inv_Ftr
+    return mu * tensor + (mu - lamda * fdrk.ln(fdrk.det(def_grad))) \
+            * fdrk.dot(inv_Ftr, fdrk.dot(tensor.T, inv_Ftr)) \
+            + lamda * fdrk.tr(fdrk.dot(invF, tensor)) * inv_Ftr
 
 
 def natural_control_follower(test, displacement, traction_data_dict : dict):
@@ -183,7 +183,7 @@ def integrate(solver, T_end : float, outfile_displacement, \
             list_min_max_coords = [min_max_coords_x, min_max_coords_y, min_max_coords_z]
 
         ii = 0
-        actual_time = float(solver.actual_time_energy)
+        actual_time = float(solver.actual_time)
         computing_time = 0
 
         while actual_time < T_end:
@@ -199,7 +199,7 @@ def integrate(solver, T_end : float, outfile_displacement, \
 
             solver.update_variables()
 
-            actual_time = float(solver.actual_time_energy)
+            actual_time = float(solver.actual_time)
             time_vector.append(actual_time)
             time_fraction = actual_time/T_end
 
@@ -208,6 +208,7 @@ def integrate(solver, T_end : float, outfile_displacement, \
             ii+=1
             PETSc.Sys.Print(f"Iteration number {ii}. Actual time {actual_time:.3f}. Percentage : {time_fraction*100:.1f}%")
             PETSc.Sys.Print(f"Total computing time {computing_time:.1f}. Expected time to end : {expected_remaining_time/60:.1f} (min)")
+            PETSc.Sys.Print(f'Actual time step {time_step_vec[-1]}')
 
             if ii % output_frequency == 0:
 

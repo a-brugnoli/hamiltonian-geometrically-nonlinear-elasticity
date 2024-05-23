@@ -55,9 +55,9 @@ class NonlinearLagrangianImplicitSolver:
         self.green_lagrange_strain_midpoint = green_lagrange_strain(self.displacement_midpoint)
         self.second_piola_stress_midpoint = stiffness_tensor(self.green_lagrange_strain_midpoint, \
                                                             E, nu)
-        self.first_piola_stress_midpoint = first_piola_definition(fdrk.grad(self.displacement_midpoint), \
-                                                                problem.parameters)
-
+        self.first_piola_stress_midpoint = fdrk.dot(def_gradient(self.displacement_midpoint), \
+                                    self.second_piola_stress_midpoint)
+        
         test_CG = fdrk.TestFunction(self.CG_vectorspace)
         trial_CG = fdrk.TrialFunction(self.CG_vectorspace)
         # Initial conditions and boundary conditions 
@@ -156,13 +156,13 @@ class NonlinearLagrangianImplicitSolver:
 
     def compute_displaced_mesh(self):
         displaced_coordinates = fdrk.interpolate(self.problem.coordinates_mesh 
-                                            + self.displacement_old, self.CG_vectorspace)
+                            + self.displacement_old, self.CG_vectorspace)
 
         return fdrk.Mesh(displaced_coordinates)
     
 
     def __str__(self):
-        return "NonlinearLagrangianSolver"
+        return "NonlinearLagrangianImplicitSolver"
     
     
 
