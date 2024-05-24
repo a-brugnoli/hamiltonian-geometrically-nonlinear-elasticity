@@ -2,11 +2,11 @@ import firedrake as fdrk
 import numpy as np
 from src.postprocessing.animators import animate_vector_triplot
 import matplotlib.pyplot as plt
-from src.solvers.dynamics.hamiltonian_st_venant import HamiltonianSaintVenantSolver
-from src.solvers.dynamics.hamiltonian_st_venant_static_condensation \
+from src.solvers.dynamics.hamiltonian import HamiltonianSaintVenantSolver
+from src.solvers.dynamics.hamiltonian_static_condensation \
     import HamiltonianSaintVenantSolverStaticCondensation
-from src.solvers.dynamics.nonlinear_lagrangian_implicit import NonlinearLagrangianImplicitSolver
-from src.solvers.dynamics.nonlinear_lagrangian_explicit import NonlinearLagrangianExplicitSolver
+from src.solvers.dynamics.nonlinear_implicit_newmark import NonlinearLagrangianImplicitSolver
+from src.solvers.dynamics.nonlinear_explicit_newmark import NonlinearLagrangianExplicitSolver
 from src.tools.common import compute_min_max_mesh
 
 from src.problems.dynamics.cantilever_beam import CantileverBeam

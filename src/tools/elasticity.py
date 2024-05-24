@@ -2,6 +2,7 @@ import firedrake as fdrk
 from src.tools.common import compute_min_max_mesh
 import time
 from firedrake.petsc import PETSc
+import os 
 
 
 def stiffness_tensor(strain, young_modulus, poisson_ratio):
@@ -149,24 +150,39 @@ def functional_energy(time_step, testfunctions, old_states, displacement, contro
 
 
 
-def integrate(solver, T_end : float, outfile_displacement, \
+def integrate(solver, T_end : float, title_file_displacement = None, \
               output_frequency = 10, collect_frames = True):
         
-        outfile_displacement.write(solver.displacement_old, time=0)
-
         time_vector = []
         time_vector.append(0)
         energy_vector = []
         energy_vector.append(fdrk.assemble(solver.energy_old))
         
         time_step_vec = []
-
         time_frames = []
         time_frames.append(0)
         list_mesh = []
         list_displacement = []
 
+        list_min_max_coords = []
         if collect_frames:
+            home_dir =os.environ['HOME']
+            directory_largedata = f"{home_dir}/StoreResults/{str(solver)}/{str(solver.problem)}/"
+            if not os.path.exists(directory_largedata):
+                os.makedirs(directory_largedata, exist_ok=True)
+
+            if title_file_displacement is None:
+
+                path_file_displacement = f"{directory_largedata}/Displacement.pvd"
+            else:
+                if title_file_displacement.endswith(".pvd"):
+                    path_file_displacement = directory_largedata + title_file_displacement
+                else:
+                    path_file_displacement = directory_largedata + title_file_displacement + ".pvd"
+
+            outfile_displacement = fdrk.File(path_file_displacement)
+            outfile_displacement.write(solver.displacement_old, time=0)
+
             displaced_mesh= solver.compute_displaced_mesh()
             list_mesh.append(displaced_mesh)
 
@@ -210,16 +226,15 @@ def integrate(solver, T_end : float, outfile_displacement, \
             PETSc.Sys.Print(f"Total computing time {computing_time:.1f}. Expected time to end : {expected_remaining_time/60:.1f} (min)")
             PETSc.Sys.Print(f'Actual time step {time_step_vec[-1]}')
 
-            if ii % output_frequency == 0:
+            if ii % output_frequency and collect_frames:
 
                 time_frames.append(actual_time)
                 outfile_displacement.write(solver.displacement_old, time=actual_time)
 
-                if collect_frames:
-                    displaced_mesh = solver.compute_displaced_mesh()
-                    list_min_max_coords = compute_min_max_mesh(displaced_mesh, list_min_max_coords)
-                    list_mesh.append(displaced_mesh)
-                    list_displacement.append(solver.displacement_old.copy(deepcopy=True))
+                displaced_mesh = solver.compute_displaced_mesh()
+                list_min_max_coords = compute_min_max_mesh(displaced_mesh, list_min_max_coords)
+                list_mesh.append(displaced_mesh)
+                list_displacement.append(solver.displacement_old.copy(deepcopy=True))
 
 
         dict_result = {"time": time_vector,
