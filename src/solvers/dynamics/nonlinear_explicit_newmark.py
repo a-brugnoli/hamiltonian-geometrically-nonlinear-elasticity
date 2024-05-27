@@ -5,7 +5,7 @@ from src.tools.elasticity import stiffness_tensor, def_gradient, \
     green_lagrange_strain, natural_control_follower
 from src.tools.common import compute_time_step
 
-class NonlineaExplicitNewmarkSolver:
+class NonlinearExplicitNewmarkSolver:
     def __init__(self,
                  problem: DynamicProblem,
                  pol_degree= 1,
@@ -126,10 +126,10 @@ class NonlineaExplicitNewmarkSolver:
         self.velocity_old.assign(self.velocity_new)
         self.acceleration_old.assign(self.acceleration_new)
 
-        self.time_step.assign(compute_time_step(self.problem.domain, \
-                                        self.displacement_old, \
-                                        self.problem.parameters,
-                                        coeff_cfl=self.coeff_clf))
+        # self.time_step.assign(compute_time_step(self.problem.domain, \
+        #                                 self.displacement_old, \
+        #                                 self.problem.parameters,
+        #                                 coeff_cfl=self.coeff_clf))
 
         self.time_old.assign(self.actual_time)
         self.time_midpoint.assign(float(self.time_old) + self.time_step/2)

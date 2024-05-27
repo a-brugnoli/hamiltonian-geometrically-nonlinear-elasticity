@@ -137,10 +137,10 @@ class NonlinearStormerVerletSolver:
 
         self.velocity_old.assign(self.velocity_new)
 
-        self.time_step.assign(compute_time_step(self.problem.domain, \
-                                        self.displacement_old, \
-                                        self.problem.parameters,
-                                        coeff_cfl=self.coeff_clf))
+        # self.time_step.assign(compute_time_step(self.problem.domain, \
+        #                                 self.displacement_old, \
+        #                                 self.problem.parameters,
+        #                                 coeff_cfl=self.coeff_clf))
 
         self.time_old.assign(self.actual_time)
         self.time_midpoint.assign(float(self.time_old) + self.time_step/2)
@@ -159,7 +159,7 @@ class NonlinearStormerVerletSolver:
     
 
     def __str__(self):
-        return "NonlinearLagrangianStormerVerletSolver"
+        return "NonlinearStormerVerletSolver"
     
     
 

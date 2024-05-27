@@ -153,10 +153,10 @@ class HamiltonianSaintVenantSolverStaticCondensation:
         self.state_energy_old.assign(self.state_energy_new)
         self.displacement_old.assign(self.displacement_new)
 
-        self.time_step.assign(compute_time_step(self.problem.domain, \
-                                        self.displacement_old, \
-                                        self.problem.parameters,
-                                        coeff_cfl=self.coeff_cfl))
+        # self.time_step.assign(compute_time_step(self.problem.domain, \
+        #                                 self.displacement_old, \
+        #                                 self.problem.parameters,
+        #                                 coeff_cfl=self.coeff_cfl))
 
         self.time_old.assign(self.actual_time)
         self.time_midpoint.assign(float(self.time_old) + self.time_step/2)
