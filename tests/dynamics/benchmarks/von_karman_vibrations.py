@@ -62,7 +62,7 @@ list_frames_bend_displacement = []
 list_frames_bend_displacement.append(solver.bend_displacement_old.copy(deepcopy=True))
 
 home_dir =os.environ['HOME']
-directory_largedata = f"{home_dir}/StoreResults/{str(solver)}/{str(problem)}/{append_to_result_folder}"
+directory_largedata = f"{home_dir}/StoreResults/VonKarman/{str(solver)}/{str(problem)}/{append_to_result_folder}"
 if not os.path.exists(directory_largedata):
     os.makedirs(directory_largedata, exist_ok=True)
 

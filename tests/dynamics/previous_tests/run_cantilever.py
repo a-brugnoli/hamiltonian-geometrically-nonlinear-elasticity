@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 isquad = False
-linear = True
+linear = False
 time_vector, energy_vector_nonlinear, power_balance_vector_nonlinear = \
     simulate_cantilever_beam(is_quad_mesh=isquad, linear=linear, pol_degree=1, n_elem_x=100)
 

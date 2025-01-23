@@ -2,7 +2,7 @@ import firedrake as fdrk
 import numpy as np
 from math import ceil
 from tqdm import tqdm
-from src.postprocessing.animators import animate_displacement
+from src.postprocessing.animators import animate_vector_triplot
 import matplotlib.pyplot as plt
 
 def simulate_cantilever_beam(is_quad_mesh=False, linear=False, pol_degree=1, n_elem_x= 100):
@@ -278,7 +278,7 @@ def simulate_cantilever_beam(is_quad_mesh=False, linear=False, pol_degree=1, n_e
 
     lim_x = (min_x_all, max_x_all)
     lim_y = (min_y_all, max_y_all)
-    animation = animate_displacement(time_frames, list_frames, interval, \
+    animation = animate_vector_triplot(time_frames, list_frames, interval, \
                                                lim_x = lim_x, \
                                                lim_y = lim_y )
 

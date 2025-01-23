@@ -4,7 +4,7 @@ import numpy as np
 from src.tools.elasticity import stiffness_tensor, def_gradient, \
       green_lagrange_strain, natural_control_follower
 
-class NonlinearLagrangianImplicitSolver:
+class NonlinearImplicitNewmarkSolver:
     def __init__(self,
                  problem: DynamicProblem,
                  time_step: float,

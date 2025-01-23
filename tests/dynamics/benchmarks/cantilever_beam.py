@@ -5,8 +5,8 @@ import matplotlib.pyplot as plt
 from src.solvers.dynamics.hamiltonian import HamiltonianSaintVenantSolver
 from src.solvers.dynamics.hamiltonian_static_condensation \
     import HamiltonianSaintVenantSolverStaticCondensation
-from src.solvers.dynamics.nonlinear_implicit_newmark import NonlinearLagrangianImplicitSolver
-from src.solvers.dynamics.nonlinear_explicit_newmark import NonlinearLagrangianExplicitSolver
+from src.solvers.dynamics.nonlinear_implicit_newmark import NonlinearImplicitNewmarkSolver
+from src.solvers.dynamics.nonlinear_explicit_newmark import NonlinearExplicitNewmarkSolver
 from src.tools.common import compute_min_max_mesh
 
 from src.problems.dynamics.cantilever_beam import CantileverBeam
@@ -37,11 +37,12 @@ problem = CantileverBeam(n_elem_x, n_elem_y, quad)
 # solver = HamiltonianSaintVenantSolver(problem, pol_degree)
 # solver = HamiltonianSaintVenantSolverStaticCondensation(problem, pol_degree)
 
-# solver = NonlinearLagrangianImplicitSolver(problem, 
+# solver = NonlinearImplicitNewmarkSolver(problem, 
 #                                 time_step, 
 #                                 pol_degree,
 #                                 solver_parameters={})
-solver = NonlinearLagrangianExplicitSolver(problem, 
+
+solver = NonlinearExplicitNewmarkSolver(problem, 
                                 pol_degree,
                                 solver_parameters={}, 
                                 coeff_cfl=0.36)
@@ -151,7 +152,6 @@ plt.xlabel('Time')
 plt.legend()
 plt.title("Energy")
 plt.savefig(f"{directory_results}Energy.eps", dpi='figure', format='eps')
-
 
 
 if isinstance(solver, HamiltonianSaintVenantSolver) \

@@ -167,7 +167,7 @@ def integrate(solver, T_end : float, title_file_displacement = None, \
         list_min_max_coords = []
         if collect_frames:
             home_dir =os.environ['HOME']
-            directory_largedata = f"{home_dir}/StoreResults/{str(solver)}/{str(solver.problem)}/"
+            directory_largedata = f"{home_dir}/StoreResults/NonLinearElasticity/{str(solver)}/{str(solver.problem)}/"
             if not os.path.exists(directory_largedata):
                 os.makedirs(directory_largedata, exist_ok=True)
 

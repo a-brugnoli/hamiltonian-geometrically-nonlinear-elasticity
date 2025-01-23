@@ -6,7 +6,7 @@ import src.postprocessing.options
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 
-def animate_vector_triplot(list_frames, interval=10, three_dim = False, \
+def animate_vector_triplot(time_frames, list_frames, interval=10, three_dim = False, \
                     lim_x=None, lim_y=None, lim_z=None, \
                     xlabel=None, ylabel=None, zlabel=None, title=None):
 
@@ -37,6 +37,9 @@ def animate_vector_triplot(list_frames, interval=10, three_dim = False, \
         axes.set_ylim(lim_y)
         if three_dim:
             axes.set_zlim(lim_z)
+
+        time = time_frames[frame_number]
+        time_label = f'Time = {time:.2f}' + r'$\; \mathrm{[ms]}$'
         
         fdrk.triplot(list_frames[frame_number], axes=axes)
         
