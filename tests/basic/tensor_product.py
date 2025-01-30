@@ -11,7 +11,7 @@ CG_int = fdrk.FiniteElement("CG", fdrk.interval, 1)
 Her_int = fdrk.FiniteElement("Hermite", fdrk.interval, 3)
 tensor_CG = fdrk.TensorProductElement(CG_int, CG_int)
 tensor_Her = fdrk.TensorProductElement(Her_int, Her_int)   
-V = fdrk.FunctionSpace(mesh, tensor_CG)
+V = fdrk.FunctionSpace(mesh, tensor_Her)
 
 v = fdrk.TestFunction(V)
 w = fdrk.TrialFunction(V)
