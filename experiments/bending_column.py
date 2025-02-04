@@ -1,6 +1,8 @@
 import firedrake as fdrk
 import matplotlib.pyplot as plt
 from src.postprocessing.animators import animate_vector_triplot
+from src.postprocessing.options import configure_matplotib
+configure_matplotib()
 from src.solvers.dynamics.hamiltonian_neo_hookean import HamiltonianNeoHookeanSolver
 from src.solvers.dynamics.hamiltonian import HamiltonianSaintVenantSolver
 from src.solvers.dynamics.hamiltonian_static_condensation\
@@ -77,10 +79,12 @@ lim_x, lim_y, lim_z  = list_min_max_coords
 
 interval = 10**3 * output_frequency * sum(time_step_vec)/len(time_step_vec)
 
-animation = animate_vector_triplot(list_frames, interval, \
-                                    lim_x = lim_x, \
-                                    lim_y = lim_y, \
-                                    lim_z = lim_z, three_dim=True)
+animation = animate_vector_triplot(time_frames, \
+                                list_frames, \
+                                interval, \
+                                lim_x = lim_x, \
+                                lim_y = lim_y, \
+                                lim_z = lim_z, three_dim=True)
 
 # animation.save(f"{directory_results}Animation_displacement.mp4", writer="ffmpeg")
 

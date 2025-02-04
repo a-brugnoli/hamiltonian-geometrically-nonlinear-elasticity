@@ -33,10 +33,10 @@ def animate_vector_triplot(time_frames, list_frames, interval=10, three_dim = Fa
         axes.clear()
         # axes.cla()
         # plt.clf()
-        axes.set_xlim(lim_x)
-        axes.set_ylim(lim_y)
-        if three_dim:
-            axes.set_zlim(lim_z)
+        # axes.set_xlim(lim_x)
+        # axes.set_ylim(lim_y)
+        # if three_dim:
+        #     axes.set_zlim(lim_z)
 
         time = time_frames[frame_number]
         time_label = f'Time = {time:.2f}' + r'$\; \mathrm{[ms]}$'
