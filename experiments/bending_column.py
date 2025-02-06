@@ -25,6 +25,7 @@ pol_degree = 1
 T_end = 2
 
 problem = BendingColumn(n_elem_x=3, n_elem_y=3, n_elem_z=18)
+
 # problem = BendingColumn(n_elem_x=6, n_elem_y=6, n_elem_z=36)
 # problem = BendingColumn(n_elem_x=12, n_elem_y=12, n_elem_z=72)
 
