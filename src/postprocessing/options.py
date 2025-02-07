@@ -19,4 +19,6 @@ def configure_matplotib():
     rcParams['text.latex.preamble']=r"\usepackage{amsmath}\usepackage{bm}"
     rcParams["legend.loc"] = 'best'
 
+    rcParams['figure.constrained_layout.use'] = True
+
     return

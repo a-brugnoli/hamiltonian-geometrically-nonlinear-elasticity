@@ -1,134 +1,175 @@
 import numpy as np
+from math import pi
 import time
+from duffing_oscillator import DuffingOscillator
+from plot_duffing import plot_results
 import matplotlib.pyplot as plt
 from src.postprocessing.options import configure_matplotib
 configure_matplotib()
-from duffing_oscillator import DuffingOscillator
 
-# Time parameters
-t_span = [0, 5]
-dt = 0.1
-# Pyisical parameters
-alpha = 1
-beta = 1
 # Initial condition
-q0 = 1
+q0 = 10
 
-duffing = DuffingOscillator(alpha, beta, t_span, dt, q0)
-t_vec = duffing.t_vec
+# Pyisical parameters
+alpha = 5
+beta = 50
+omega_0 = np.sqrt(alpha + beta * q0**2)
+
+T = 2*pi/omega_0
+# Time parameters
+t_span = [0, 2*T]
+
+sec_coeff = 0.1
+dt_base = sec_coeff*2/omega_0
+
+n_case = 4
+dt_vec = [dt_base*10**(-n) for n in range(n_case)]
+sampling_frequency_vec = [int(dt_base/dt) for dt in dt_vec]
+
+error_vec_q_leapfrog = np.zeros(n_case)
+error_vec_v_leapfrog = np.zeros(n_case)
+error_vec_E_leapfrog = np.zeros(n_case)
+elapsed_vec_leapfrog = np.zeros(n_case)
+
+error_vec_q_dis_gradient = np.zeros(n_case)
+error_vec_v_dis_gradient = np.zeros(n_case)
+error_vec_E_dis_gradient = np.zeros(n_case)
+elapsed_vec_dis_gradient = np.zeros(n_case)
+
+error_vec_q_lin_implicit = np.zeros(n_case)
+error_vec_v_lin_implicit = np.zeros(n_case)
+error_vec_E_lin_implicit = np.zeros(n_case)
+elapsed_vec_lin_implicit = np.zeros(n_case)
+
+for ii in range(n_case):
+
+    print(f"Case {ii+1}")
+    dt = dt_vec[ii]
+    # sampling_frequency = sampling_frequency_vec[ii]
+    sampling_frequency = 1
+
+    duffing = DuffingOscillator(alpha, beta, t_span, dt, q0)
+    E_exact = duffing.hamiltonian(q0, 0)
+
+    t_vec_all = duffing.t_vec
+    t_vec = t_vec_all[::sampling_frequency]
+
+    # Compute exact solution and numerical solutions
+    q_exact_all, v_exact_all = duffing.exact_solution()
+    q_exact = q_exact_all[::sampling_frequency]
+    v_exact = v_exact_all[::sampling_frequency]
+
+    t0_leapfrog = time.perf_counter()
+    q_leapfrog_all, v_leapfrog_all = duffing.leapfrog()
+    tf_leapfrog = time.perf_counter()
+    q_leapfrog = q_leapfrog_all[::sampling_frequency]
+    v_leapfrog = v_leapfrog_all[::sampling_frequency]
+
+    t0_dis_gradient = time.perf_counter()
+    q_dis_gradient_all, v_dis_gradient_all = duffing.implicit_method("midpoint discrete gradient")
+    tf_dis_gradient = time.perf_counter()
+    q_dis_gradient = q_dis_gradient_all[::sampling_frequency]
+    v_dis_gradient = v_dis_gradient_all[::sampling_frequency]
+
+    t0_lin_implicit = time.perf_counter()
+    q_lin_implicit_all, x_lin_implicit_all = duffing.linear_implicit()
+    tf_lin_implicit = time.perf_counter()
+    q_lin_implicit = q_lin_implicit_all[::sampling_frequency]
+    x_lin_implicit = x_lin_implicit_all[::sampling_frequency, :]
+    v_lin_implicit = x_lin_implicit[:, 0]
+
+    elapsed_leapfrog = (tf_leapfrog - t0_leapfrog)*1e3
+    elapsed_dis_gradient = (tf_dis_gradient - t0_dis_gradient)*1e3
+    elapsed_lin_implicit = (tf_lin_implicit - t0_lin_implicit)*1e3
+
+    print(f"Elapsed time Leapfrog [ms]: {elapsed_leapfrog}")
+    print(f"Elapsed time Midpoint Discrete gradient [ms]: {elapsed_dis_gradient}")
+    print(f"Elapsed time Linear implicit [ms]: {elapsed_lin_implicit}")
+
+    # Compute energies
+    E_leapfrog = duffing.hamiltonian(q_leapfrog, v_leapfrog)
+    E_dis_gradient = duffing.hamiltonian(q_dis_gradient, v_dis_gradient)
+    E_lin_implicit =  np.einsum('ij,ij->i', 0.5*x_lin_implicit @ duffing.energy_matrix(), x_lin_implicit)
+
+    error_q_leapfrog = np.max(np.linalg.norm((q_exact - q_leapfrog)))
+    error_v_leapfrog = np.max(np.linalg.norm((v_exact - v_leapfrog)))
+    error_E_leapfrog = np.max(np.linalg.norm((E_exact - E_leapfrog)/E_exact))
+
+    error_q_dis_gradient = np.max(np.linalg.norm((q_exact - q_dis_gradient)))
+    error_v_dis_gradient = np.max(np.linalg.norm((v_exact - v_dis_gradient)))
+    error_E_dis_gradient = np.max(np.linalg.norm((E_exact - E_dis_gradient)/E_exact))
+
+    error_q_lin_implicit = np.max(np.linalg.norm((q_exact - q_lin_implicit)))
+    error_v_lin_implicit = np.max(np.linalg.norm((v_exact - v_lin_implicit)))
+    error_E_lin_implicit = np.max(np.linalg.norm((E_exact - E_lin_implicit)/E_exact))    
+
+    error_vec_q_leapfrog[ii] = error_q_leapfrog
+    error_vec_v_leapfrog[ii] = error_v_leapfrog
+    error_vec_E_leapfrog[ii] = error_E_leapfrog
+    elapsed_vec_leapfrog[ii] = elapsed_leapfrog
+
+    error_vec_q_dis_gradient[ii] = error_q_dis_gradient
+    error_vec_v_dis_gradient[ii] = error_v_dis_gradient
+    error_vec_E_dis_gradient[ii] = error_E_dis_gradient
+    elapsed_vec_dis_gradient[ii] = elapsed_dis_gradient
+
+    error_vec_q_lin_implicit[ii] = error_q_lin_implicit
+    error_vec_v_lin_implicit[ii] = error_v_lin_implicit
+    error_vec_E_lin_implicit[ii] = error_E_lin_implicit
+    elapsed_vec_lin_implicit[ii] = elapsed_lin_implicit
 
 
-# Compute exact solution and numerical solutions
-q_exact, v_exact = duffing.exact_solution()
+    dict_position = {"Exact": q_exact, "Leapfrog": q_leapfrog,\
+                    "Discrete gradient": q_dis_gradient, "Linear implicit": q_lin_implicit}
+    dict_velocity = {"Exact": v_exact, "Leapfrog": v_leapfrog, \
+                    "Discrete gradient": v_dis_gradient, "Linear implicit": v_lin_implicit}
+    dict_energy = {"Exact": E_exact, "Leapfrog": E_leapfrog, \
+                    "Discrete gradient": E_dis_gradient, "Linear implicit": E_lin_implicit}
+    dict_results = {"time": t_vec, "position": dict_position, "velocity": dict_velocity, "energy": dict_energy}
 
-t0_leapfrog = time.perf_counter()
-q_leapfrog, v_leapfrog = duffing.leapfrog()
-tf_leapfrog = time.perf_counter()
-elapsed_leapfrog = tf_leapfrog - t0_leapfrog
+    plot_results(dict_results)
 
-t0_imp_midpoint = time.perf_counter()
-q_imp_midpoint, v_imp_midpoint = duffing.implicit_midpoint()
-tf_imp_midpoint = time.perf_counter()
-elapsed_imp_midpoint = tf_imp_midpoint - t0_imp_midpoint
 
-t0_mid_dg = time.perf_counter()
-q_mid_dg, v_mid_dg = duffing.midpoint_discrete_gradient()
-tf_mid_dg = time.perf_counter()
-elapsed_mid_dg = tf_mid_dg - t0_mid_dg
-
-print(f"Elapsed time Leapfrog: {elapsed_leapfrog}")
-print(f"Elapsed time Implicit Midpoint: {elapsed_imp_midpoint}")
-print(f"Elapsed time Midpoint Discrete gradient: {elapsed_imp_midpoint}")
-
-# t_mean_dg, q_mean_dg, v_mean_dg = duffing.mean_value_discrete_gradient()
-
-# Compute energies
-E_exact = duffing.hamiltonian(q_exact, v_exact)
-E_leapfrog = duffing.hamiltonian(q_leapfrog, v_leapfrog)
-E_imp_midpoint = duffing.hamiltonian(q_imp_midpoint, v_imp_midpoint)
-E_mid_dg = duffing.hamiltonian(q_mid_dg, v_mid_dg)
-# E_mean_dg = duffing.hamiltonian(q_mean_dg, v_mean_dg)
-
-# Create plots
-plt.figure(figsize=(16, 8))
-# Position plot
+plt.figure(figsize=(24, 16))
 plt.subplot(2, 2, 1)
-plt.plot(t_vec, q_exact, 'k--', label='Exact', linewidth=2)
-# plt.plot(t_vec, q_leapfrog, label='Leapfrog')
-# plt.plot(t_vec, q_imp_midpoint, label='Implicit Midpoint')
-plt.plot(t_vec, q_mid_dg, label='Midpoint DG')
-# plt.plot(t_mean_dg, q_mean_dg, label='Mean Value DG')
-plt.xlabel('Time')
-plt.ylabel('Position')
+plt.loglog(dt_vec, error_vec_q_leapfrog, '*-', label='Leapfrog')
+plt.loglog(dt_vec, error_vec_q_dis_gradient, 'o-', label='Discrete gradient')
+plt.loglog(dt_vec, error_vec_q_lin_implicit, '+-', label='Linear implicit')
+plt.grid(color='0.8', linestyle='-', linewidth=.5)
+plt.xlabel('Time step')
 plt.legend()
 plt.grid(True)
-plt.title('Position vs Time')
+plt.title("Displacement error")
 
-# Position error
+
 plt.subplot(2, 2, 2)
-# plt.semilogy(t_vec, np.abs(q_leapfrog - q_exact), label='Leapfrog')
-# plt.semilogy(t_vec, np.abs(q_imp_midpoint - q_exact), label='Implicit Midpoint')
-plt.semilogy(t_vec, np.abs(q_mid_dg - q_exact), label='Midpoint DG')
-# plt.plot(t_mean_dg, np.abs(q_mean_dg - q_exact), label='Mean Value DG')
-plt.xlabel('Time')
-plt.ylabel('Position Error')
-plt.yscale('log')
+plt.loglog(dt_vec, error_vec_v_leapfrog, '*-', label='Leapfrog')
+plt.loglog(dt_vec, error_vec_v_dis_gradient, 'o-', label='Discrete gradient')
+plt.loglog(dt_vec, error_vec_v_lin_implicit, '+-', label='Linear implicit')
+plt.grid(color='0.8', linestyle='-', linewidth=.5)
+plt.xlabel('Time step')
 plt.legend()
 plt.grid(True)
-plt.title('Position Error vs Time')
+plt.title("Velocity error")
 
-# Velocity plot
 plt.subplot(2, 2, 3)
-plt.plot(t_vec, v_exact, 'k--', label='Exact', linewidth=2)
-# plt.plot(t_vec, v_leapfrog, label='Leapfrog')
-# plt.plot(t_vec, v_imp_midpoint, label='Implicit Midpoint')
-plt.plot(t_vec, v_mid_dg, label='Midpoint DG')
-# plt.plot(t_mean_dg, v_mean_dg, label='Mean Value DG')
-plt.xlabel('Time')
-plt.ylabel('Velocity')
+plt.loglog(dt_vec, error_vec_E_leapfrog, '*-', label='Leapfrog')
+plt.loglog(dt_vec, error_vec_E_dis_gradient, 'o-', label='Discrete gradient')
+plt.loglog(dt_vec, error_vec_E_lin_implicit, '+-', label='Linear implicit')
+plt.grid(color='0.8', linestyle='-', linewidth=.5)
+plt.xlabel('Time step')
 plt.legend()
 plt.grid(True)
-plt.title('Velocity vs Time')
+plt.title("Energy error")
 
-# Velocity error
 plt.subplot(2, 2, 4)
-# plt.semilogy(t_vec, np.abs(v_leapfrog - v_exact), label='Leapfrog')
-# plt.semilogy(t_vec, np.abs(v_imp_midpoint - v_exact), label='Implicit Midpoint')
-plt.semilogy(t_vec, np.abs(v_mid_dg - v_exact), label='Midpoint DG')
-# plt.plot(t_mean_dg, np.abs(v_mean_dg - v_exact), label='Mean Value DG')
-plt.xlabel('Time')
-plt.ylabel('Velocity Error')
-plt.yscale('log')
+plt.loglog(dt_vec, elapsed_vec_leapfrog, '*-', label='Leapfrog')
+plt.loglog(dt_vec, elapsed_vec_dis_gradient, 'o-', label='Discrete gradient')
+plt.loglog(dt_vec, elapsed_vec_lin_implicit, '+-', label='Linear implicit')
+plt.grid(color='0.8', linestyle='-', linewidth=.5)
+plt.xlabel('Time step')
 plt.legend()
 plt.grid(True)
-plt.title('Velocity Error vs Time')
-
-
-plt.figure(figsize=(16, 8))
-# Phase space plot
-plt.subplot(1, 2, 1)
-plt.plot(q_exact, v_exact, 'k--', label='Exact', linewidth=2)
-# plt.plot(q_leapfrog, v_leapfrog, label='Leapfrog')
-# plt.plot(q_imp_midpoint, v_imp_midpoint, label='Implicit Midpoint')
-plt.plot(q_mid_dg, v_mid_dg, label='Midpoint DG')
-# plt.plot(q_mean_dg, v_mean_dg, label='Mean Value DG')
-plt.xlabel('Position')
-plt.ylabel('Velocity')
-plt.legend()
-plt.grid(True)
-plt.title('Phase Space')
-
-# Energy error
-plt.subplot(1, 2, 2)
-# plt.semilogy(t_vec, np.abs(E_leapfrog - E_exact[0])/E_exact[0], label='Leapfrog')
-# plt.semilogy(t_vec, np.abs(E_imp_midpoint - E_exact[0])/E_exact[0], label='Implicit Midpoint')
-plt.semilogy(t_vec, np.abs(E_mid_dg - E_exact[0])/E_exact[0], label='Midpoint DG')
-# plt.plot(t_mean_dg, np.abs(E_mean_dg - E_exact[0])/E_exact[0], label='Mean Value DG')
-plt.xlabel('Time')
-plt.ylabel('Relative Energy Error')
-plt.yscale('log')
-plt.legend()
-plt.grid(True)
-plt.title('Energy Error vs Time')
+plt.title("Computational time [ms]")
 
 plt.show()

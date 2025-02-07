@@ -1,7 +1,8 @@
 import numpy as np
 from scipy.optimize import fsolve, root, approx_fprime
 from scipy.special import ellipj
-from discrete_gradient import midpoint_discrete_gradient
+from scipy.integrate import simpson
+from discrete_gradient import midpoint_discrete_gradient, mean_value_discrete_gradient
 
 class DuffingOscillator:
     def __init__(self, alpha=1.0, beta=1.0, t_span=1, dt=0.01, q0=1):
@@ -19,19 +20,23 @@ class DuffingOscillator:
         self.q0 = q0
 
 
-    def rhs(self, position):
-        return - self.alpha * position - self.beta * position**3
-
-
     def jacobian_f(self, position):
-
         J = np.zeros((2, 2))
         J[0, 1] = 1
         J[1, 0] = -self.alpha - 3 * self.beta * position**2
         return J
 
+
     def hamiltonian(self, position, velocity):
         return 1/2 * velocity**2 + 0.5 * self.alpha * position**2 + 1/4 * self.beta * position**4
+
+
+    def potential_energy(self, position):
+        return 1/2 * self.alpha * position**2 + 1/4 * self.beta * position**4
+        
+
+    def grad_potential_energy(self, position):
+        return self.alpha * position + self.beta * position**3
 
 
     def exact_solution(self):
@@ -60,6 +65,7 @@ class DuffingOscillator:
         Two version 
             - q at half-integers (the one introduced in the paper)
             - q at integers 
+        Here we do at integers
         """
         q = np.zeros(self.n_steps)
         v = np.zeros(self.n_steps)
@@ -68,49 +74,57 @@ class DuffingOscillator:
         
         # First half-step for velocity using Euler
         q_half = q[0] + 0.5 * self.dt * v[0]
-        # v_half = v[0] + 0.5 * dt * self.rhs(q[0])
         
         for i in range(1, self.n_steps):
-            v[i] = v[i-1] + self.dt * self.rhs(q_half)
+            v[i] = v[i-1] - self.dt * self.grad_potential_energy(q_half)
             q_new_half = q_half + self.dt * v[i]
             q[i] = 0.5*(q_half + q_new_half)
             q_half = q_new_half
 
-            # # Version where q iss computed at integers
-            # # Position update
-            # q[i] = q[i-1] + dt * v_half
-            # # Velocity update
-            # v_new_half = v_half + dt * self.rhs(q[i])
-            # v[i] = (v_half + v_new_half) / 2
-            # v_half = v_new_half
-            
         return q, v
 
 
-    def implicit_midpoint(self):
+    def implicit_method(self, type="implicit midpoint"):
         """
-        Solve using implicit midpoint method
+        Solve using an implicit method. 
+        - type : a string defining the method. Possible values are 
+            - "implicit midpoint"
+            - "midpoint discrete gradient"
+            - "mean value discrete gradient"
+    
         """
-        q = np.zeros(self.n_steps)
-        v = np.zeros(self.n_steps)
-        q[0] = self.q0
-        v[0] = 0
+        q_vec = np.zeros(self.n_steps)
+        v_vec = np.zeros(self.n_steps)
+        q_vec[0] = self.q0
+        v_vec[0] = 0
 
-        def residual_implicit_midpoint(y, y_old):
-            q_mid = (y[0] + y_old[0]) / 2
-            v_mid = (y[1] + y_old[1]) / 2
+        def residual(y_new, y_old):
+            q_old, v_old = y_old
+            q_new, v_new = y_new
+
+            q_mid = (q_old + q_new) / 2
+            v_mid = (v_old + v_new) / 2
+
+            if type == "implicit midpoint":
+                dV_discrete = self.grad_potential_energy(q_mid)
+            elif type == "midpoint discrete gradient":
+                dV_discrete = midpoint_discrete_gradient(q_new, q_old, \
+                                self.potential_energy, self.grad_potential_energy)
+            elif type == "mean value discrete gradient":
+                dV_discrete = mean_value_discrete_gradient(q_new, q_old, self.grad_potential_energy)
+            else:
+                raise ValueError("Unknown type of implicit method")
             
-            res_q = y[0] - y_old[0] - self.dt * v_mid
-            res_v = y[1] - y_old[1] - self.dt * self.rhs(q_mid)
+            res_q = q_new - q_old - self.dt * v_mid
+            res_v = v_new - v_old + self.dt * dV_discrete
             return np.array([res_q, res_v])
 
 
-        def jacobian_implicit_midpoint(y, y_old):
-            q_mid = (y[0] + y_old[0]) / 2   
-            J = np.eye(2) - self.dt / 2 * self.jacobian_f(q_mid)
-            return J
+        # def jacobian_implicit_midpoint(y_new, y_old):
+        #     q_mid = (y_new[0] + y_old[0]) / 2   
+        #     J = np.eye(2) - self.dt / 2 * self.jacobian_f(q_mid)
+        #     return J
         
-
         # def numerical_jacobian(y, y_old, epsilon=1e-8):
         #     return approx_fprime(y, residual_implicit_midpoint, epsilon, y_old)
 
@@ -122,107 +136,71 @@ class DuffingOscillator:
         # print(f"Error jacobian: {error_jacobian}")
         # assert error_jacobian < 1e-6
 
+        perturbation = 1e-2
         for i in range(1, self.n_steps):
-            # Use previous values as initial guess
-            guess = np.array([q[i-1], v[i-1]])
+            x_old = np.array([q_vec[i-1], v_vec[i-1]])
+            # Slightly perturbed previous guess to avoid division by zero
+            # in the implicit midpoint method
+            guess = np.array([q_vec[i-1]*(1 + perturbation), v_vec[i-1]])
+            
+            solution = fsolve(residual, guess, args=(x_old, ))
+            q_vec[i], v_vec[i] = solution
+
+            # Newton method
             # solution = root(residual_implicit_midpoint, guess, \
-            #                 jac=jacobian_implicit_midpoint, args=(guess, ))
-            # q[i], v[i] = solution.x
-            
-            solution = fsolve(residual_implicit_midpoint, guess, args=(guess, ))
-            q[i], v[i] = solution
+            #                 jac=jacobian_implicit_midpoint, args=(x_old, ))
+            # q_array[i], v_array[i] = solution.x
 
-        return q, v
+        return q_vec, v_vec
 
-
-    def midpoint_discrete_gradient(self):
-        """
-        Solve using midpoint discrete gradient method
-        """
-        q = np.zeros(self.n_steps)
-        v = np.zeros(self.n_steps)
-        
-        q[0] = self.q0
-        v[0] = 0
-
-        # def discrete_potential_gradient(q_new, q_old):
-        #     """
-        #     Midpoint discrete gradient of potential energy V(q) = (α/2)q² + (β/4)q⁴
-        #     Using averaged form that satisfies the discrete gradient property
-        #     """
-        #     # For quadratic term (α/2)x²
-        #     grad_quad = self.alpha * (q_old + q_new) / 2
-            
-        #     # For quartic term (β/4)x⁴
-        #     grad_quart = self.beta * (q_old**3 + q_old**2*q_new + q_old*q_new**2 + q_new**3) / 4
-
-        #     return grad_quad + grad_quart
-
-        
-        
-        def residual_midpoint_discrete_gradient(y_new, y_old):
-            q_old, v_old = y_old
-            q_new, v_new = y_new
-
-            dV_discrete = midpoint_discrete_gradient(q_new, q_old)
-            # dV_discrete = discrete_potential_gradient(q_new, q_old)
-            
-            res_q = q_new - q_old - self.dt * (v_new + v_old) / 2
-            res_v = v_new - v_old + self.dt * dV_discrete
-            return np.array([res_q, res_v])
-        
-
-        for i in range(1, self.n_steps):
-            guess = np.array([q[i-1], v[i-1]])
-            solution = fsolve(residual_midpoint_discrete_gradient, guess, args=(guess, ))
-            q[i], v[i] = solution
-
-            print(f"q: {q[i]}, v: {v[i]}")
-            
-        return q, v
-
-
-    # def mean_value_discrete_gradient(self):
-    #     """
-    #     Solve using mean value discrete gradient method
-    #     """
-    #     n_steps = int((self.t_span[1] - self.t_span[0]) / dt)
-    #     t = np.linspace(self.t_span[0], self.t_span[1], n_steps)
-    #     q = np.zeros(n_steps)
-    #     v = np.zeros(n_steps)
-        
-    #     q[0] = q0
-    #     v[0] = v0
-
-    #     def mean_value_gradient(x1, x2):
-    #         """
-    #         Mean value discrete gradient of potential energy V(x) = (α/2)x² + (β/4)x⁴
-    #         ∇V(x₁,x₂) = ∫_0^1  ∇V(sx₁ + (1-s)x₂)ds
-    #         """
-    #         # For quadratic term (α/2)x²
-    #         grad_quad = self.alpha * (x1 + x2) / 2
-            
-    #         # For quartic term (β/4)x⁴, compute integral numerically
-    #         n_points = 100
-    #         s = np.linspace(0, 1, n_points)
-    #         xs = x2 + s * (x1 - x2)  # Linear interpolation between x2 and x1
-    #         grad_quart = self.beta * np.mean(xs**3)
-            
-    #         return grad_quad + grad_quart
-
-    #     def residual(y):
-    #         q_new, v_new = y
-    #         dV = mean_value_gradient(q_new, q[i-1])
-            
-    #         rq = q_new - q[i-1] - dt * (v_new + v[i-1]) / 2
-    #         rv = v_new - v[i-1] + dt * dV
-    #         return [rq, rv]
-
-    #     for i in range(1, n_steps):
-    #         guess = [q[i-1], v[i-1]]
-    #         solution = fsolve(residual, guess)
-    #         q[i], v[i] = solution
-            
-    #     return t, q, v
 
     
+    def energy_matrix(self):
+        return np.diag([1, 1/self.alpha, 2/self.beta])
+
+
+    def poisson_matrix(self, position):
+        return np.array([[0, -1, -2*position], 
+                         [1, 0, 0],
+                         [2*position, 0, 0]])
+
+
+    def linear_implicit(self):
+        """
+        Linear implicit method for Duffing oscillator
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        q, v : numpy arrays
+            Position and velocity as a function of time
+        """
+
+        q_vec = np.zeros(self.n_steps)
+        x_vec = np.zeros((self.n_steps, 3))
+
+        q_vec[0] = self.q0
+
+        sigma1_0 = self.alpha*self.q0
+        sigma2_0 = 0.5*self.beta*self.q0**2
+        x_vec[0, :] = np.array([0, sigma1_0, sigma2_0])
+
+        # First half-step for velocity using Euler
+        q_half = q_vec[0] + 0.5 * self.dt * x_vec[0, 0]
+        
+        for i in range(1, self.n_steps):
+
+            A = self.energy_matrix() - self.dt/2*self.poisson_matrix(q_half)
+            B = self.energy_matrix() + self.dt/2*self.poisson_matrix(q_half)
+
+            x_vec[i] = np.linalg.solve(A, B @ x_vec[i-1])
+
+            q_new_half = q_half + self.dt * x_vec[i, 0]
+            q_vec[i] = 0.5*(q_half + q_new_half)
+            q_half = q_new_half
+
+        return q_vec, x_vec
+
