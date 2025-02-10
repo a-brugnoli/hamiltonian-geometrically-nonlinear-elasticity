@@ -1,6 +1,7 @@
 import numpy as np
 from math import pi
 import time
+import os
 from duffing_oscillator import DuffingOscillator
 from plot_duffing import plot_results
 import matplotlib.pyplot as plt
@@ -22,10 +23,10 @@ def error_norm(numerical_vec, exact_vec, time_step, norm="Linf"):
         raise ValueError("Unknown norm")
 
 # Initial condition
-q0 = 1
+q0 = 10
 
 # Pyisical parameters
-alpha = 15
+alpha = 10
 beta = 5
 omega_0 = np.sqrt(alpha + beta * q0**2)
 
@@ -34,12 +35,12 @@ t_end = T
 # Time parameters
 t_span = [0, t_end]
 
-norm_type = "L2" 
-# dt_base = t_end/10
-sec_factor = 1/10
-dt_base = sec_factor*2/omega_0
+norm_type = "Linf" 
+dt_base = t_end/100
+# sec_factor = 1/10
+# dt_base = sec_factor*2/omega_0
 
-n_case = 4
+n_case = 5
 log_base = 2
 dt_vec = [dt_base/log_base**n for n in range(n_case)]
 
@@ -150,56 +151,45 @@ for ii in range(n_case):
     # plot_results(dict_results, explicit=True)
 
 
-plot_convergence(dt_vec, error_vec_q_leapfrog, label='Leapfrog')
-plot_convergence(dt_vec, error_vec_q_dis_gradient, label='Discrete gradient')
-plot_convergence(dt_vec, error_vec_q_lin_implicit, label='Linear implicit')
+directory_results = f"{os.path.dirname(os.path.abspath(__file__))}/results/"
+if not os.path.exists(directory_results):
+    os.makedirs(directory_results)
 
-plot_convergence(dt_vec, error_vec_v_leapfrog, label='Leapfrog')
-plot_convergence(dt_vec, error_vec_v_dis_gradient, label='Discrete gradient')
-plot_convergence(dt_vec, error_vec_v_lin_implicit, label='Linear implicit')
+dict_position = {"Leapfrog": error_vec_q_leapfrog,\
+                "Discrete gradient": error_vec_q_dis_gradient,\
+                "Linear implicit": error_vec_q_lin_implicit}
+    
+dict_velocity = {"Leapfrog": error_vec_v_leapfrog,\
+                "Discrete gradient": error_vec_v_dis_gradient,\
+                "Linear implicit": error_vec_v_lin_implicit}
+
+
+str_xlabel = '$\Delta t \; \mathrm{[s]}$'
+plot_convergence(dt_vec, dict_position, xlabel=str_xlabel, \
+                title='Position error', savefig=f"{directory_results}convergence_position.pdf")
+plot_convergence(dt_vec, dict_velocity, xlabel=str_xlabel, \
+                 title='Velocity error', savefig=f"{directory_results}convergence_velocity.pdf")
+
+plt.figure()
+plt.loglog(dt_vec, error_vec_E_leapfrog, '*-', label='Leapfrog')
+plt.loglog(dt_vec, error_vec_E_dis_gradient, 'o-', label='Discrete gradient')
+plt.loglog(dt_vec, error_vec_E_lin_implicit, '+-', label='Linear implicit')
+plt.grid(color='0.8', linestyle='-', linewidth=.5)
+plt.xlabel(str_xlabel)
+plt.legend()
+plt.grid(True)
+plt.title("Energy error")
+plt.savefig(f"{directory_results}energy_error.pdf", dpi='figure', format='pdf', bbox_inches="tight")
+
+plt.figure()
+plt.loglog(dt_vec, elapsed_vec_leapfrog, '*-', label='Leapfrog')
+plt.loglog(dt_vec, elapsed_vec_dis_gradient, 'o-', label='Discrete gradient')
+plt.loglog(dt_vec, elapsed_vec_lin_implicit, '+-', label='Linear implicit')
+plt.grid(color='0.8', linestyle='-', linewidth=.5)
+plt.xlabel(str_xlabel)
+plt.legend()
+plt.grid(True)
+plt.title("Computational time [ms]")
+plt.savefig(f"{directory_results}computational_time.pdf", dpi='figure', format='pdf', bbox_inches="tight")
 
 plt.show()
-
-# plt.figure(figsize=(24, 16))
-# plt.subplot(2, 2, 1)
-# plt.loglog(dt_vec, error_vec_q_leapfrog, '*-', label='Leapfrog')
-# plt.loglog(dt_vec, error_vec_q_dis_gradient, 'o-', label='Discrete gradient')
-# plt.loglog(dt_vec, error_vec_q_lin_implicit, '+-', label='Linear implicit')
-# plt.grid(color='0.8', linestyle='-', linewidth=.5)
-# plt.xlabel('Time step')
-# plt.legend()
-# plt.grid(True)
-# plt.title("Displacement error")
-
-
-# plt.subplot(2, 2, 2)
-# plt.loglog(dt_vec, error_vec_v_leapfrog, '*-', label='Leapfrog')
-# plt.loglog(dt_vec, error_vec_v_dis_gradient, 'o-', label='Discrete gradient')
-# plt.loglog(dt_vec, error_vec_v_lin_implicit, '+-', label='Linear implicit')
-# plt.grid(color='0.8', linestyle='-', linewidth=.5)
-# plt.xlabel('Time step')
-# plt.legend()
-# plt.grid(True)
-# plt.title("Velocity error")
-
-# plt.subplot(2, 2, 3)
-# plt.loglog(dt_vec, error_vec_E_leapfrog, '*-', label='Leapfrog')
-# plt.loglog(dt_vec, error_vec_E_dis_gradient, 'o-', label='Discrete gradient')
-# plt.loglog(dt_vec, error_vec_E_lin_implicit, '+-', label='Linear implicit')
-# plt.grid(color='0.8', linestyle='-', linewidth=.5)
-# plt.xlabel('Time step')
-# plt.legend()
-# plt.grid(True)
-# plt.title("Energy error")
-
-# plt.subplot(2, 2, 4)
-# plt.loglog(dt_vec, elapsed_vec_leapfrog, '*-', label='Leapfrog')
-# plt.loglog(dt_vec, elapsed_vec_dis_gradient, 'o-', label='Discrete gradient')
-# plt.loglog(dt_vec, elapsed_vec_lin_implicit, '+-', label='Linear implicit')
-# plt.grid(color='0.8', linestyle='-', linewidth=.5)
-# plt.xlabel('Time step')
-# plt.legend()
-# plt.grid(True)
-# plt.title("Computational time [ms]")
-
-# plt.show()

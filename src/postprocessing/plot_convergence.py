@@ -2,13 +2,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-def plot_convergence(dt_vec, error_vec, **options):
+def plot_convergence(dt_vec, dict_error_vec, **options):
     
     plt.figure()
-    if "label" in options:
-        plt.plot(np.log10(dt_vec), np.log10(error_vec), '-.+', label=f'{options["label"]}')
-    else:
-        plt.plot(np.log10(dt_vec), np.log10(error_vec), '-.+')
+    for key_label, error_vec in dict_error_vec.items():
+
+            plt.plot(np.log10(dt_vec), np.log10(error_vec), '-.+', label=key_label)
 
         # # Define the coordinates of the triangle's vertices
         # if "rate" in options:
@@ -38,12 +37,13 @@ def plot_convergence(dt_vec, error_vec, **options):
     plt.grid(True)
     
     plt.legend()
-    plt.xlabel('log(Time step)')
 
     if "title" in options:
         plt.title(options["title"])
+    if "xlabel" in options:
+        plt.xlabel(options["xlabel"])
     if "ylabel" in options:
         plt.ylabel(options["ylabel"])
-    if "save_path" in options:
-        plt.savefig(options["save_path"]+".eps", dpi='figure', format='eps')
+    if "savefig" in options:
+        plt.savefig(options["savefig"]+".pdf", dpi='figure', format='pdf', bbox_inches="tight")
 

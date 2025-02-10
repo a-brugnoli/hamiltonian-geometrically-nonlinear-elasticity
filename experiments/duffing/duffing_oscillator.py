@@ -244,12 +244,14 @@ class DuffingOscillator:
         
         for i in range(self.n_steps):
 
-            L = self.poisson_matrix(q_half)[1:, 0]
+            L = np.array([1, 2*q_half])
             stiffness_matrix = L.T @ inv_M_C @ L
+            
+
             A_vel = 1 + self.dt**2/4*stiffness_matrix
             B_vel = 1 - self.dt**2/4*stiffness_matrix
 
-            v_vec[i+1] = B_vel/A_vel * v_vec[i] - self.dt/A_vel*L.T @ sigma_vec[i]
+            v_vec[i+1] = (B_vel * v_vec[i] - self.dt*L.T @ sigma_vec[i])/A_vel
             sigma_vec[i+1] = sigma_vec[i] + self.dt * inv_M_C @ L * (v_vec[i+1] + v_vec[i])/2
 
             q_new_half = q_half + self.dt * v_vec[i+1]
