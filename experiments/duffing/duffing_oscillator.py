@@ -5,7 +5,7 @@ from scipy.integrate import simpson
 from discrete_gradient import midpoint_discrete_gradient, mean_value_discrete_gradient
 
 class DuffingOscillator:
-    def __init__(self, alpha=1.0, beta=1.0, t_span=1, dt=0.01, q0=1):
+    def __init__(self, alpha=1.0, beta=1.0, t_span=np.array([0, 1]), dt=0.01, q0=1):
         """
         Initialize Duffing oscillator parameters
         dq/dt = v
@@ -13,10 +13,14 @@ class DuffingOscillator:
         """
         self.alpha = alpha    # Linear stiffness
         self.beta = beta      # Nonlinear stiffness
-        self.t_span = t_span
+
         self.dt = dt
-        self.n_steps = int((t_span[1] - t_span[0])/dt)
-        self.t_vec = np.linspace(t_span[0], t_span[1], self.n_steps)
+        simulation_time = t_span[1] - t_span[0]
+        self.n_steps =np.round(simulation_time/dt).astype(int)
+        T_init = t_span[0]
+        T_end = self.n_steps*dt + T_init
+        self.t_span = np.array([T_init, T_end])
+        self.t_vec = np.linspace(T_init, T_end, self.n_steps+1)
         self.q0 = q0
 
 
@@ -67,18 +71,18 @@ class DuffingOscillator:
             - q at integers 
         Here we do at integers
         """
-        q = np.zeros(self.n_steps)
-        v = np.zeros(self.n_steps)
+        q = np.zeros_like(self.t_vec)
+        v = np.zeros_like(self.t_vec)
         q[0] = self.q0
         v[0] = 0
         
         # First half-step for velocity using Euler
         q_half = q[0] + 0.5 * self.dt * v[0]
         
-        for i in range(1, self.n_steps):
-            v[i] = v[i-1] - self.dt * self.grad_potential_energy(q_half)
-            q_new_half = q_half + self.dt * v[i]
-            q[i] = 0.5*(q_half + q_new_half)
+        for i in range(self.n_steps):
+            v[i+1] = v[i] - self.dt * self.grad_potential_energy(q_half)
+            q_new_half = q_half + self.dt * v[i+1]
+            q[i+1] = 0.5*(q_half + q_new_half)
             q_half = q_new_half
 
         return q, v
@@ -93,8 +97,8 @@ class DuffingOscillator:
             - "mean value discrete gradient"
     
         """
-        q_vec = np.zeros(self.n_steps)
-        v_vec = np.zeros(self.n_steps)
+        q_vec = np.zeros_like(self.t_vec)
+        v_vec = np.zeros_like(self.t_vec)
         q_vec[0] = self.q0
         v_vec[0] = 0
 
@@ -137,14 +141,14 @@ class DuffingOscillator:
         # assert error_jacobian < 1e-6
 
         perturbation = 1e-2
-        for i in range(1, self.n_steps):
-            x_old = np.array([q_vec[i-1], v_vec[i-1]])
+        for i in range(self.n_steps):
+            x_old = np.array([q_vec[i], v_vec[i]])
             # Slightly perturbed previous guess to avoid division by zero
             # in the implicit midpoint method
-            guess = np.array([q_vec[i-1]*(1 + perturbation), v_vec[i-1]])
+            guess = np.array([q_vec[i]*(1 + perturbation), v_vec[i]])
             
             solution = fsolve(residual, guess, args=(x_old, ))
-            q_vec[i], v_vec[i] = solution
+            q_vec[i+1], v_vec[i+1] = solution
 
             # Newton method
             # solution = root(residual_implicit_midpoint, guess, \
@@ -179,8 +183,8 @@ class DuffingOscillator:
             Position and velocity as a function of time
         """
 
-        q_vec = np.zeros(self.n_steps)
-        x_vec = np.zeros((self.n_steps, 3))
+        q_vec = np.zeros_like(self.t_vec)
+        x_vec = np.zeros((len(self.t_vec), 3))
 
         q_vec[0] = self.q0
 
@@ -190,17 +194,68 @@ class DuffingOscillator:
 
         # First half-step for velocity using Euler
         q_half = q_vec[0] + 0.5 * self.dt * x_vec[0, 0]
+
+        H_matrix = self.energy_matrix()
         
-        for i in range(1, self.n_steps):
+        for i in range(self.n_steps):
 
-            A = self.energy_matrix() - self.dt/2*self.poisson_matrix(q_half)
-            B = self.energy_matrix() + self.dt/2*self.poisson_matrix(q_half)
+            A = H_matrix - self.dt/2*self.poisson_matrix(q_half)
+            B = H_matrix + self.dt/2*self.poisson_matrix(q_half)
 
-            x_vec[i] = np.linalg.solve(A, B @ x_vec[i-1])
+            x_vec[i+1] = np.linalg.solve(A, B @ x_vec[i])
 
-            q_new_half = q_half + self.dt * x_vec[i, 0]
-            q_vec[i] = 0.5*(q_half + q_new_half)
+            q_new_half = q_half + self.dt * x_vec[i+1, 0]
+            q_vec[i+1] = 0.5*(q_half + q_new_half)
             q_half = q_new_half
 
         return q_vec, x_vec
 
+
+    def linear_implicit_static_condensation(self):
+        """
+        Linear implicit method for Duffing oscillator
+        
+        Parameters
+        ----------
+        None
+        
+        Returns
+        -------
+        q, v : numpy arrays
+            Position and velocity as a function of time
+        """
+
+        q_vec = np.zeros_like(self.t_vec)
+        v_vec = np.zeros(len(self.t_vec))
+        sigma_vec = np.zeros((len(self.t_vec), 2))
+
+        q_vec[0] = self.q0
+
+        sigma1_0 = self.alpha*self.q0
+        sigma2_0 = 0.5*self.beta*self.q0**2
+        sigma_vec[0, :] = np.array([sigma1_0, sigma2_0])
+
+        H_matrix = self.energy_matrix()
+        M_compliance = H_matrix[1:, 1:]
+        inv_M_C = np.diag(1 / np.diag(M_compliance))
+
+        # First half-step for velocity using Euler
+        q_half = q_vec[0] + 0.5 * self.dt * v_vec[0]
+        
+        for i in range(self.n_steps):
+
+            L = self.poisson_matrix(q_half)[1:, 0]
+            stiffness_matrix = L.T @ inv_M_C @ L
+            A_vel = 1 + self.dt**2/4*stiffness_matrix
+            B_vel = 1 - self.dt**2/4*stiffness_matrix
+
+            v_vec[i+1] = B_vel/A_vel * v_vec[i] - self.dt/A_vel*L.T @ sigma_vec[i]
+            sigma_vec[i+1] = sigma_vec[i] + self.dt * inv_M_C @ L * (v_vec[i+1] + v_vec[i])/2
+
+            q_new_half = q_half + self.dt * v_vec[i+1]
+            q_vec[i+1] = 0.5*(q_half + q_new_half)
+            q_half = q_new_half
+
+        x_vec = np.column_stack((v_vec, sigma_vec))
+
+        return q_vec, x_vec

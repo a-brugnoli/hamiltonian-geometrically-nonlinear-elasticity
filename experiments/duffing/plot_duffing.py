@@ -3,7 +3,7 @@ import numpy as np
 from src.postprocessing.options import configure_matplotib
 configure_matplotib()
 
-def plot_results(results_dict):
+def plot_results(results_dict, explicit=True):
     # Create plots
     t_vec = results_dict["time"]
     dict_position = results_dict["position"]
@@ -29,9 +29,11 @@ def plot_results(results_dict):
     # Position plot
     plt.subplot(2, 2, 1)
     plt.plot(t_vec, q_exact, 'k--', label='Exact', linewidth=2)
-    plt.plot(t_vec, q_leapfrog, label='Leapfrog')
     plt.plot(t_vec, q_dis_gradient, label='Midpoint DG')
     plt.plot(t_vec, q_lin_implicit, label='Lin implicit')
+    if explicit:
+        plt.plot(t_vec, q_leapfrog, label='Leapfrog')
+
 
     plt.xlabel('Time')
     plt.ylabel('Position')
@@ -41,9 +43,11 @@ def plot_results(results_dict):
 
     # Position error
     plt.subplot(2, 2, 2)
-    plt.semilogy(t_vec[1:], np.abs(q_leapfrog - q_exact)[1:], label='Leapfrog')
     plt.semilogy(t_vec[1:], np.abs(q_dis_gradient - q_exact)[1:], label='Midpoint DG')
     plt.semilogy(t_vec[1:], np.abs(q_lin_implicit - q_exact)[1:], label='Lin implicit')
+    if explicit:
+        plt.semilogy(t_vec[1:], np.abs(q_leapfrog - q_exact)[1:], label='Leapfrog')
+
     plt.xlabel('Time')
     plt.ylabel('Position Error')
     plt.legend()
@@ -53,9 +57,11 @@ def plot_results(results_dict):
     # Velocity plot
     plt.subplot(2, 2, 3)
     plt.plot(t_vec, v_exact, 'k--', label='Exact', linewidth=2)
-    plt.plot(t_vec, v_leapfrog, label='Leapfrog')
     plt.plot(t_vec, v_dis_gradient, label='Midpoint DG')
     plt.plot(t_vec, v_lin_implicit, label='Lin implicit')
+    if explicit:
+        plt.plot(t_vec, v_leapfrog, label='Leapfrog')
+
     plt.xlabel('Time')
     plt.ylabel('Velocity')
     plt.legend()
@@ -64,9 +70,11 @@ def plot_results(results_dict):
 
     # Velocity error
     plt.subplot(2, 2, 4)
-    plt.semilogy(t_vec[1:], np.abs(v_leapfrog - v_exact)[1:], label='Leapfrog')
     plt.semilogy(t_vec[1:], np.abs(v_dis_gradient - v_exact)[1:], label='Midpoint DG')
     plt.semilogy(t_vec[1:], np.abs(v_lin_implicit - v_exact)[1:], label='Lin implicit')
+    if explicit:
+        plt.semilogy(t_vec[1:], np.abs(v_leapfrog - v_exact)[1:], label='Leapfrog')
+
     plt.xlabel('Time')
     plt.ylabel('Velocity Error')
     plt.legend()
@@ -78,9 +86,11 @@ def plot_results(results_dict):
     # Phase space plot
     plt.subplot(1, 2, 1)
     plt.plot(q_exact, v_exact, 'k--', label='Exact', linewidth=2)
-    plt.plot(q_leapfrog, v_leapfrog, label='Leapfrog')
     plt.plot(q_dis_gradient, v_dis_gradient, label='Midpoint DG')
     plt.plot(q_lin_implicit, v_lin_implicit, label='Lin implicit')
+    if explicit:
+        plt.plot(q_leapfrog, v_leapfrog, label='Leapfrog')
+
     plt.xlabel('Position')
     plt.ylabel('Velocity')
     plt.legend()
@@ -90,9 +100,11 @@ def plot_results(results_dict):
 
     # Energy error
     plt.subplot(1, 2, 2)
-    plt.semilogy(t_vec[1:], np.abs(E_leapfrog[1:] - E_exact)/E_exact, label='Leapfrog')
     plt.semilogy(t_vec[1:], np.abs(E_dis_gradient[1:] - E_exact)/E_exact, label='Midpoint DG')
     plt.semilogy(t_vec[1:], np.abs(E_lin_implicit[1:] - E_exact)/E_exact, label='Lin implicit')
+    if explicit:
+        plt.semilogy(t_vec[1:], np.abs(E_leapfrog[1:] - E_exact)/E_exact, label='Leapfrog')
+
     plt.xlabel('Time')
     plt.ylabel('Relative Energy Error')
     plt.legend()
