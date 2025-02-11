@@ -1,8 +1,8 @@
 from src.preprocessing.basic_plotting import *
-from src.problems.inhomogeneous_compression import InhomogeneousCompression
-from src.problems.static_cook_membrane import CookMembrane
-from src.problems.convergence_static import ConvergenceStatic
-from src.problems.wrinkling_von_karman import Wrinkling
+from src.problems.statics.inhomogeneous_compression import InhomogeneousCompression
+from src.problems.statics.static_cook_membrane import CookMembrane
+from src.problems.statics.convergence_static import ConvergenceStatic
+from src.problems.statics.wrinkling_von_karman import Wrinkling
 
 from src.solvers.statics.nonlinear_static_grad import NonLinearStaticSolverGrad
 from src.solvers.statics.nonlinear_static_standard import NonLinearStaticSolverStandard

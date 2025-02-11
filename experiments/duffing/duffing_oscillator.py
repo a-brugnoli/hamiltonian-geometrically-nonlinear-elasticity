@@ -2,7 +2,7 @@ import numpy as np
 from scipy.optimize import fsolve, root, approx_fprime
 from scipy.special import ellipj
 from scipy.integrate import simpson
-from discrete_gradient import midpoint_discrete_gradient, mean_value_discrete_gradient
+from experiments.duffing.discrete_gradient import midpoint_discrete_gradient, mean_value_discrete_gradient
 
 class DuffingOscillator:
     def __init__(self, alpha=1.0, beta=1.0, t_span=np.array([0, 1]), dt=0.01, q0=1):
@@ -17,10 +17,9 @@ class DuffingOscillator:
         self.dt = dt
         simulation_time = t_span[1] - t_span[0]
         self.n_steps =np.round(simulation_time/dt).astype(int)
-        T_init = t_span[0]
-        T_end = self.n_steps*dt + T_init
-        self.t_span = np.array([T_init, T_end])
-        self.t_vec = np.linspace(T_init, T_end, self.n_steps+1)
+        T_end = self.n_steps*dt + t_span[0]
+        self.t_span = np.array([t_span[0], T_end])
+        self.t_vec = np.linspace(t_span[0], T_end, self.n_steps+1)
         self.q0 = q0
 
 
@@ -63,6 +62,12 @@ class DuffingOscillator:
         return q_ex_vec, v_ex_vec
 
    
+    def discrete_potential_gradient(self, q2, q1):
+        """Discrete gradient of potential energy V(x) = (α/2)x² + (β/4)x⁴"""
+        return (self.alpha * (q1 + q2) / 2 + 
+                self.beta * (q1**3 + q1**2*q2 + q1*q2**2 + q2**3) / 4)
+    
+
     def leapfrog(self):
         """
         Solve using leapfrog/Verlet method
@@ -102,6 +107,8 @@ class DuffingOscillator:
         q_vec[0] = self.q0
         v_vec[0] = 0
 
+
+
         def residual(y_new, y_old):
             q_old, v_old = y_old
             q_new, v_new = y_new
@@ -112,8 +119,9 @@ class DuffingOscillator:
             if type == "implicit midpoint":
                 dV_discrete = self.grad_potential_energy(q_mid)
             elif type == "midpoint discrete gradient":
-                dV_discrete = midpoint_discrete_gradient(q_new, q_old, \
-                                self.potential_energy, self.grad_potential_energy)
+                # dV_discrete = midpoint_discrete_gradient(q_new, q_old, \
+                #                 self.potential_energy, self.grad_potential_energy)
+                dV_discrete = self.discrete_potential_gradient(q_new, q_old)
             elif type == "mean value discrete gradient":
                 dV_discrete = mean_value_discrete_gradient(q_new, q_old, self.grad_potential_energy)
             else:

@@ -14,7 +14,7 @@ def midpoint_discrete_gradient(x_new, x_old, H, grad_H):
      return dH_discrete
 
 
-def  mean_value_discrete_gradient(x_new, x_old, grad_H):
+def mean_value_discrete_gradient(x_new, x_old, grad_H):
      """
      Mean value discrete gradient.
      For cubic polynomials Simspon rule is exact if the number of samples 

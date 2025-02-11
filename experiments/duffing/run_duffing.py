@@ -164,10 +164,10 @@ dict_velocity = {"Leapfrog": error_vec_v_leapfrog,\
                 "Linear implicit": error_vec_v_lin_implicit}
 
 
-str_xlabel = '$\Delta t \; \mathrm{[s]}$'
-plot_convergence(dt_vec, dict_position, xlabel=str_xlabel, \
+str_xlabel = '$\log \Delta t \; \mathrm{[s]}$'
+plot_convergence(dt_vec, dict_position, xlabel=str_xlabel, ylabel="$\log \Delta q$", \
                 title='Position error', savefig=f"{directory_results}convergence_position.pdf")
-plot_convergence(dt_vec, dict_velocity, xlabel=str_xlabel, \
+plot_convergence(dt_vec, dict_velocity, xlabel=str_xlabel, ylabel="$\log \Delta v$",  \
                  title='Velocity error', savefig=f"{directory_results}convergence_velocity.pdf")
 
 plt.figure()
@@ -176,6 +176,8 @@ plt.loglog(dt_vec, error_vec_E_dis_gradient, 'o-', label='Discrete gradient')
 plt.loglog(dt_vec, error_vec_E_lin_implicit, '+-', label='Linear implicit')
 plt.grid(color='0.8', linestyle='-', linewidth=.5)
 plt.xlabel(str_xlabel)
+plt.ylabel("$\log \Delta H$")
+
 plt.legend()
 plt.grid(True)
 plt.title("Energy error")
@@ -187,6 +189,7 @@ plt.loglog(dt_vec, elapsed_vec_dis_gradient, 'o-', label='Discrete gradient')
 plt.loglog(dt_vec, elapsed_vec_lin_implicit, '+-', label='Linear implicit')
 plt.grid(color='0.8', linestyle='-', linewidth=.5)
 plt.xlabel(str_xlabel)
+plt.ylabel("$\log \\tau$")
 plt.legend()
 plt.grid(True)
 plt.title("Computational time [ms]")

@@ -30,11 +30,9 @@ class VonKarmanBeam:
         self.t_span = np.array([T_init, T_end])
         self.t_vec = np.linspace(T_init, T_end, self.n_steps+1)
 
-        self.set_mesh()
-        self.set_spaces()
-
-    def set_mesh(self):
         self.domain = fdrk.IntervalMesh(self.n_elem, self.length)
+        self.set_spaces()
+        
 
     def set_spaces(self):
         
@@ -47,8 +45,8 @@ class VonKarmanBeam:
         self.space_axial_stress = fdrk.FunctionSpace(self.domain, "DG", 0)
         self.space_bending_stress = fdrk.FunctionSpace(self.domain, "DG", 1)
 
-        self.space_dis_gradient = self.space_q_x * self.space_q_z * self.space_v_x * self.space_v_z 
-        self.space_lin_implicit = self.space_v_x * self.space_v_z * self.space_axial_stress * self.space_bending_stress
+        self.mixed_space_dis_gradient = self.space_q_x * self.space_q_z * self.space_v_x * self.space_v_z 
+        self.mixed_space_lin_implicit = self.space_v_x * self.space_v_z * self.space_axial_stress * self.space_bending_stress
 
         
     def set_initial_conditions(self, \
