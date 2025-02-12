@@ -3,7 +3,16 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import numpy as np
 
-def create_function_animation(functions, mesh, filename=None, 
+def is_hermite(f):
+    # Get the function space from the function
+    V = f.function_space()
+    # Get the element
+    element = V.ufl_element()
+    # Check if it's Hermite
+    return 'Hermite' in element.family()
+
+
+def create_1d_function_animation(functions, mesh, filename=None, 
                             interval=100, title="Function Animation",
                             display=True):
     """
@@ -44,10 +53,19 @@ def create_function_animation(functions, mesh, filename=None,
     # Find global min and max for consistent y-axis limits
     y_min = float('inf')
     y_max = float('-inf')
+
     for f in functions:
-        y = f.dat.data_ro[:]
+        if is_hermite(f):
+            y = f.dat.data_ro[::2]
+        else:
+            y = f.dat.data_ro[:]
+
+
         y_min = min(y_min, y.min())
         y_max = max(y_max, y.max())
+    
+    # print(f"Minimum y: {y_min}")
+    # print(f"Maximum y: {y_max}")
     
     # Add some padding to the limits
     padding = 0.1 * (y_max - y_min)
@@ -64,7 +82,11 @@ def create_function_animation(functions, mesh, filename=None,
     
     # Animation update function
     def update(frame):
-        y = functions[frame].dat.data_ro[:]
+        f_frame = functions[frame]
+        if is_hermite(f_frame):
+            y = f_frame.dat.data_ro[::2]
+        else:
+            y = f_frame.dat.data_ro[:]
         y_sorted = y[x_sorted_idx]
         line.set_data(x_sorted, y_sorted)
         line.set_label(f'Frame num {frame}')
@@ -92,24 +114,32 @@ def create_function_animation(functions, mesh, filename=None,
 # Example usage
 if __name__ == "__main__":
     # Create a 1D mesh
-    mesh = fdrk.UnitIntervalMesh(100)
-    V = fdrk.FunctionSpace(mesh, "CG", 1)
+    n_elements = 100
+    mesh = fdrk.UnitIntervalMesh(n_elements)
+    # V = fdrk.FunctionSpace(mesh, "CG", 1)
+    V = fdrk.FunctionSpace(mesh, "Hermite", 3)
     f = fdrk.Function(V)
+    
 
     x = fdrk.SpatialCoordinate(mesh)[0]
     
     # Create some example functions
     functions = []
     t_values = np.linspace(0, 2*np.pi, 60)
+    # t_values = [0]
     
     for t in t_values:
         # Create a traveling wave
-        f.interpolate(fdrk.sin(2*fdrk.pi*(x - t)))
+        exp = fdrk.sin(2*fdrk.pi*(x - t))
+        if is_hermite(f):
+            f.project(exp)            
+        else:
+            f.interpolate(exp)
         functions.append(f.copy(deepcopy=True))
     
     # Create and display animation
     # Option 1: Display only
-    anim1 = create_function_animation(functions, mesh, 
+    anim1 = create_1d_function_animation(functions, mesh, 
                                     title="Traveling Wave",
-                                    interval=50)
+                                    interval=1)
     

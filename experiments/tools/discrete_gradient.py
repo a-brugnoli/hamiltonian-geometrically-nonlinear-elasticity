@@ -1,5 +1,6 @@
 import numpy as np
 from numpy.linalg import norm
+import firedrake as fdrk
 from scipy.integrate import simpson, quad
 
 def midpoint_discrete_gradient(x_new, x_old, H, grad_H):
@@ -30,3 +31,27 @@ def mean_value_discrete_gradient(x_new, x_old, grad_H):
      integral = quad(integrand, 0, 1)[0]
 
      return integral
+
+
+def discrete_gradient_firedrake(var_new, var_old, test_var, grad_H, H):
+    """
+    Midpoint implementation of discrete gradient in firedrake
+    Mean value discrete gradient not supported on multiple meshes.
+    Perhaps the simplest is to create a tensor product mesh to eliminate the error.
+    Parameters:
+    var_new: variable at next time step
+    grad_H : weak variational derivative
+    H : Hamiltonian functional
+    
+    """
+    var_mid = 0.5*(var_old + var_new)
+    var_diff = var_new - var_old
+
+    dH_xmid = grad_H(test_var, var_mid)
+
+    num_coeff = fdrk.assemble(H(var_new) - H(var_old) - grad_H(var_diff, var_mid))
+    den_coeff = fdrk.norm(var_diff)**2
+    coeff = num_coeff/den_coeff
+    dH_discrete = dH_xmid + fdrk.inner(test_var, coeff*var_diff) * fdrk.dx
+
+    return dH_discrete

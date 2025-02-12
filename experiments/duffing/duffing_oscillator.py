@@ -2,7 +2,7 @@ import numpy as np
 from scipy.optimize import fsolve, root, approx_fprime
 from scipy.special import ellipj
 from scipy.integrate import simpson
-from experiments.duffing.discrete_gradient import midpoint_discrete_gradient, mean_value_discrete_gradient
+from experiments.tools.discrete_gradient import midpoint_discrete_gradient, mean_value_discrete_gradient
 
 class DuffingOscillator:
     def __init__(self, alpha=1.0, beta=1.0, t_span=np.array([0, 1]), dt=0.01, q0=1):
@@ -76,21 +76,21 @@ class DuffingOscillator:
             - q at integers 
         Here we do at integers
         """
-        q = np.zeros_like(self.t_vec)
-        v = np.zeros_like(self.t_vec)
-        q[0] = self.q0
-        v[0] = 0
+        q_vec = np.zeros_like(self.t_vec)
+        v_vec = np.zeros_like(self.t_vec)
+        q_vec[0] = self.q0
+        v_vec[0] = 0
         
         # First half-step for velocity using Euler
-        q_half = q[0] + 0.5 * self.dt * v[0]
+        q_half = q[0] + 0.5 * self.dt * v_vec[0]
         
         for i in range(self.n_steps):
-            v[i+1] = v[i] - self.dt * self.grad_potential_energy(q_half)
-            q_new_half = q_half + self.dt * v[i+1]
-            q[i+1] = 0.5*(q_half + q_new_half)
+            v_vec[i+1] = v_vec[i] - self.dt * self.grad_potential_energy(q_half)
+            q_new_half = q_half + self.dt * v_vec[i+1]
+            q_vec[i+1] = 0.5*(q_half + q_new_half)
             q_half = q_new_half
 
-        return q, v
+        return q_vec, v_vec
 
 
     def implicit_method(self, type="implicit midpoint"):
