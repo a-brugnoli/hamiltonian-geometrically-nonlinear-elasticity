@@ -31,20 +31,20 @@ beta = 5
 omega_0 = np.sqrt(alpha + beta * q0**2)
 
 T = 2*pi/omega_0
-t_end = T
+t_end = 100*T
 # Time parameters
 t_span = [0, t_end]
 
 norm_type = "Linf" 
-dt_base = t_end/100
+dt_base = T/100
 # sec_factor = 1/10
 # dt_base = sec_factor*2/omega_0
 
 n_case = 5
 log_base = 2
-dt_vec = [dt_base/log_base**n for n in range(n_case)]
+time_step_vec = [dt_base/log_base**n for n in range(n_case)]
 
-sampling_frequency_vec = [int(dt_base/dt) for dt in dt_vec]
+output_frequency_vec = [int(dt_base/dt) for dt in time_step_vec]
 
 error_vec_q_leapfrog = np.zeros(n_case)
 error_vec_v_leapfrog = np.zeros(n_case)
@@ -64,39 +64,39 @@ elapsed_vec_lin_implicit = np.zeros(n_case)
 for ii in range(n_case):
 
     print(f"Case {ii+1}")
-    dt = dt_vec[ii]
-    # sampling_frequency = sampling_frequency_vec[ii]
-    sampling_frequency = 1
+    dt = time_step_vec[ii]
+    # output_frequency = output_frequency_vec[ii]
+    output_frequency = 1
 
     duffing = DuffingOscillator(alpha, beta, t_span, dt, q0)
 
     t_vec_all = duffing.t_vec
-    t_vec = t_vec_all[::sampling_frequency]
+    t_vec = t_vec_all[::output_frequency]
 
     # Compute exact solution and numerical solutions
     q_exact_all, v_exact_all = duffing.exact_solution()
-    q_exact = q_exact_all[::sampling_frequency]
-    v_exact = v_exact_all[::sampling_frequency]
+    q_exact = q_exact_all[::output_frequency]
+    v_exact = v_exact_all[::output_frequency]
     E_exact = duffing.hamiltonian(q_exact, v_exact)
 
 
     t0_leapfrog = time.perf_counter()
     q_leapfrog_all, v_leapfrog_all = duffing.leapfrog()
     tf_leapfrog = time.perf_counter()
-    q_leapfrog = q_leapfrog_all[::sampling_frequency]
-    v_leapfrog = v_leapfrog_all[::sampling_frequency]
+    q_leapfrog = q_leapfrog_all[::output_frequency]
+    v_leapfrog = v_leapfrog_all[::output_frequency]
 
     t0_dis_gradient = time.perf_counter()
     q_dis_gradient_all, v_dis_gradient_all = duffing.implicit_method("midpoint discrete gradient")
     tf_dis_gradient = time.perf_counter()
-    q_dis_gradient = q_dis_gradient_all[::sampling_frequency]
-    v_dis_gradient = v_dis_gradient_all[::sampling_frequency]
+    q_dis_gradient = q_dis_gradient_all[::output_frequency]
+    v_dis_gradient = v_dis_gradient_all[::output_frequency]
 
     t0_lin_implicit = time.perf_counter()
     q_lin_implicit_all, x_lin_implicit_all = duffing.linear_implicit_static_condensation()
     tf_lin_implicit = time.perf_counter()
-    q_lin_implicit = q_lin_implicit_all[::sampling_frequency]
-    x_lin_implicit = x_lin_implicit_all[::sampling_frequency, :]
+    q_lin_implicit = q_lin_implicit_all[::output_frequency]
+    x_lin_implicit = x_lin_implicit_all[::output_frequency, :]
     v_lin_implicit = x_lin_implicit[:, 0]
 
     elapsed_leapfrog = (tf_leapfrog - t0_leapfrog)*1e3
@@ -165,15 +165,15 @@ dict_velocity = {"Leapfrog": error_vec_v_leapfrog,\
 
 
 str_xlabel = '$\log \Delta t \; \mathrm{[s]}$'
-plot_convergence(dt_vec, dict_position, xlabel=str_xlabel, ylabel="$\log \Delta q$", \
+plot_convergence(time_step_vec, dict_position, xlabel=str_xlabel, ylabel="$\log \Delta q$", \
                 title='Position error', savefig=f"{directory_results}convergence_position.pdf")
-plot_convergence(dt_vec, dict_velocity, xlabel=str_xlabel, ylabel="$\log \Delta v$",  \
+plot_convergence(time_step_vec, dict_velocity, xlabel=str_xlabel, ylabel="$\log \Delta v$",  \
                  title='Velocity error', savefig=f"{directory_results}convergence_velocity.pdf")
 
 plt.figure()
-plt.loglog(dt_vec, error_vec_E_leapfrog, '*-', label='Leapfrog')
-plt.loglog(dt_vec, error_vec_E_dis_gradient, 'o-', label='Discrete gradient')
-plt.loglog(dt_vec, error_vec_E_lin_implicit, '+-', label='Linear implicit')
+plt.loglog(time_step_vec, error_vec_E_leapfrog, '*-', label='Leapfrog')
+plt.loglog(time_step_vec, error_vec_E_dis_gradient, 'o-', label='Discrete gradient')
+plt.loglog(time_step_vec, error_vec_E_lin_implicit, '+-', label='Linear implicit')
 plt.grid(color='0.8', linestyle='-', linewidth=.5)
 plt.xlabel(str_xlabel)
 plt.ylabel("$\log \Delta H$")
@@ -184,9 +184,9 @@ plt.title("Energy error")
 plt.savefig(f"{directory_results}energy_error.pdf", dpi='figure', format='pdf', bbox_inches="tight")
 
 plt.figure()
-plt.loglog(dt_vec, elapsed_vec_leapfrog, '*-', label='Leapfrog')
-plt.loglog(dt_vec, elapsed_vec_dis_gradient, 'o-', label='Discrete gradient')
-plt.loglog(dt_vec, elapsed_vec_lin_implicit, '+-', label='Linear implicit')
+plt.loglog(time_step_vec, elapsed_vec_leapfrog, '*-', label='Leapfrog')
+plt.loglog(time_step_vec, elapsed_vec_dis_gradient, 'o-', label='Discrete gradient')
+plt.loglog(time_step_vec, elapsed_vec_lin_implicit, '+-', label='Linear implicit')
 plt.grid(color='0.8', linestyle='-', linewidth=.5)
 plt.xlabel(str_xlabel)
 plt.ylabel("$\log \\tau$")

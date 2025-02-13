@@ -2,7 +2,7 @@ import numpy as np
 from scipy.optimize import fsolve, root, approx_fprime
 from scipy.special import ellipj
 from scipy.integrate import simpson
-from experiments.tools.discrete_gradient import midpoint_discrete_gradient, mean_value_discrete_gradient
+from src.discrete_gradient import midpoint_discrete_gradient, mean_value_discrete_gradient
 
 class DuffingOscillator:
     def __init__(self, alpha=1.0, beta=1.0, t_span=np.array([0, 1]), dt=0.01, q0=1):
@@ -82,7 +82,7 @@ class DuffingOscillator:
         v_vec[0] = 0
         
         # First half-step for velocity using Euler
-        q_half = q[0] + 0.5 * self.dt * v_vec[0]
+        q_half = q_vec[0] + 0.5 * self.dt * v_vec[0]
         
         for i in range(self.n_steps):
             v_vec[i+1] = v_vec[i] - self.dt * self.grad_potential_energy(q_half)
@@ -119,9 +119,9 @@ class DuffingOscillator:
             if type == "implicit midpoint":
                 dV_discrete = self.grad_potential_energy(q_mid)
             elif type == "midpoint discrete gradient":
-                # dV_discrete = midpoint_discrete_gradient(q_new, q_old, \
-                #                 self.potential_energy, self.grad_potential_energy)
-                dV_discrete = self.discrete_potential_gradient(q_new, q_old)
+                dV_discrete = midpoint_discrete_gradient(q_new, q_old, \
+                                self.potential_energy, self.grad_potential_energy)
+                # dV_discrete = self.discrete_potential_gradient(q_new, q_old)
             elif type == "mean value discrete gradient":
                 dV_discrete = mean_value_discrete_gradient(q_new, q_old, self.grad_potential_energy)
             else:

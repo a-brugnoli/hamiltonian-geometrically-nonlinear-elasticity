@@ -1,16 +1,18 @@
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import numpy as np
+from src.postprocessing.options import configure_matplotib
+configure_matplotib()
 
-def create_1d_line_animation(y_matrix, x_vec, filename=None, 
-                            interval=100, title="Line Animation",
-                            display=True):
+
+def create_1d_line_animation(t_vec, x_vec, y_matrix, filename=None, 
+                            interval=100, title="Line Animation"):
    
     n_times = y_matrix.shape[0]
     # Create figure and axis
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.set_xlabel('x')
-    ax.set_ylabel('u(x)')
+    ax.set_ylabel('w(x)')
     ax.set_title(title)
     
     # Find global min and max for consistent y-axis limits
@@ -37,7 +39,7 @@ def create_1d_line_animation(y_matrix, x_vec, filename=None,
     def update(frame):
         
         line.set_data(x_vec, y_matrix[frame])
-        line.set_label(f'Frame num {frame}')
+        line.set_label(f'Time {t_vec[frame]:.1f} [ms]')
         leg = ax.legend()
         return line, leg
     
@@ -50,11 +52,5 @@ def create_1d_line_animation(y_matrix, x_vec, filename=None,
     if filename:
         anim.save(filename, writer='ffmpeg')
         print(f"Animation saved as {filename}")
-    
-    # Display if requested
-    if display:
-        plt.show()
-    # else:
-    #     plt.close()
     
     return anim
