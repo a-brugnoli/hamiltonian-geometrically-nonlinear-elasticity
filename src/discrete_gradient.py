@@ -70,8 +70,8 @@ def discrete_gradient_firedrake_twofield(tuple_new, tuple_old, tuple_test_var, g
     H : Hamiltonian functional
     
     """
-    var_old_1, var_old_2 = tuple_old
     var_new_1, var_new_2 = tuple_new
+    var_old_1, var_old_2 = tuple_old
     var_mid_1 = 0.5*(var_old_1 + var_new_1)
     var_mid_2 = 0.5*(var_old_2 + var_new_2)
 
@@ -96,3 +96,27 @@ def discrete_gradient_firedrake_twofield(tuple_new, tuple_old, tuple_test_var, g
     dH_discrete_2 = dH_xmid_2 + fdrk.inner(test_var_2, coeff_2*var_diff_2) * fdrk.dx
 
     return dH_discrete_1, dH_discrete_2
+
+
+def check_coeff(tuple_new, tuple_old, grad_H, H):
+     var_new_1, var_new_2 = tuple_new
+     var_old_1, var_old_2 = tuple_old
+     var_mid_1 = 0.5*(var_old_1 + var_new_1)
+     var_mid_2 = 0.5*(var_old_2 + var_new_2)
+
+     var_diff_1 = var_new_1 - var_old_1
+     var_diff_2 = var_new_2 - var_old_2
+
+     dH_diff_1, dH_diff_2 = grad_H(var_diff_1, var_diff_2, var_mid_1, var_mid_2)
+
+     diff_H = H(var_new_1, var_new_2) - H(var_old_1, var_old_2)
+
+     num_coeff_1 = fdrk.assemble(diff_H - dH_diff_1)
+     den_coeff_1 = fdrk.norm(var_diff_1)**2
+     coeff_1 = num_coeff_1/den_coeff_1
+     num_coeff_2 = fdrk.assemble(diff_H - dH_diff_2)
+     den_coeff_2 = fdrk.norm(var_diff_2)**2
+     coeff_2 = num_coeff_2/den_coeff_2
+
+     print(f"Coefficient numerator variable 1: {coeff_1}")
+     print(f"Coefficient numerator variable 2: {coeff_2}")
