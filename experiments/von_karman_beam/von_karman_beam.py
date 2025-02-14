@@ -1,7 +1,7 @@
 import firedrake as fdrk
 import numpy as np
 from tqdm import tqdm
-from src.discrete_gradient import discrete_gradient_firedrake
+from src.discrete_gradient import discrete_gradient_firedrake_twofield
 
 class VonKarmanBeam:
     def __init__(self, **kwargs): 
@@ -60,93 +60,89 @@ class VonKarmanBeam:
         self.t_vec_output = self.t_vec[::self.output_frequency]
 
         # Finite elemnt spaces
-        self.space_q_x = fdrk.FunctionSpace(self.domain, "CG", 1)
-        self.space_v_x = self.space_q_x
+        self.space_hor_displacement = fdrk.FunctionSpace(self.domain, "CG", 1)
+        self.space_hor_velocity = self.space_hor_displacement
 
-        self.space_q_z = fdrk.FunctionSpace(self.domain, "Hermite", 3)
-        self.space_v_z = self.space_q_z
+        self.space_ver_displacement = fdrk.FunctionSpace(self.domain, "Hermite", 3)
+        self.space_ver_velocity = self.space_ver_displacement
 
         self.space_axial_stress = fdrk.FunctionSpace(self.domain, "DG", 0)
         self.space_bending_stress = fdrk.FunctionSpace(self.domain, "DG", 1)
 
-        self.mixed_space_implicit = self.space_q_x * self.space_q_z * self.space_v_x * self.space_v_z 
-        self.mixed_space_linear_implicit = self.space_v_x * self.space_v_z * self.space_axial_stress * self.space_bending_stress
+        self.mixed_space_implicit = self.space_hor_displacement * self.space_ver_displacement * self.space_hor_velocity * self.space_ver_velocity 
+        self.mixed_space_linear_implicit = self.space_hor_velocity * self.space_ver_velocity * self.space_axial_stress * self.space_bending_stress
 
 
-    def get_initial_conditions_q_z(self):
-        q_z_exp = self.q0*fdrk.sin(fdrk.pi*self.x_coord/self.length)
-        return q_z_exp
+    def get_initial_conditions_ver_displacement(self):
+        ver_displacement_exp = self.q0*fdrk.sin(fdrk.pi*self.x_coord/self.length)
+        return ver_displacement_exp
 
 
-    def axial_strain(self, q_x, q_z):
+    def axial_strain(self, hor_displacement, ver_displacement):
         try:
-            eps_a = q_x.dx(0) + 0.5**(q_z.dx(0))**2
+            eps_a = hor_displacement.dx(0) + 1/2*(ver_displacement.dx(0))**2
             return eps_a
         except ValueError:
             print("Invalid expression in axial strain. Don't use numbers.")
             return
 
-    def bending_strain(self, q_z):
+    def bending_strain(self, ver_displacement):
         try:
-            kappa = q_z.dx(0).dx(0) 
+            kappa = ver_displacement.dx(0).dx(0) 
         except ValueError:
             print("Invalid expression in bending strain. Don't use numbers.")
         return kappa
     
     
-    def axial_stress(self, q_x, q_z):
-        return self.axial_stiffness*self.axial_strain(q_x, q_z)
+    def axial_stress(self, hor_displacement, ver_displacement):
+        return self.axial_stiffness*self.axial_strain(hor_displacement, ver_displacement)
     
-    def bending_stress(self, q_z):
-        return self.bending_stiffness*self.bending_strain(q_z)
-    
-
-    def deformation_energy(self, q_x, q_z):
-        potential_energy_density = 0.5*(self.axial_stiffness*self.axial_strain(q_x, q_z)**2 \
-                                      + self.bending_stiffness*self.bending_strain(q_z)**2)
-        V = potential_energy_density*fdrk.dx
-
-        return V
-
-    def kinetic_energy(self, v_x, v_z):
-        kinetic_energy_density = 0.5*self.density*(v_x**2 + v_z**2)
-        T = kinetic_energy_density*fdrk.dx
-
-        return T
-
-    def hamiltonian(self, q_x, q_z, v_x, v_z):
-        return self.kinetic_energy(v_x, v_z) + self.deformation_energy(q_x, q_z)
+    def bending_stress(self, ver_displacement):
+        return self.bending_stiffness*self.bending_strain(ver_displacement)
     
 
-    def deformation_energy_leapfrog(self, q_x_min, q_x_plus, q_z_min, q_z_plus):
-        axial_energy_density = 0.5*self.axial_stiffness*fdrk.inner(q_x_min.dx(0), q_x_plus.dx(0))
-        bending_energy_density = 0.5*self.bending_stiffness*fdrk.inner(q_z_min.dx(0).dx(0), q_z_plus.dx(0).dx(0))
+    def deformation_energy(self, hor_displacement, ver_displacement):
+        potential_energy_density = 0.5*(self.axial_stiffness*self.axial_strain(hor_displacement, ver_displacement)**2 \
+                                    + self.bending_stiffness*self.bending_strain(ver_displacement)**2)
+        return potential_energy_density*fdrk.dx
+
+    def kinetic_energy(self, hor_velocity, ver_velocity):
+        kinetic_energy_density = 0.5*self.density*(hor_velocity**2 + ver_velocity**2)
+        return kinetic_energy_density*fdrk.dx
+
+    def hamiltonian(self, hor_displacement, ver_displacement, hor_velocity, ver_velocity):
+        return self.kinetic_energy(hor_velocity, ver_velocity) + self.deformation_energy(hor_displacement, ver_displacement)
+    
+
+    def deformation_energy_leapfrog(self, hor_displacement_min, hor_displacement_plus, ver_displacement_min, ver_displacement_plus):
+        axial_energy_density = 0.5*self.axial_stiffness*fdrk.inner(hor_displacement_min.dx(0), hor_displacement_plus.dx(0))
+        bending_energy_density = 0.5*self.bending_stiffness*fdrk.inner(ver_displacement_min.dx(0).dx(0), ver_displacement_plus.dx(0).dx(0))
         deformation_density = axial_energy_density + bending_energy_density
 
         return deformation_density*fdrk.dx 
         
 
-    def weak_grad_potential(self, test_v_x, test_v_z, q_x, q_z):
-        n_xx = self.axial_stress(q_x, q_z)
-        m_xx = self.bending_stress(q_z)
+    def weak_grad_potential(self, test_hor_velocity, test_ver_velocity, hor_displacement, ver_displacement):
+        N_xx = self.axial_stress(hor_displacement, ver_displacement)
+        bend_mom = self.bending_stress(ver_displacement)
 
-        form_dV_q_x = + fdrk.inner(test_v_x.dx(0), n_xx)*fdrk.dx 
+        form_dV_hor_displacement = + fdrk.inner(test_hor_velocity.dx(0), N_xx)*fdrk.dx 
         
-        form_dV_q_z = + fdrk.inner(test_v_z.dx(0).dx(0), m_xx)*fdrk.dx \
-                      + fdrk.inner(test_v_z.dx(0), q_x.dx(0)*n_xx)*fdrk.dx
+        form_dV_ver_displacement = + fdrk.inner(test_ver_velocity.dx(0).dx(0), bend_mom)*fdrk.dx \
+                      + fdrk.inner(test_ver_velocity.dx(0), N_xx*ver_displacement.dx(0))*fdrk.dx
         
-        return form_dV_q_x, form_dV_q_z
+        return form_dV_hor_displacement, form_dV_ver_displacement
     
 
-    def weak_grad_potential_linear(self, test_v_x, test_v_z, q_x, q_z):
-        n_xx = self.axial_stiffness*q_x.dx(0)
-        m_xx = self.bending_stress(q_z)
+    def weak_grad_potential_linear(self, test_hor_velocity, test_ver_velocity, hor_displacement, ver_displacement):
+        N_xx = self.axial_stiffness*hor_displacement.dx(0)
+        bend_mom = self.bending_stress(ver_displacement)
 
-        form_dV_q_x = + fdrk.inner(test_v_x.dx(0), n_xx)*fdrk.dx 
+        form_dV_hor_displacement = + fdrk.inner(test_hor_velocity.dx(0), N_xx)*fdrk.dx 
         
-        form_dV_q_z = + fdrk.inner(test_v_z.dx(0).dx(0), m_xx)*fdrk.dx 
+        form_dV_ver_displacement = + fdrk.inner(test_ver_velocity.dx(0).dx(0), bend_mom)*fdrk.dx 
         
-        return form_dV_q_x, form_dV_q_z
+        return form_dV_hor_displacement, form_dV_ver_displacement
     
 
     def mass_form(self, test, trial):
@@ -194,102 +190,101 @@ class VonKarmanBeam:
             - q at integers 
         Here we do at integers
         """
-        bc_v_x = fdrk.DirichletBC(self.space_v_x, fdrk.Constant(0), "on_boundary")
+        bc_hor_velocity = fdrk.DirichletBC(self.space_hor_velocity, fdrk.Constant(0), "on_boundary")
 
-        bc_q_z = fdrk.DirichletBC(self.space_q_z, fdrk.Constant(0), "on_boundary")
-        bc_v_z = fdrk.DirichletBC(self.space_v_z, fdrk.Constant(0), "on_boundary")
+        bc_ver_displacement = fdrk.DirichletBC(self.space_ver_displacement, fdrk.Constant(0), "on_boundary")
+        bc_ver_velocity = fdrk.DirichletBC(self.space_ver_velocity, fdrk.Constant(0), "on_boundary")
 
-        q_x_old = fdrk.Function(self.space_q_x)
-        v_x_old = fdrk.Function(self.space_v_x)
+        hor_displacement_old = fdrk.Function(self.space_hor_displacement)
+        hor_velocity_old = fdrk.Function(self.space_hor_velocity)
 
-        q_z_old = fdrk.Function(self.space_q_z)
-        v_z_old = fdrk.Function(self.space_v_z)
+        ver_displacement_old = fdrk.Function(self.space_ver_displacement)
+        ver_velocity_old = fdrk.Function(self.space_ver_velocity)
 
-        q_z_0 = self.get_initial_conditions_q_z()
-        q_z_old.assign(fdrk.project(q_z_0, self.space_q_z, bcs = bc_q_z))
+        ver_displacement_0 = self.get_initial_conditions_ver_displacement()
+        ver_displacement_old.assign(fdrk.project(ver_displacement_0, self.space_ver_displacement, bcs = bc_ver_displacement))
 
-        q_x_new = fdrk.Function(self.space_q_x)
-        q_z_new = fdrk.Function(self.space_q_z)
+        hor_displacement_new = fdrk.Function(self.space_hor_displacement)
+        ver_displacement_new = fdrk.Function(self.space_ver_displacement)
 
-        v_x_new = fdrk.Function(self.space_v_x)
-        v_z_new = fdrk.Function(self.space_v_z)
+        hor_velocity_new = fdrk.Function(self.space_hor_velocity)
+        ver_velocity_new = fdrk.Function(self.space_ver_velocity)
 
-        test_v_x = fdrk.TestFunction(self.space_v_x)
-        test_v_z = fdrk.TestFunction(self.space_v_z)
-        trial_v_x = fdrk.TrialFunction(self.space_v_x)
-        trial_v_z = fdrk.TrialFunction(self.space_v_z)
+        test_hor_velocity = fdrk.TestFunction(self.space_hor_velocity)
+        test_ver_velocity = fdrk.TestFunction(self.space_ver_velocity)
+        trial_hor_velocity = fdrk.TrialFunction(self.space_hor_velocity)
+        trial_ver_velocity = fdrk.TrialFunction(self.space_ver_velocity)
 
-        q_x_half = fdrk.Function(self.space_q_x)
-        q_x_half.assign(q_x_old + 0.5*self.dt*v_x_old)
+        hor_displacement_half = fdrk.Function(self.space_hor_displacement)
+        hor_displacement_half.assign(hor_displacement_old + 0.5*self.dt*hor_velocity_old)
 
-        q_z_half = fdrk.Function(self.space_q_z)
-        q_z_half.assign(q_z_old + 0.5*self.dt*v_z_old)
+        ver_displacement_half = fdrk.Function(self.space_ver_displacement)
+        ver_displacement_half.assign(ver_displacement_old + 0.5*self.dt*ver_velocity_old)
 
-        q_x_new_half = q_x_half + self.dt*v_x_new
-        q_z_new_half = q_z_half + self.dt*v_z_new
+        hor_displacement_new_half = hor_displacement_half + self.dt*hor_velocity_new
+        ver_displacement_new_half = ver_displacement_half + self.dt*ver_velocity_new
 
-        dV_q_x, dV_q_z = self.weak_grad_potential(test_v_x, test_v_z, q_x_half, q_z_half)
-        # dV_q_x, dV_q_z = self.weak_grad_potential_linear(test_v_x, test_v_z, q_x_half, q_z_half)
+        dV_hor_displacement, dV_ver_displacement = self.weak_grad_potential(test_hor_velocity, test_ver_velocity, hor_displacement_half, ver_displacement_half)
+        # dV_hor_displacement, dV_ver_displacement = self.weak_grad_potential_linear(test_hor_velocity, test_ver_velocity, hor_displacement_half, ver_displacement_half)
 
-        mass_v_x = self.mass_form(test_v_x, trial_v_x)
-        rhs_v_x  = self.mass_form(test_v_x, v_x_old) - self.dt * dV_q_x
+        mass_hor_velocity = self.mass_form(test_hor_velocity, trial_hor_velocity)
+        rhs_hor_velocity  = self.mass_form(test_hor_velocity, hor_velocity_old) - self.dt * dV_hor_displacement
 
-        problem_v_x = fdrk.LinearVariationalProblem(mass_v_x, rhs_v_x, v_x_new, bcs=bc_v_x)
-        solver_v_x = fdrk.LinearVariationalSolver(problem_v_x)
+        problem_hor_velocity = fdrk.LinearVariationalProblem(mass_hor_velocity, rhs_hor_velocity, hor_velocity_new, bcs=bc_hor_velocity)
+        solver_hor_velocity = fdrk.LinearVariationalSolver(problem_hor_velocity)
 
-        mass_v_z = self.mass_form(test_v_z, trial_v_z)
-        rhs_v_z = self.mass_form(test_v_z, v_z_old) - self.dt * dV_q_z
+        mass_ver_velocity = self.mass_form(test_ver_velocity, trial_ver_velocity)
+        rhs_ver_velocity = self.mass_form(test_ver_velocity, ver_velocity_old) - self.dt * dV_ver_displacement
 
-        problem_v_z = fdrk.LinearVariationalProblem(mass_v_z, rhs_v_z, v_z_new, bcs=bc_v_z)
+        problem_ver_velocity = fdrk.LinearVariationalProblem(mass_ver_velocity, rhs_ver_velocity, ver_velocity_new, bcs=bc_ver_velocity)
         
-        solver_v_z = fdrk.LinearVariationalSolver(problem_v_z)
+        solver_ver_velocity = fdrk.LinearVariationalSolver(problem_ver_velocity)
 
-        q_x_list = []
-        q_z_list = []
-        v_x_list = []
-        v_z_list = []
+        hor_displacement_list = []
+        ver_displacement_list = []
+        hor_velocity_list = []
+        ver_velocity_list = []
 
         if save_vars:   
-            q_x_list.append(q_x_old.copy(deepcopy=True))
-            q_z_list.append(q_z_old.copy(deepcopy=True))
-            v_x_list.append(v_x_old.copy(deepcopy=True))
-            v_z_list.append(v_z_old.copy(deepcopy=True))
+            hor_displacement_list.append(hor_displacement_old.copy(deepcopy=True))
+            ver_displacement_list.append(ver_displacement_old.copy(deepcopy=True))
+            hor_velocity_list.append(hor_velocity_old.copy(deepcopy=True))
+            ver_velocity_list.append(ver_velocity_old.copy(deepcopy=True))
 
+        # energy_vec = np.zeros(len(self.t_vec_output)-1)
         energy_vec = np.zeros(len(self.t_vec_output))
-        energy_vec[0] = fdrk.assemble(self.hamiltonian(q_x_old, q_z_old, v_x_old, v_z_old))
+        energy_vec[0] = fdrk.assemble(self.hamiltonian(hor_displacement_old, ver_displacement_old, hor_velocity_old, ver_velocity_old))
         kk = 0
-        # energy_vec_leapfrog = np.zeros(self.n_steps)
 
         for ii in tqdm(range(self.n_steps)):
-            solver_v_x.solve()
-            solver_v_z.solve()
+            solver_hor_velocity.solve()
+            solver_ver_velocity.solve()
             
-            q_x_new.assign(0.5*(q_x_half + q_x_new_half))      
-            q_z_new.assign(0.5*(q_z_half + q_z_new_half))
+            hor_displacement_new.assign(0.5*(hor_displacement_half + hor_displacement_new_half))      
+            ver_displacement_new.assign(0.5*(ver_displacement_half + ver_displacement_new_half))
 
-
-            # energy_vec_leapfrog[ii] = fdrk.assemble(self.kinetic_energy(v_x_new, v_z_new) \
-            #                     + self.deformation_energy_leapfrog(q_x_half, q_x_new_half, q_z_half, q_z_new_half))
-
+             
             if (ii+1)%self.output_frequency==0:
+                # energy_vec[kk] = fdrk.assemble(self.kinetic_energy(hor_velocity_new, ver_velocity_new) \
+                #                 + self.deformation_energy_leapfrog(hor_displacement_half, hor_displacement_new_half, ver_displacement_half, ver_displacement_new_half))
                 kk += 1
-                energy_vec[kk] = fdrk.assemble(self.hamiltonian(q_x_new, q_z_new, v_x_new, v_z_new))
+                energy_vec[kk] = fdrk.assemble(self.hamiltonian(hor_displacement_new, ver_displacement_new, hor_velocity_new, ver_velocity_new))
                 if save_vars: 
-                    q_x_list.append(q_x_new.copy(deepcopy=True))
-                    q_z_list.append(q_z_new.copy(deepcopy=True))
-                    v_x_list.append(v_x_new.copy(deepcopy=True))
-                    v_z_list.append(v_z_new.copy(deepcopy=True))
+                    hor_displacement_list.append(hor_displacement_new.copy(deepcopy=True))
+                    ver_displacement_list.append(ver_displacement_new.copy(deepcopy=True))
+                    hor_velocity_list.append(hor_velocity_new.copy(deepcopy=True))
+                    ver_velocity_list.append(ver_velocity_new.copy(deepcopy=True))
 
-            q_x_half.assign(q_x_new_half)
-            v_x_old.assign(v_x_new)
+            hor_displacement_half.assign(hor_displacement_new_half)
+            hor_velocity_old.assign(hor_velocity_new)
 
-            q_z_half.assign(q_z_new_half)
-            v_z_old.assign(v_z_new)
-
-        dict_results = {"q_x": q_x_list, 
-                        "v_x": v_x_list, 
-                        "q_z": q_z_list, 
-                        "v_z": v_z_list, 
+            ver_displacement_half.assign(ver_displacement_new_half)
+            ver_velocity_old.assign(ver_velocity_new)
+           
+        dict_results = {"hor_displacement": hor_displacement_list, 
+                        "hor_velocity": hor_velocity_list, 
+                        "ver_displacement": ver_displacement_list, 
+                        "ver_velocity": ver_velocity_list, 
                         "energy": energy_vec}
         
         return dict_results
@@ -303,107 +298,101 @@ class VonKarmanBeam:
             - q at integers 
         Here we do at integers
         """
-        bc_q_x = fdrk.DirichletBC(self.space_v_x, fdrk.Constant(0), "on_boundary")
-        bc_v_x = fdrk.DirichletBC(self.space_v_x, fdrk.Constant(0), "on_boundary")
+        bc_hor_displacement = fdrk.DirichletBC(self.mixed_space_implicit.sub(0), fdrk.Constant(0), "on_boundary")
+        bc_ver_displacement = fdrk.DirichletBC(self.mixed_space_implicit.sub(1), fdrk.Constant(0), "on_boundary")
+        bc_hor_velocity = fdrk.DirichletBC(self.mixed_space_implicit.sub(2), fdrk.Constant(0), "on_boundary")
+        bc_ver_velocity = fdrk.DirichletBC(self.mixed_space_implicit.sub(3), fdrk.Constant(0), "on_boundary")
 
-        bc_q_z = fdrk.DirichletBC(self.space_q_z, fdrk.Constant(0), "on_boundary")
-        bc_v_z = fdrk.DirichletBC(self.space_v_z, fdrk.Constant(0), "on_boundary")
+        bcs = [bc_hor_displacement, bc_ver_displacement, bc_hor_velocity, bc_ver_velocity]
 
-        bcs = [bc_q_x, bc_q_z, bc_v_x, bc_v_z]
+        test_hor_displacement, test_ver_displacement, test_hor_velocity, test_ver_velocity = fdrk.TestFunctions(self.mixed_space_implicit)
 
-        test_function = fdrk.TestFunctions(self.mixed_space_implicit)
-        test_q_x, test_q_z, test_v_x, test_v_z = fdrk.TestFunctions(self.mixed_space_implicit)
+        state_old = fdrk.Function(self.mixed_space_implicit) 
+        hor_displacement_old, ver_displacement_old, hor_velocity_old, ver_velocity_old = state_old.subfunctions
 
-        x_old = fdrk.Function(self.mixed_space_implicit) 
-        q_x_old, q_z_old, v_x_old, v_z_old = x_old.subfunctions
+        ver_displacement_0 = self.get_initial_conditions_ver_displacement()
+        ver_displacement_old.assign(fdrk.project(ver_displacement_0, self.space_ver_displacement, \
+                    fdrk.DirichletBC(self.space_ver_displacement, fdrk.Constant(0), "on_boundary")))
 
-        q_z_0 = self.get_initial_conditions_q_z()
-        q_z_old.assign(fdrk.project(q_z_0, self.mixed_space_implicit.sub(1), bcs = bc_q_z))
+        state_new = fdrk.Function(self.mixed_space_implicit)
+        hor_displacement_new, ver_displacement_new, hor_velocity_new, ver_velocity_new = fdrk.split(state_new)
 
-        x_new = fdrk.Function(self.mixed_space_implicit)
-        q_x_new, q_z_new, v_x_new, v_z_new = fdrk.split(x_new)
+        perturbation = fdrk.Constant(1e-3)
+        state_new.sub(0).assign(perturbation)
+        proj_perturbation = fdrk.project(perturbation, self.space_ver_displacement)
+        state_new.sub(1).assign(ver_displacement_old + proj_perturbation)
 
-        v_x_midpoint = 0.5*(v_x_old + v_x_new)
-        v_z_midpoint = 0.5*(v_z_old + v_z_new)
+        hor_velocity_midpoint = 0.5*(hor_velocity_old + hor_velocity_new)
+        ver_velocity_midpoint = 0.5*(ver_velocity_old + ver_velocity_new)
 
-        def residual():
-            if type == "implicit midpoint":
-                q_x_midpoint = 0.5*(q_x_old + q_x_new)
-                q_z_midpoint = 0.5*(q_z_old + q_z_new)
+        if type == "implicit midpoint":
+            hor_displacement_midpoint = 0.5*(hor_displacement_old + hor_displacement_new)
+            ver_displacement_midpoint = 0.5*(ver_displacement_old + ver_displacement_new)
 
-                dV_q_x, dV_q_z = self.weak_grad_potential(test_v_x, test_v_z, \
-                                                          q_x_midpoint, q_z_midpoint)
-            elif type == "discrete gradient":
-                raise NotImplementedError("Discrete gradient not implemented")      
-            else:
-                raise ValueError("Unknown type of implicit method")
-            
-            res_q_x = fdrk.inner(test_q_x, q_x_new - q_x_old - self.dt * v_x_midpoint)*fdrk.dx
-            res_q_z = fdrk.inner(test_q_z, q_z_new - q_z_old - self.dt * v_z_midpoint)*fdrk.dx
-            res_v_x = fdrk.inner(test_v_x, v_x_new - v_x_old)*fdrk.dx + self.dt * dV_q_x
-            res_v_z = fdrk.inner(test_v_z,v_z_new - v_z_old)*fdrk.dx + self.dt * dV_q_z
+            dV_hor_displacement, dV_ver_displacement = self.weak_grad_potential(test_hor_velocity, test_ver_velocity, \
+                                                                                hor_displacement_midpoint, ver_displacement_midpoint)
+        elif type == "discrete gradient":
+            q_new = (hor_displacement_new, ver_displacement_new)
+            q_old = (hor_displacement_old, ver_displacement_old)
+            q_test = (test_hor_velocity, test_ver_velocity)
+            dV_hor_displacement, dV_ver_displacement = discrete_gradient_firedrake_twofield(q_new, q_old, q_test, \
+                                                self.weak_grad_potential, self.deformation_energy)
 
-            res = res_q_x + res_q_z + res_v_x + res_v_z
-            return res
-
-        # problem_v_x = fdrk.LinearVariationalProblem(mass_v_x, rhs_v_x, \
-        #                                             v_x_new, bcs=bc_v_x)
-        # solver_v_x = fdrk.LinearVariationalSolver(problem_v_x)
-
-        # mass_v_z = self.mass_form(test_v_z, trial_v_z)
-        # rhs_v_z = self.mass_form(test_v_z, v_z_old) - self.dt * dV_q_z
-
-        # problem_v_z = fdrk.LinearVariationalProblem(mass_v_z, rhs_v_z,\
-        #                                             v_z_new, bcs = bc_v_z)
+        else:
+            raise ValueError("Unknown type of implicit method")
         
-        # solver_v_z = fdrk.LinearVariationalSolver(problem_v_z)
+        res_hor_displacement = fdrk.inner(test_hor_displacement, hor_displacement_new - hor_displacement_old - self.dt * hor_velocity_midpoint)*fdrk.dx
+        res_ver_displacement = fdrk.inner(test_ver_displacement, ver_displacement_new - ver_displacement_old - self.dt * ver_velocity_midpoint)*fdrk.dx
+        res_hor_velocity = fdrk.inner(test_hor_velocity, hor_velocity_new - hor_velocity_old)*fdrk.dx + self.dt * dV_hor_displacement
+        res_ver_velocity = fdrk.inner(test_ver_velocity, ver_velocity_new - ver_velocity_old)*fdrk.dx + self.dt * dV_ver_displacement
 
-        # q_x_list = []
-        # q_z_list = []
-        # v_x_list = []
-        # v_z_list = []
+        residual = res_hor_displacement + res_ver_displacement + res_hor_velocity + res_ver_velocity
 
-        # if save_vars:   
-        #     q_x_list.append(q_x_old.copy(deepcopy=True))
-        #     q_z_list.append(q_z_old.copy(deepcopy=True))
-        #     v_x_list.append(v_x_old.copy(deepcopy=True))
-        #     v_z_list.append(v_z_old.copy(deepcopy=True))
-
-        # energy_vec = np.zeros(len(self.t_vec_output))
-        # energy_vec[0] = fdrk.assemble(self.hamiltonian(q_x_old, q_z_old, v_x_old, v_z_old))
-        # kk = 0
-        # # energy_vec_leapfrog = np.zeros(self.n_steps)
-
-        # for ii in tqdm(range(self.n_steps)):
-        #     solver_v_x.solve()
-        #     solver_v_z.solve()
-            
-        #     q_x_new.assign(0.5*(q_x_half + q_x_new_half))      
-        #     q_z_new.assign(0.5*(q_z_half + q_z_new_half))
-
-
-        #     # energy_vec_leapfrog[ii] = fdrk.assemble(self.kinetic_energy(v_x_new, v_z_new) \
-        #     #                     + self.deformation_energy_leapfrog(q_x_half, q_x_new_half, q_z_half, q_z_new_half))
-
-        #     if (ii+1)%self.output_frequency==0:
-        #         kk += 1
-        #         energy_vec[kk] = fdrk.assemble(self.hamiltonian(q_x_new, q_z_new, v_x_new, v_z_new))
-        #         if save_vars: 
-        #             q_x_list.append(q_x_new.copy(deepcopy=True))
-        #             q_z_list.append(q_z_new.copy(deepcopy=True))
-        #             v_x_list.append(v_x_new.copy(deepcopy=True))
-        #             v_z_list.append(v_z_new.copy(deepcopy=True))
-
-        #     q_x_half.assign(q_x_new_half)
-        #     v_x_old.assign(v_x_new)
-
-        #     q_z_half.assign(q_z_new_half)
-        #     v_z_old.assign(v_z_new)
-
-        # dict_results = {"q_x": q_x_list, 
-        #                 "v_x": v_x_list, 
-        #                 "q_z": q_z_list, 
-        #                 "v_z": v_z_list, 
-        #                 "energy": energy_vec}
         
-        # return dict_results
+        problem = fdrk.NonlinearVariationalProblem(residual, state_new, bcs=bcs)
+        solver = fdrk.NonlinearVariationalSolver(problem)
+
+        hor_displacement_list = []
+        ver_displacement_list = []
+        hor_velocity_list = []
+        ver_velocity_list = []
+
+        if save_vars:   
+            hor_displacement_list.append(hor_displacement_old.copy(deepcopy=True))
+            ver_displacement_list.append(ver_displacement_old.copy(deepcopy=True))
+            hor_velocity_list.append(hor_velocity_old.copy(deepcopy=True))
+            ver_velocity_list.append(ver_velocity_old.copy(deepcopy=True))
+
+        energy_vec = np.zeros(len(self.t_vec_output))
+        energy_vec[0] = fdrk.assemble(self.hamiltonian(hor_displacement_old, ver_displacement_old, hor_velocity_old, ver_velocity_old))
+        kk = 0
+
+        for ii in tqdm(range(self.n_steps)):
+            solver.solve()
+            state_old.assign(state_new)
+
+            state_new.sub(0).assign(hor_displacement_old + fdrk.interpolate(perturbation, self.space_hor_displacement))
+            state_new.sub(1).assign(ver_displacement_old + proj_perturbation)
+
+            # if fdrk.norm(state_new.sub(0))<perturbation:
+            #     state_new.sub(0).assign(perturbation)
+            # if fdrk.norm(state_new.sub(1))<perturbation:
+            #     state_new.sub(1).assign(perturbation)
+
+            if (ii+1)%self.output_frequency==0:
+                kk += 1
+                energy_vec[kk] = fdrk.assemble(self.hamiltonian(hor_displacement_old, ver_displacement_old, hor_velocity_old, ver_velocity_old))
+                if save_vars: 
+                    hor_displacement_list.append(hor_displacement_old.copy(deepcopy=True))
+                    ver_displacement_list.append(ver_displacement_old.copy(deepcopy=True))
+                    hor_velocity_list.append(hor_velocity_old.copy(deepcopy=True))
+                    ver_velocity_list.append(ver_velocity_old.copy(deepcopy=True))
+
+
+        dict_results = {"hor_displacement": hor_displacement_list, 
+                        "hor_velocity": hor_velocity_list, 
+                        "ver_displacement": ver_displacement_list, 
+                        "ver_velocity": ver_velocity_list, 
+                        "energy": energy_vec}
+        
+        return dict_results

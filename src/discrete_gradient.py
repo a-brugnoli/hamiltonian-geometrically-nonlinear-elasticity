@@ -33,7 +33,7 @@ def mean_value_discrete_gradient(x_new, x_old, grad_H):
      return integral
 
 
-def discrete_gradient_firedrake(var_new, var_old, test_var, grad_H, H):
+def discrete_gradient_firedrake_onefield(var_new, var_old, test_var, grad_H, H):
     """
     Midpoint implementation of discrete gradient in firedrake
     Mean value discrete gradient not supported on multiple meshes.
@@ -55,3 +55,44 @@ def discrete_gradient_firedrake(var_new, var_old, test_var, grad_H, H):
     dH_discrete = dH_xmid + fdrk.inner(test_var, coeff*var_diff) * fdrk.dx
 
     return dH_discrete
+
+
+
+
+def discrete_gradient_firedrake_twofield(tuple_new, tuple_old, tuple_test_var, grad_H, H):
+    """
+    Midpoint implementation of discrete gradient in firedrake
+    Mean value discrete gradient not supported on multiple meshes.
+    Perhaps the simplest is to create a tensor product mesh to eliminate the error.
+    Parameters:
+    var_new: variable at next time step
+    grad_H : weak variational derivative
+    H : Hamiltonian functional
+    
+    """
+    var_old_1, var_old_2 = tuple_old
+    var_new_1, var_new_2 = tuple_new
+    var_mid_1 = 0.5*(var_old_1 + var_new_1)
+    var_mid_2 = 0.5*(var_old_2 + var_new_2)
+
+    var_diff_1 = var_new_1 - var_old_1
+    var_diff_2 = var_new_2 - var_old_2
+
+    test_var_1, test_var_2 = tuple_test_var
+    dH_xmid_1, dH_xmid_2 = grad_H(test_var_1, test_var_2, var_mid_1, var_mid_2)
+
+    dH_diff_1, dH_diff_2 = grad_H(var_diff_1, var_diff_2, var_mid_1, var_mid_2)
+
+    diff_H = H(var_new_1, var_new_2) - H(var_old_1, var_old_2)
+
+    num_coeff_1 = fdrk.assemble(diff_H - dH_diff_1)
+    den_coeff_1 = fdrk.norm(var_diff_1)**2
+    coeff_1 = num_coeff_1/den_coeff_1
+    dH_discrete_1 = dH_xmid_1 + fdrk.inner(test_var_1, coeff_1*var_diff_1) * fdrk.dx
+
+    num_coeff_2 = fdrk.assemble(diff_H - dH_diff_2)
+    den_coeff_2 = fdrk.norm(var_diff_2)**2
+    coeff_2 = num_coeff_2/den_coeff_2
+    dH_discrete_2 = dH_xmid_2 + fdrk.inner(test_var_2, coeff_2*var_diff_2) * fdrk.dx
+
+    return dH_discrete_1, dH_discrete_2
