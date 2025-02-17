@@ -1,7 +1,8 @@
 import firedrake as fdrk
 import numpy as np
 from tqdm import tqdm
-from src.discrete_gradient import discrete_gradient_firedrake_twofield, check_coeff
+import matplotlib.pyplot as plt
+
 
 class VonKarmanBeam:
     def __init__(self, **kwargs): 
@@ -101,6 +102,7 @@ class VonKarmanBeam:
     def axial_stress(self, hor_disp, ver_disp):
         return self.axial_stiffness*self.axial_strain(hor_disp, ver_disp)
     
+
     def bending_stress(self, ver_disp):
         return self.bending_stiffness*self.bending_strain(ver_disp)
     
@@ -110,9 +112,11 @@ class VonKarmanBeam:
                                     + self.bending_stiffness*self.bending_strain(ver_disp)**2)
         return potential_energy_density*fdrk.dx
 
+
     def kinetic_energy(self, hor_vel, ver_vel):
         kinetic_energy_density = 0.5*self.density*(hor_vel**2 + ver_vel**2)
         return kinetic_energy_density*fdrk.dx
+
 
     def hamiltonian(self, hor_disp, ver_disp, hor_vel, ver_vel):
         return self.kinetic_energy(hor_vel, ver_vel) + self.deformation_energy(hor_disp, ver_disp)
@@ -127,16 +131,26 @@ class VonKarmanBeam:
         
 
     def weak_grad_potential(self, test_hor_vel, test_ver_vel, hor_disp, ver_disp):
-        N_xx = self.axial_stress(hor_disp, ver_disp)
-        bend_mom = self.bending_stress(ver_disp)
+        axial_stress = self.axial_stress(hor_disp, ver_disp)
+        bending_stress = self.bending_stress(ver_disp)
 
-        form_dV_hor_disp = + fdrk.inner(test_hor_vel.dx(0), N_xx)*fdrk.dx 
+        form_dV_hor_disp = + fdrk.inner(test_hor_vel.dx(0), axial_stress)*fdrk.dx 
         
-        form_dV_ver_disp = + fdrk.inner(test_ver_vel.dx(0).dx(0), bend_mom)*fdrk.dx \
-                      + fdrk.inner(test_ver_vel.dx(0), N_xx*ver_disp.dx(0))*fdrk.dx
+        form_dV_ver_disp = + fdrk.inner(test_ver_vel.dx(0).dx(0), bending_stress)*fdrk.dx \
+                      + fdrk.inner(test_ver_vel.dx(0), axial_stress*ver_disp.dx(0))*fdrk.dx
         
         return form_dV_hor_disp, form_dV_ver_disp
     
+    def weak_grad_potential_stress(self, test_hor_vel, test_ver_vel, ver_disp, \
+                                    axial_stress, bending_stress):
+
+        form_dV_hor_disp = + fdrk.inner(test_hor_vel.dx(0), axial_stress)*fdrk.dx 
+        
+        form_dV_ver_disp = + fdrk.inner(test_ver_vel.dx(0).dx(0), bending_stress)*fdrk.dx \
+                      + fdrk.inner(test_ver_vel.dx(0), axial_stress*ver_disp.dx(0))*fdrk.dx
+        
+
+        return form_dV_hor_disp, form_dV_ver_disp
 
     def weak_grad_potential_linear(self, test_hor_vel, test_ver_vel, \
                                             hor_disp, ver_disp):
@@ -195,15 +209,15 @@ class VonKarmanBeam:
             - q at integers 
         Here we do at integers
         """
-        bc_hor_vel = fdrk.DirichletBC(self.space_hor_vel, fdrk.Constant(0), "on_boundary")
-
+        # bc_hor_vel = fdrk.DirichletBC(self.space_hor_vel, fdrk.Constant(0), "on_boundary")
+        bc_hor_vel = []
         bc_ver_disp = fdrk.DirichletBC(self.space_ver_disp, fdrk.Constant(0), "on_boundary")
         bc_ver_vel = fdrk.DirichletBC(self.space_ver_vel, fdrk.Constant(0), "on_boundary")
 
         hor_disp_old = fdrk.Function(self.space_hor_disp)
-        hor_vel_old = fdrk.Function(self.space_hor_vel)
-
         ver_disp_old = fdrk.Function(self.space_ver_disp)
+
+        hor_vel_old = fdrk.Function(self.space_hor_vel)
         ver_vel_old = fdrk.Function(self.space_ver_vel)
 
         dict_init_conditions_disp = self.get_initial_conditions()
@@ -290,11 +304,17 @@ class VonKarmanBeam:
 
             ver_disp_half.assign(ver_disp_new_half)
             ver_vel_old.assign(ver_vel_new)
+
+        if not save_vars:
+            hor_disp_list.append(hor_disp_old.copy(deepcopy=True))
+            ver_disp_list.append(ver_disp_old.copy(deepcopy=True))
+            hor_vel_list.append(hor_vel_old.copy(deepcopy=True))
+            ver_vel_list.append(ver_vel_old.copy(deepcopy=True))
            
-        dict_results = {"hor_disp": hor_disp_list, 
-                        "hor_vel": hor_vel_list, 
-                        "ver_disp": ver_disp_list, 
-                        "ver_vel": ver_vel_list, 
+        dict_results = {"horizontal displacement": hor_disp_list, 
+                        "horizontal velocity": hor_vel_list, 
+                        "vertical displacement": ver_disp_list, 
+                        "vertical velocity": ver_vel_list, 
                         "energy": energy_vec}
         
         return dict_results
@@ -308,17 +328,19 @@ class VonKarmanBeam:
             - q at integers 
         Here we do at integers
         """
-        bc_hor_disp = fdrk.DirichletBC(self.mixed_space_implicit.sub(0), fdrk.Constant(0), "on_boundary")
+        # bc_hor_disp = fdrk.DirichletBC(self.mixed_space_implicit.sub(0), fdrk.Constant(0), "on_boundary")        
+        # bc_hor_vel = fdrk.DirichletBC(self.mixed_space_implicit.sub(2), fdrk.Constant(0), "on_boundary")
+
         bc_ver_disp = fdrk.DirichletBC(self.mixed_space_implicit.sub(1), fdrk.Constant(0), "on_boundary")
-        bc_hor_vel = fdrk.DirichletBC(self.mixed_space_implicit.sub(2), fdrk.Constant(0), "on_boundary")
         bc_ver_vel = fdrk.DirichletBC(self.mixed_space_implicit.sub(3), fdrk.Constant(0), "on_boundary")
 
-        bcs = [bc_hor_disp, bc_ver_disp, bc_hor_vel, bc_ver_vel]
+        # bcs = [bc_hor_disp, bc_ver_disp, bc_hor_vel, bc_ver_vel]
+        bcs = [bc_ver_disp, bc_ver_vel]
 
         test_hor_disp, test_ver_disp, test_hor_vel, test_ver_vel = fdrk.TestFunctions(self.mixed_space_implicit)
 
-        state_old = fdrk.Function(self.mixed_space_implicit) 
-        hor_disp_old, ver_disp_old, hor_vel_old, ver_vel_old = state_old.subfunctions
+        states_old = fdrk.Function(self.mixed_space_implicit) 
+        hor_disp_old, ver_disp_old, hor_vel_old, ver_vel_old = states_old.subfunctions
 
         dict_init_conditions_disp = self.get_initial_conditions()
 
@@ -329,29 +351,33 @@ class VonKarmanBeam:
         ver_disp_old.assign(fdrk.project(ver_disp_0, self.space_ver_disp, \
                     fdrk.DirichletBC(self.space_ver_disp, fdrk.Constant(0), "on_boundary")))
 
-        state_new = fdrk.Function(self.mixed_space_implicit)
-        hor_disp_new, ver_disp_new, hor_vel_new, ver_vel_new = fdrk.split(state_new)
+        states_new = fdrk.Function(self.mixed_space_implicit)
+        hor_disp_new, ver_disp_new, hor_vel_new, ver_vel_new = fdrk.split(states_new)
 
-        perturbation = fdrk.Constant(1e-2)
-        state_new.sub(0).assign(hor_disp_old*(1+perturbation))
-        # proj_perturbation = fdrk.project(perturbation, self.space_ver_disp)
-        state_new.sub(1).assign(ver_disp_old*(1+perturbation))
+        states_new.sub(0).assign(hor_disp_old)
+        states_new.sub(1).assign(ver_disp_old)
 
         hor_vel_midpoint = 0.5*(hor_vel_old + hor_vel_new)
         ver_vel_midpoint = 0.5*(ver_vel_old + ver_vel_new)
 
+        ver_disp_midpoint = 0.5*(ver_disp_old + ver_disp_new)
+
         if type == "implicit midpoint":
             hor_disp_midpoint = 0.5*(hor_disp_old + hor_disp_new)
-            ver_disp_midpoint = 0.5*(ver_disp_old + ver_disp_new)
 
             dV_hor_disp, dV_ver_disp = self.weak_grad_potential(test_hor_vel, test_ver_vel, \
-                                                                                hor_disp_midpoint, ver_disp_midpoint)
+                                                                hor_disp_midpoint, ver_disp_midpoint)
         elif type == "discrete gradient":
-            q_new = (hor_disp_new, ver_disp_new)
-            q_old = (hor_disp_old, ver_disp_old)
-            q_test = (test_hor_vel, test_ver_vel)
-            dV_hor_disp, dV_ver_disp = discrete_gradient_firedrake_twofield(q_new, q_old, q_test, \
-                                                self.weak_grad_potential, self.deformation_energy)
+            # To conserve the energy one needs the average axial stress and not the axial stress of the 
+            # midpoint displacement (see Simo paper)
+            axial_stress_old = self.axial_stress(hor_disp_old, ver_disp_old)
+            axial_stress_new = self.axial_stress(hor_disp_new, ver_disp_new)
+            average_axial_stress = 0.5*(axial_stress_old + axial_stress_new)
+
+            bending_stress_midpoint = self.bending_stress(ver_disp_midpoint)
+
+            dV_hor_disp, dV_ver_disp = self.weak_grad_potential_stress(test_hor_vel, test_ver_vel, \
+                                    ver_disp_midpoint, average_axial_stress, bending_stress_midpoint)
 
         else:
             raise ValueError("Unknown type of implicit method")
@@ -367,8 +393,8 @@ class VonKarmanBeam:
         residual = res_hor_disp + res_ver_disp + res_hor_vel + res_ver_vel
 
         
-        problem = fdrk.NonlinearVariationalProblem(residual, state_new, bcs=bcs)
-        solver = fdrk.NonlinearVariationalSolver(problem)
+        implicit_problem = fdrk.NonlinearVariationalProblem(residual, states_new, bcs=bcs)
+        implicit_solver = fdrk.NonlinearVariationalSolver(implicit_problem)
 
         hor_disp_list = []
         ver_disp_list = []
@@ -386,17 +412,9 @@ class VonKarmanBeam:
         kk = 0
 
         for ii in tqdm(range(self.n_steps)):
-            solver.solve()
+            implicit_solver.solve()
 
-            # if type=="discrete gradient":
-            #     q_new = (hor_disp_new, ver_disp_new)
-            #     q_old = (hor_disp_old, ver_disp_old)
-            #     check_coeff(q_new, q_old, self.weak_grad_potential, self.deformation_energy)
-
-            state_old.assign(state_new)
-
-            state_new.sub(0).assign(hor_disp_old*(1+perturbation))
-            state_new.sub(1).assign(ver_disp_old*(1+perturbation))
+            states_old.assign(states_new)
 
             if (ii+1)%self.output_frequency==0:
                 kk += 1
@@ -407,11 +425,164 @@ class VonKarmanBeam:
                     hor_vel_list.append(hor_vel_old.copy(deepcopy=True))
                     ver_vel_list.append(ver_vel_old.copy(deepcopy=True))
 
+        if not save_vars:
+            hor_disp_list.append(hor_disp_old.copy(deepcopy=True))
+            ver_disp_list.append(ver_disp_old.copy(deepcopy=True))
+            hor_vel_list.append(hor_vel_old.copy(deepcopy=True))
+            ver_vel_list.append(ver_vel_old.copy(deepcopy=True))
 
-        dict_results = {"hor_displacement": hor_disp_list, 
-                        "hor_velocity": hor_vel_list, 
-                        "ver_displacement": ver_disp_list, 
-                        "ver_velocity": ver_vel_list, 
+
+        dict_results = {"horizontal displacement": hor_disp_list, 
+                        "horizontal velocity": hor_vel_list, 
+                        "vertical displacement": ver_disp_list, 
+                        "vertical velocity": ver_vel_list, 
+                        "energy": energy_vec}
+        
+        return dict_results
+    
+
+
+    def energy_form_linear_implicit(self, test_functions, trial_functions):
+
+        test_hor_velocity, test_ver_velocity, test_axial_stress, test_bending_stress = test_functions
+        trial_hor_velocity, trial_ver_velocity, trial_axial_stress, trial_bending_stress = trial_functions
+
+        energy_density = fdrk.inner(test_hor_velocity, self.density*trial_hor_velocity) \
+                       + fdrk.inner(test_ver_velocity, self.density*trial_ver_velocity) \
+                       + fdrk.inner(test_axial_stress, self.axial_compliance*trial_axial_stress) \
+                       + fdrk.inner(test_bending_stress, self.bending_compliance*trial_bending_stress)
+
+        return energy_density*fdrk.dx
+    
+
+    def interconnection_form_linear_implicit(self, test_functions, trial_functions, vertical_disp):
+
+        test_hor_velocity, test_ver_velocity, test_axial_stress, test_bending_stress = test_functions
+        trial_hor_velocity, trial_ver_velocity, trial_axial_stress, trial_bending_stress = trial_functions
+
+        D_transpose_hor, D_transpose_ver = self.weak_grad_potential_stress(test_hor_velocity, test_ver_velocity, \
+                                    vertical_disp, trial_axial_stress, trial_bending_stress)
+        
+        D_hor, D_ver = self.weak_grad_potential_stress(trial_hor_velocity, trial_ver_velocity, \
+                                    vertical_disp, test_axial_stress, test_bending_stress) 
+        
+        interconnection_form = - D_transpose_hor - D_transpose_ver + D_hor + D_ver 
+
+        return interconnection_form
+
+    def linear_implicit(self, save_vars=False):
+        # bc_hor_vel = fdrk.DirichletBC(self.mixed_space_linear_implicit.sub(0), \
+        #                             fdrk.Constant(0), "on_boundary")
+        bc_ver_vel = fdrk.DirichletBC(self.mixed_space_linear_implicit.sub(1), \
+                                      fdrk.Constant(0), "on_boundary")
+
+        bcs = [bc_ver_vel]
+
+        tuple_test_functions = fdrk.TestFunctions(self.mixed_space_linear_implicit)
+        tuple_trial_functions = fdrk.TrialFunctions(self.mixed_space_linear_implicit)
+
+        states_old = fdrk.Function(self.mixed_space_linear_implicit) 
+        hor_vel_old, ver_vel_old, axial_stress_old, bending_stress_old = states_old.subfunctions 
+        tuple_states_old = (hor_vel_old, ver_vel_old, axial_stress_old, bending_stress_old)
+
+        hor_disp_old = fdrk.Function(self.space_hor_disp)
+        ver_disp_old = fdrk.Function(self.space_ver_disp)
+
+        dict_init_conditions_disp = self.get_initial_conditions()
+
+        hor_disp_0 = dict_init_conditions_disp["hor_disp"]
+        hor_disp_old.interpolate(hor_disp_0)
+
+        ver_disp_0 = dict_init_conditions_disp["ver_disp"]
+        ver_disp_old.assign(fdrk.project(ver_disp_0, self.space_ver_disp, \
+                    fdrk.DirichletBC(self.space_ver_disp, fdrk.Constant(0), "on_boundary")))
+        
+        axial_stress_old.interpolate(self.axial_stress(hor_disp_old, ver_disp_old))
+
+        states_new = fdrk.Function(self.mixed_space_linear_implicit)
+        hor_vel_new, ver_vel_new, axial_stress_new, bending_stress_new = states_new.subfunctions
+        tuple_states_new = (hor_vel_new, ver_vel_new, axial_stress_new, bending_stress_new)
+
+        hor_disp_new = fdrk.Function(self.space_hor_disp)
+        ver_disp_new = fdrk.Function(self.space_ver_disp)
+
+        hor_disp_half = fdrk.Function(self.space_hor_disp)
+        hor_disp_half.assign(hor_disp_old + 0.5*self.dt*hor_vel_old)
+
+        ver_disp_half = fdrk.Function(self.space_ver_disp)
+        ver_disp_half.assign(ver_disp_old + 0.5*self.dt*ver_vel_old)
+
+        hor_disp_new_half = hor_disp_half + self.dt*hor_vel_new
+        ver_disp_new_half = ver_disp_half + self.dt*ver_vel_new
+
+
+        bilinear_form = self.energy_form_linear_implicit(tuple_test_functions, tuple_trial_functions) \
+            - self.dt/2*self.interconnection_form_linear_implicit(tuple_test_functions, \
+                                                                tuple_trial_functions, \
+                                                                ver_disp_half)
+
+
+        linear_form = self.energy_form_linear_implicit(tuple_test_functions, tuple_states_old) \
+            + self.dt/2*self.interconnection_form_linear_implicit(tuple_test_functions, \
+                                                                tuple_states_old, \
+                                                                ver_disp_half)
+
+        linear_implicit_problem = fdrk.LinearVariationalProblem(bilinear_form, \
+                                                                linear_form, \
+                                                                states_new, \
+                                                                bcs=bcs)
+        
+        linear_implicit_solver = fdrk.LinearVariationalSolver(linear_implicit_problem)
+
+        hor_disp_list = []
+        ver_disp_list = []
+        hor_vel_list = []
+        ver_vel_list = []
+
+        if save_vars:   
+            hor_disp_list.append(hor_disp_old.copy(deepcopy=True))
+            ver_disp_list.append(ver_disp_old.copy(deepcopy=True))
+            hor_vel_list.append(hor_vel_old.copy(deepcopy=True))
+            ver_vel_list.append(ver_vel_old.copy(deepcopy=True))
+
+        energy_vec = np.zeros(len(self.t_vec_output))
+        energy_vec[0] = 0.5* fdrk.assemble(self.energy_form_linear_implicit(tuple_states_old, \
+                                                                            tuple_states_old))
+        kk = 0
+
+        for ii in tqdm(range(self.n_steps)):
+            linear_implicit_solver.solve()
+
+            hor_disp_new.assign(0.5*(hor_disp_half + hor_disp_new_half))      
+            ver_disp_new.assign(0.5*(ver_disp_half + ver_disp_new_half))
+
+            if (ii+1)%self.output_frequency==0:
+                # energy_vec[kk] = fdrk.assemble(self.kinetic_energy(hor_vel_new, ver_vel_new) \
+                #                 + self.deformation_energy_leapfrog(hor_disp_half, hor_disp_new_half, ver_disp_half, ver_disp_new_half))
+                kk += 1
+                energy_vec[kk] = 0.5*fdrk.assemble(self.energy_form_linear_implicit(tuple_states_new, \
+                                                                                    tuple_states_new))
+                if save_vars: 
+                    hor_disp_list.append(hor_disp_new.copy(deepcopy=True))
+                    ver_disp_list.append(ver_disp_new.copy(deepcopy=True))
+                    hor_vel_list.append(hor_vel_new.copy(deepcopy=True))
+                    ver_vel_list.append(ver_vel_new.copy(deepcopy=True))
+
+            hor_disp_half.assign(hor_disp_new_half)
+            ver_disp_half.assign(ver_disp_new_half)
+
+            states_old.assign(states_new)
+
+        if not save_vars:
+            hor_disp_list.append(hor_disp_old.copy(deepcopy=True))
+            ver_disp_list.append(ver_disp_old.copy(deepcopy=True))
+            hor_vel_list.append(hor_vel_old.copy(deepcopy=True))
+            ver_vel_list.append(ver_vel_old.copy(deepcopy=True))
+           
+        dict_results = {"horizontal displacement": hor_disp_list, 
+                        "horizontal velocity": hor_vel_list, 
+                        "vertical displacement": ver_disp_list, 
+                        "vertical velocity": ver_vel_list, 
                         "energy": energy_vec}
         
         return dict_results

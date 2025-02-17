@@ -18,7 +18,7 @@ def error_norm(numerical_vec, exact_vec, time_step, norm="Linf"):
     elif norm=="L2":
         return np.sqrt(np.sum(time_step*difference_vec**2))
     elif norm=="final":
-        return difference_vec[-1]/exact_vec[-1]
+        return difference_vec[-1]/np.abs(exact_vec[-1]) 
     else:
         raise ValueError("Unknown norm")
 
@@ -31,11 +31,11 @@ beta = 5
 omega_0 = np.sqrt(alpha + beta * q0**2)
 
 T = 2*pi/omega_0
-t_end = 100*T
+t_end = T*100
 # Time parameters
 t_span = [0, t_end]
 
-norm_type = "Linf" 
+norm_type = "final" 
 dt_base = T/100
 # sec_factor = 1/10
 # dt_base = sec_factor*2/omega_0
@@ -150,6 +150,9 @@ for ii in range(n_case):
 
     # plot_results(dict_results, explicit=True)
 
+
+# print(f"Error q lin implicit {error_vec_q_lin_implicit}")
+# print(f"Error v lin implicit {error_vec_v_lin_implicit}")
 
 directory_results = f"{os.path.dirname(os.path.abspath(__file__))}/results/"
 if not os.path.exists(directory_results):

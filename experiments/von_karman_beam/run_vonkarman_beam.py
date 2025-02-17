@@ -55,27 +55,27 @@ sec_coeff_traction = 2
 dt_max_bending = mesh_size**2/(2*wave_speed_bending)
 dt_max_traction = mesh_size/wave_speed_traction
 
-dt_CFL_conservative = min(dt_max_bending/sec_coeff_bend, dt_max_traction/sec_coeff_traction)
+# dt_CFL_conservative = min(dt_max_bending/sec_coeff_bend, dt_max_traction/sec_coeff_traction)
+dt_CFL_conservative = dt_max_bending
 
 
 # Initial condition
-alpha = 1
-ampl_hor_disp_0 = alpha*height
+alpha = 10
+ampl_hor_disp_0 = 0 # alpha*height
 ampl_ver_disp_0 = alpha*height
 # Time step with security coefficient 4
-dt_base = 5*dt_CFL_conservative
+dt_base = dt_CFL_conservative
 omega1_bending = (pi/L)**2*wave_speed_bending
 T1_bending = 2*pi/omega1_bending
 
 # dt_base = T1_bending/10000
-t_end = T1_bending/5
+t_end = T1_bending/100
 t_span = [0, t_end]
 
 n_sim_output = 1000
 n_case = 1
 log_base = 2
 time_step_vec = np.array([dt_base/log_base**n for n in range(n_case)])
-print(f"dt list: {time_step_vec}")
 
 # error_vec_q_leapfrog = np.zeros(n_case)
 # error_vec_v_leapfrog = np.zeros(n_case)
@@ -94,8 +94,8 @@ print(f"dt list: {time_step_vec}")
 
 for ii in range(n_case):
     dt = time_step_vec[ii]
+    print(f"Time step: {dt}")
 
-    
     beam = VonKarmanBeam(time_step=dt, t_span=t_span, n_output= n_sim_output,\
                         n_elem = n_elements, q0_hor = ampl_hor_disp_0, q0_ver=ampl_ver_disp_0, \
                         rho = rho, E = E, I = I, A=A, L=L)
@@ -104,74 +104,135 @@ for ii in range(n_case):
 
     index_point = np.argmin(np.abs(x_vec - x_point))
 
-    
     t_vec_output = beam.t_vec_output*1e3
 
     # The coefficient depends on the magnitude of the time step (in this case milliseconds)
     interval = 1e6 * beam.output_frequency * dt
 
-    t0_implicit_midpoint = time.perf_counter()
-    dict_results_implicit_midpoint = beam.implicit_method(save_vars=True, type="implicit midpoint")
-    tf_implicit_midpoint = time.perf_counter()
+    # print(f"Running Implicit midpoint")
+    # t0_implicit_midpoint = time.perf_counter()
+    # dict_results_implicit_midpoint = beam.implicit_method(save_vars=True, type="implicit midpoint")
+    # tf_implicit_midpoint = time.perf_counter()
 
-    t0_discrete_gradient = time.perf_counter()
-    dict_results_discrete_gradient = beam.implicit_method(save_vars=True, type="discrete gradient")
-    tf_discrete_gradient = time.perf_counter()
+    # energy_vec_imp_midpoint = dict_results_implicit_midpoint["energy"]
+    # q_x_list_imp_midpoint = dict_results_implicit_midpoint["horizontal displacement"]
+    # q_x_array_imp_midpoint = beam.convert_functions_to_array(q_x_list_imp_midpoint)
+    # q_z_list_imp_midpoint = dict_results_implicit_midpoint["vertical displacement"]
+    # q_z_array_imp_midpoint = beam.convert_functions_to_array(q_z_list_imp_midpoint)
 
+
+    # print(f"Running Discrete gradient")
+    # t0_discrete_gradient = time.perf_counter()
+    # dict_results_discrete_gradient = beam.implicit_method(save_vars=True, type="discrete gradient")
+    # tf_discrete_gradient = time.perf_counter()
+
+    # energy_vec_dis_gradient = dict_results_discrete_gradient["energy"]
+    # q_x_list_dis_gradient = dict_results_discrete_gradient["horizontal displacement"]
+    # q_x_array_dis_gradient = beam.convert_functions_to_array(q_x_list_dis_gradient)
+    # q_z_list_dis_gradient = dict_results_discrete_gradient["vertical displacement"]
+    # q_z_array_dis_gradient = beam.convert_functions_to_array(q_z_list_dis_gradient)
+
+    print(f"Running linearly implicit")
+    t0_lin_implicit = time.perf_counter()
+    dict_results_lin_implicit = beam.linear_implicit(save_vars=True)
+    tf_lin_implicit = time.perf_counter()
+
+   
+    energy_vec_lin_implicit = dict_results_lin_implicit["energy"]
+    q_x_list_lin_implicit = dict_results_lin_implicit["horizontal displacement"]
+    q_x_array_lin_implicit = beam.convert_functions_to_array(q_x_list_lin_implicit)
+    q_z_list_lin_implicit = dict_results_lin_implicit["vertical displacement"]
+    q_z_array_lin_implicit = beam.convert_functions_to_array(q_z_list_lin_implicit)
+
+    # print(f"Running Leapfrog")
     # t0_leapfrog = time.perf_counter()
     # dict_results_leapfrog = beam.leapfrog(save_vars=True)
     # tf_leapfrog = time.perf_counter()
 
-    energy_vec_imp_midpoint = dict_results_implicit_midpoint["energy"]
-    q_x_list_imp_midpoint = dict_results_implicit_midpoint["hor_displacement"]
-    q_x_array_imp_midpoint = beam.convert_functions_to_array(q_x_list_imp_midpoint)
-    q_z_list_imp_midpoint = dict_results_implicit_midpoint["ver_displacement"]
-    q_z_array_imp_midpoint = beam.convert_functions_to_array(q_z_list_imp_midpoint)
-    
-
-    energy_vec_dis_gradient = dict_results_discrete_gradient["energy"]
-    q_x_list_dis_gradient = dict_results_discrete_gradient["hor_displacement"]
-    q_x_array_dis_gradient = beam.convert_functions_to_array(q_x_list_dis_gradient)
-    q_z_list_dis_gradient = dict_results_discrete_gradient["ver_displacement"]
-    q_z_array_dis_gradient = beam.convert_functions_to_array(q_z_list_dis_gradient)
+    # energy_vec_leapfrog = dict_results_leapfrog["energy"]
+    # q_x_list_leapfrog = dict_results_leapfrog["horizontal displacement"]
+    # q_x_array_leapfrog = beam.convert_functions_to_array(q_x_list_leapfrog)
+    # q_z_list_leapfrog = dict_results_leapfrog["vertical displacement"]
+    # q_z_array_leapfrog = beam.convert_functions_to_array(q_z_list_leapfrog)
     
     plt.figure()
-    plt.plot(t_vec_output, energy_vec_imp_midpoint, label="Imp midpoint")
-    plt.plot(t_vec_output, energy_vec_dis_gradient, label="Dis gradient")
+    plt.plot(t_vec_output, energy_vec_lin_implicit, label="Linear implicit")
+    # plt.plot(t_vec_output, energy_vec_dis_gradient, label="Dis gradient")
+    # plt.plot(t_vec_output, energy_vec_leapfrog, label="Leapfrog")
     plt.legend()
     plt.xlabel("Time [ms]")
     plt.title("Energy")
 
-    hor_disp_at_point_imp_midpoint = q_x_array_imp_midpoint[:, index_point]
-    hor_disp_at_point_dis_gradient = q_x_array_dis_gradient[:, index_point]
+    hor_disp_at_point_lin_implicit = q_x_array_lin_implicit[:, index_point]
+    # hor_disp_at_point_dis_gradient = q_x_array_dis_gradient[:, index_point]
+    # hor_disp_at_point_leapfrog = q_x_array_leapfrog[:, index_point]
 
     plt.figure()
-    plt.plot(t_vec_output, hor_disp_at_point_imp_midpoint, label="Imp midpoint")
-    plt.plot(t_vec_output, hor_disp_at_point_dis_gradient, label="Dis gradient")
+    plt.plot(t_vec_output, hor_disp_at_point_lin_implicit, label="Linear implicit")
+    # plt.plot(t_vec_output, hor_disp_at_point_dis_gradient, label="Dis gradient")
+    # plt.plot(t_vec_output, hor_disp_at_point_leapfrog, label="Leapfrog")
     plt.legend()
     plt.xlabel("Time [ms]")
     plt.title("Horizontal displacement")
 
-    ver_disp_at_point_imp_midpoint = q_z_array_imp_midpoint[:, index_point]
-    ver_disp_at_point_dis_gradient = q_z_array_dis_gradient[:, index_point]
+    ver_disp_at_point_lin_implicit = q_z_array_lin_implicit[:, index_point]
+    # ver_disp_at_point_dis_gradient = q_z_array_dis_gradient[:, index_point]
+    # ver_disp_at_point_leapfrog = q_z_array_leapfrog[:, index_point]
 
     plt.figure()
-    plt.plot(t_vec_output, ver_disp_at_point_imp_midpoint, label="Imp midpoint")
-    plt.plot(t_vec_output, ver_disp_at_point_dis_gradient, label="Dis gradient")
+    plt.plot(t_vec_output, ver_disp_at_point_lin_implicit, label="Linear implicit")
+    # plt.plot(t_vec_output, ver_disp_at_point_dis_gradient, label="Dis gradient")
+    # plt.plot(t_vec_output, ver_disp_at_point_leapfrog, label="Leapfrog")
+
     plt.legend()
     plt.xlabel("Time [ms]")
     plt.title("Vertical displacement")
 
+    # fig_x_dis_gradient, ax_x_dis_gradient = plot_surface_from_matrix(t_vec_output, x_vec, \
+    #                                             q_x_array_dis_gradient, \
+    #                                             x_label="$x$", y_label="$t$", z_label="$q_x$", \
+    #                                             title="Horizontal displacement discrete gradient")
+
+    
+    # fig_z_dis_gradient, ax_z_dis_gradient = plot_surface_from_matrix(t_vec_output, x_vec, \
+    #                                         q_z_array_dis_gradient, \
+    #                                         x_label="$x \; \mathrm{[m]}$", \
+    #                                         y_label="$t \; \mathrm{[ms]}$", \
+    #                                         z_label="$q_z \; \mathrm{[m]}$ ", \
+    #                                         title="Vertical displacement discrete gradient")
+
+
+    fig_x_lin_implicit, ax_x_lin_implicit = plot_surface_from_matrix(t_vec_output, x_vec, \
+                                            q_x_array_lin_implicit, \
+                                            x_label="$x$", y_label="$t$", z_label="$q_x$", \
+                                            title="Horizontal displacement linear implicit")
+
+    
+    fig_z_lin_implicit, ax_z_lin_implicit = plot_surface_from_matrix(t_vec_output, x_vec, \
+                                            q_z_array_lin_implicit, \
+                                            x_label="$x \; \mathrm{[m]}$", \
+                                            y_label="$t \; \mathrm{[ms]}$", \
+                                            z_label="$q_z \; \mathrm{[m]}$ ", \
+                                            title="Vertical displacement lin implicit")
+    
+    # fig_x_leapfrog, ax_x_leapfrog = plot_surface_from_matrix(t_vec_output, x_vec, \
+    #                                             q_x_array_leapfrog, \
+    #                                             x_label="$x$", y_label="$t$", z_label="$q_x$", \
+    #                                             title="Horizontal displacement leapfrog")
+
+    
+    # fig_z_leapfrog, ax_z_leapfrog = plot_surface_from_matrix(t_vec_output, x_vec, \
+    #                                         q_z_array_leapfrog, \
+    #                                         x_label="$x \; \mathrm{[m]}$", \
+    #                                         y_label="$t \; \mathrm{[ms]}$", \
+    #                                         z_label="$q_z \; \mathrm{[m]}$ ", \
+    #                                         title="Vertical displacement leapfrog")    
+    
     # anim_x_imp_midpoint = create_1d_line_animation(t_vec_output, x_vec, \
     #                         q_x_array_imp_midpoint, interval=interval,
     #                         xlabel="x", ylabel="$q_x$", \
     #                         title=f"Horizontal displacement $\\alpha={alpha}$", \
     #                         filename=f"{directory_results}Hor_disp_impl_midpoint.mp4")
-
-    # fig_x_imp_midpoint, ax_x_imp_midpoint = plot_surface_from_matrix(t_vec_output, x_vec, \
-    #                                             q_x_array_imp_midpoint, \
-    #                                             x_label="$x$", y_label="$t$", z_label="$q_x$", \
-    #                                             title="Horizontal displacement")
 
     # anim_z_imp_midpoint = create_1d_line_animation(t_vec_output, x_vec, \
     #                                             q_z_array_imp_midpoint, interval=interval/10, \
@@ -179,13 +240,5 @@ for ii in range(n_case):
     #                                             title=f"Vertical displacement $\\alpha={alpha}$", \
     #                                             filename=f"{directory_results}Ver_disp_impl_midpoint.mp4")
 
-    # fig_z_imp_midpoint, ax_z_imp_midpoint = plot_surface_from_matrix(t_vec_output, x_vec, \
-    #                                         q_z_array_imp_midpoint, \
-    #                                         x_label="$x \; \mathrm{[m]}$", \
-    #                                         y_label="$t \; \mathrm{[ms]}$", \
-    #                                         z_label="$q_z \; \mathrm{[m]}$ ", \
-    #                                         title="Vertical displacement")
     
-    
-    
-    plt.show()
+plt.show()

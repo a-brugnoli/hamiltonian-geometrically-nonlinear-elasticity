@@ -119,9 +119,9 @@ class DuffingOscillator:
             if type == "implicit midpoint":
                 dV_discrete = self.grad_potential_energy(q_mid)
             elif type == "midpoint discrete gradient":
-                dV_discrete = midpoint_discrete_gradient(q_new, q_old, \
-                                self.potential_energy, self.grad_potential_energy)
-                # dV_discrete = self.discrete_potential_gradient(q_new, q_old)
+                # dV_discrete = midpoint_discrete_gradient(q_new, q_old, \
+                #                 self.potential_energy, self.grad_potential_energy)
+                dV_discrete = self.discrete_potential_gradient(q_new, q_old)
             elif type == "mean value discrete gradient":
                 dV_discrete = mean_value_discrete_gradient(q_new, q_old, self.grad_potential_energy)
             else:
@@ -153,9 +153,10 @@ class DuffingOscillator:
             x_old = np.array([q_vec[i], v_vec[i]])
             # Slightly perturbed previous guess to avoid division by zero
             # in the implicit midpoint method
-            guess = np.array([q_vec[i]*(1 + perturbation), v_vec[i]])
-            
-            solution = fsolve(residual, guess, args=(x_old, ))
+            # guess = np.array([q_vec[i]*(1 + perturbation), v_vec[i]])
+            # solution = fsolve(residual, guess, args=(x_old, ))
+
+            solution = fsolve(residual, x_old, args=(x_old, ))
             q_vec[i+1], v_vec[i+1] = solution
 
             # Newton method
