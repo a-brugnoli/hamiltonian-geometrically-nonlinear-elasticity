@@ -3,7 +3,7 @@ from math import pi
 import time
 import os
 from duffing_oscillator import DuffingOscillator
-from plot_duffing import plot_results
+from experiments.duffing.plot_signals_duffing import plot_results
 import matplotlib.pyplot as plt
 from src.postprocessing.plot_convergence import plot_convergence
 from src.postprocessing.options import configure_matplotib
