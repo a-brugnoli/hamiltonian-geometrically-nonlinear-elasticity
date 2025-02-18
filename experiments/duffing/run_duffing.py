@@ -7,20 +7,8 @@ from plot_duffing import plot_results
 import matplotlib.pyplot as plt
 from src.postprocessing.plot_convergence import plot_convergence
 from src.postprocessing.options import configure_matplotib
+from src.norm_computation import error_norm
 configure_matplotib()
-
-
-def error_norm(numerical_vec, exact_vec, time_step, norm="Linf"):
-
-    difference_vec = np.abs(numerical_vec - exact_vec)
-    if norm=="Linf":
-        return np.max(difference_vec)/np.max(exact_vec)
-    elif norm=="L2":
-        return np.sqrt(np.sum(time_step*difference_vec**2))
-    elif norm=="final":
-        return difference_vec[-1]/np.abs(exact_vec[-1]) 
-    else:
-        raise ValueError("Unknown norm")
 
 # Initial condition
 q0 = 10
@@ -38,7 +26,8 @@ t_span = [0, t_end]
 norm_type = "final" 
 dt_base = T/100
 # sec_factor = 1/10
-# dt_base = sec_factor*2/omega_0
+# dt_base = sec_factor*2/omega_0import numpy as np
+
 
 n_case = 5
 log_base = 2
@@ -113,17 +102,17 @@ for ii in range(n_case):
     E_lin_implicit =  np.einsum('ij,ij->i', 0.5*x_lin_implicit @ duffing.energy_matrix(), x_lin_implicit)
 
     # Compute error
-    error_q_leapfrog = error_norm(q_leapfrog, q_exact, time_step=dt, norm=norm_type)
-    error_q_dis_gradient = error_norm(q_dis_gradient, q_exact, time_step=dt, norm=norm_type)
-    error_q_lin_implicit = error_norm(q_lin_implicit, q_exact, time_step=dt, norm=norm_type)
+    error_q_leapfrog = error_norm(q_exact, q_leapfrog, time_step=dt, norm=norm_type)
+    error_q_dis_gradient = error_norm(q_exact, q_dis_gradient, time_step=dt, norm=norm_type)
+    error_q_lin_implicit = error_norm(q_exact, q_lin_implicit, time_step=dt, norm=norm_type)
 
-    error_v_leapfrog = error_norm(v_leapfrog, v_exact, time_step=dt, norm=norm_type)
-    error_v_dis_gradient = error_norm(v_dis_gradient, v_exact, time_step=dt, norm=norm_type)
-    error_v_lin_implicit = error_norm(v_lin_implicit, v_exact, time_step=dt, norm=norm_type)
+    error_v_leapfrog = error_norm(v_exact, v_leapfrog, time_step=dt, norm=norm_type)
+    error_v_dis_gradient = error_norm(v_exact, v_dis_gradient, time_step=dt, norm=norm_type)
+    error_v_lin_implicit = error_norm(v_exact, v_lin_implicit, time_step=dt, norm=norm_type)
 
-    error_E_leapfrog = error_norm(E_leapfrog, E_exact, time_step=dt, norm=norm_type)
-    error_E_dis_gradient = error_norm(E_dis_gradient, E_exact, time_step=dt, norm=norm_type)
-    error_E_lin_implicit = error_norm(E_lin_implicit, E_exact, time_step=dt, norm=norm_type)
+    error_E_leapfrog = error_norm(E_exact, E_leapfrog, time_step=dt, norm=norm_type)
+    error_E_dis_gradient = error_norm(E_exact, E_dis_gradient, time_step=dt, norm=norm_type)
+    error_E_lin_implicit = error_norm(E_exact, E_lin_implicit, time_step=dt, norm=norm_type)
 
     error_vec_q_leapfrog[ii] = error_q_leapfrog
     error_vec_v_leapfrog[ii] = error_v_leapfrog

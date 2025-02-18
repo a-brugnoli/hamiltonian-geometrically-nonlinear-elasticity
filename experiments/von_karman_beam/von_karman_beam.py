@@ -69,17 +69,35 @@ class VonKarmanBeam:
         self.space_ver_disp = fdrk.FunctionSpace(self.domain, "Hermite", 3)
         self.space_ver_vel = self.space_ver_disp
 
-        self.space_axial_stress = fdrk.FunctionSpace(self.domain, "DG", 0)
+        self.space_axial_stress = fdrk.FunctionSpace(self.domain, "DG", 4)
         self.space_bending_stress = fdrk.FunctionSpace(self.domain, "DG", 1)
 
         self.mixed_space_implicit = self.space_hor_disp * self.space_ver_disp * self.space_hor_vel * self.space_ver_vel 
         self.mixed_space_linear_implicit = self.space_hor_vel * self.space_ver_vel * self.space_axial_stress * self.space_bending_stress
 
 
+    def set_time_step(self, time_step):
+        self.dt.assign(time_step)
+        simulation_time = self.t_span[1] - self.t_span[0]
+        self.n_steps =np.round(simulation_time/time_step).astype(int)
+        T_init = self.t_span[0]
+        T_end = self.n_steps*time_step + T_init
+        self.dt = fdrk.Constant(time_step)
+        self.t_span = np.array([T_init, T_end])
+        self.t_vec = np.linspace(T_init, T_end, self.n_steps+1)
+        n_sim_times = len(self.t_vec)
+        if n_sim_times>self.n_output:
+            self.output_frequency = int(n_sim_times/self.n_output)
+        else:
+            self.output_frequency = 1
+        self.t_vec_output = self.t_vec[::self.output_frequency]
+
+
+
     def get_initial_conditions(self):
         hor_disp_exp = self.q0_hor*fdrk.sin(fdrk.pi*self.x_coord/self.length)
         ver_disp_exp = self.q0_ver*fdrk.sin(fdrk.pi*self.x_coord/self.length)
-        return {"hor_disp": hor_disp_exp, "ver_disp": ver_disp_exp}
+        return {"horizontal displacement": hor_disp_exp, "vertical displacement": ver_disp_exp}
 
 
     def axial_strain(self, hor_disp, ver_disp):
@@ -222,10 +240,10 @@ class VonKarmanBeam:
 
         dict_init_conditions_disp = self.get_initial_conditions()
 
-        hor_disp_0 = dict_init_conditions_disp["hor_disp"]   
+        hor_disp_0 = dict_init_conditions_disp["horizontal displacement"]   
         hor_disp_old.interpolate(hor_disp_0)
 
-        ver_disp_0 = dict_init_conditions_disp["ver_disp"]
+        ver_disp_0 = dict_init_conditions_disp["vertical displacement"]
         ver_disp_old.assign(fdrk.project(ver_disp_0, self.space_ver_disp, bcs = bc_ver_disp))
 
         hor_disp_new = fdrk.Function(self.space_hor_disp)
@@ -300,9 +318,9 @@ class VonKarmanBeam:
                     ver_vel_list.append(ver_vel_new.copy(deepcopy=True))
 
             hor_disp_half.assign(hor_disp_new_half)
-            hor_vel_old.assign(hor_vel_new)
-
             ver_disp_half.assign(ver_disp_new_half)
+
+            hor_vel_old.assign(hor_vel_new)
             ver_vel_old.assign(ver_vel_new)
 
         if not save_vars:
@@ -344,10 +362,10 @@ class VonKarmanBeam:
 
         dict_init_conditions_disp = self.get_initial_conditions()
 
-        hor_disp_0 = dict_init_conditions_disp["hor_disp"]
+        hor_disp_0 = dict_init_conditions_disp["horizontal displacement"]
         hor_disp_old.interpolate(hor_disp_0)
 
-        ver_disp_0 = dict_init_conditions_disp["ver_disp"]
+        ver_disp_0 = dict_init_conditions_disp["vertical displacement"]
         ver_disp_old.assign(fdrk.project(ver_disp_0, self.space_ver_disp, \
                     fdrk.DirichletBC(self.space_ver_disp, fdrk.Constant(0), "on_boundary")))
 
@@ -490,14 +508,16 @@ class VonKarmanBeam:
 
         dict_init_conditions_disp = self.get_initial_conditions()
 
-        hor_disp_0 = dict_init_conditions_disp["hor_disp"]
+        hor_disp_0 = dict_init_conditions_disp["horizontal displacement"]
         hor_disp_old.interpolate(hor_disp_0)
 
-        ver_disp_0 = dict_init_conditions_disp["ver_disp"]
+        ver_disp_0 = dict_init_conditions_disp["vertical displacement"]
         ver_disp_old.assign(fdrk.project(ver_disp_0, self.space_ver_disp, \
                     fdrk.DirichletBC(self.space_ver_disp, fdrk.Constant(0), "on_boundary")))
         
-        axial_stress_old.interpolate(self.axial_stress(hor_disp_old, ver_disp_old))
+        states_old.sub(2).interpolate(self.axial_stress(hor_disp_old, ver_disp_old))
+        states_old.sub(3).interpolate(self.bending_stress(ver_disp_old))
+
 
         states_new = fdrk.Function(self.mixed_space_linear_implicit)
         hor_vel_new, ver_vel_new, axial_stress_new, bending_stress_new = states_new.subfunctions
@@ -514,7 +534,6 @@ class VonKarmanBeam:
 
         hor_disp_new_half = hor_disp_half + self.dt*hor_vel_new
         ver_disp_new_half = ver_disp_half + self.dt*ver_vel_new
-
 
         bilinear_form = self.energy_form_linear_implicit(tuple_test_functions, tuple_trial_functions) \
             - self.dt/2*self.interconnection_form_linear_implicit(tuple_test_functions, \
