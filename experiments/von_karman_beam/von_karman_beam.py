@@ -45,24 +45,27 @@ class VonKarmanBeam:
         # Time parameters
         time_step = parameters["time_step"]
         t_span = parameters["t_span"]
+        self.n_output = parameters["n_output"]
+        self.dt = fdrk.Constant(time_step)
+
+        # Adjust final time to have exactly the right time step
         simulation_time = t_span[1] - t_span[0]
         self.n_steps =np.round(simulation_time/time_step).astype(int)
         T_init = t_span[0]
         T_end = self.n_steps*time_step + T_init
-        self.dt = fdrk.Constant(time_step)
         self.t_span = np.array([T_init, T_end])
         self.t_vec = np.linspace(T_init, T_end, self.n_steps+1)
 
-        # Output display parameters
-        self.n_output = parameters["n_output"]
+        # Create a vector of time for the output of size n_output
         n_sim_times = len(self.t_vec)
         if n_sim_times>self.n_output:
-            self.output_frequency = int(n_sim_times/self.n_output)
+            n_steps_output = self.n_output-1
+            self.output_frequency = int(np.floor(self.n_steps/n_steps_output))
         else:
             self.output_frequency = 1
         self.t_vec_output = self.t_vec[::self.output_frequency]
 
-        # Finite elemnt spaces
+        # Finite element spaces
         self.space_hor_disp = fdrk.FunctionSpace(self.domain, "CG", 1)
         self.space_hor_vel = self.space_hor_disp
 
@@ -78,16 +81,19 @@ class VonKarmanBeam:
 
     def set_time_step(self, time_step):
         self.dt.assign(time_step)
+        # Adjust final time to have exactly the right time step
         simulation_time = self.t_span[1] - self.t_span[0]
         self.n_steps =np.round(simulation_time/time_step).astype(int)
         T_init = self.t_span[0]
         T_end = self.n_steps*time_step + T_init
-        self.dt = fdrk.Constant(time_step)
         self.t_span = np.array([T_init, T_end])
         self.t_vec = np.linspace(T_init, T_end, self.n_steps+1)
+
+        # Create a vector of time for the output of size n_output
         n_sim_times = len(self.t_vec)
         if n_sim_times>self.n_output:
-            self.output_frequency = int(n_sim_times/self.n_output)
+            n_steps_output = self.n_output-1
+            self.output_frequency = int(np.floor(self.n_steps/n_steps_output))
         else:
             self.output_frequency = 1
         self.t_vec_output = self.t_vec[::self.output_frequency]
@@ -328,11 +334,16 @@ class VonKarmanBeam:
             ver_disp_list.append(ver_disp_old.copy(deepcopy=True))
             hor_vel_list.append(hor_vel_old.copy(deepcopy=True))
             ver_vel_list.append(ver_vel_old.copy(deepcopy=True))
+
+        hor_disp_array = self.convert_functions_to_array(hor_disp_list)
+        ver_disp_array = self.convert_functions_to_array(ver_disp_list)
+        hor_vel_array = self.convert_functions_to_array(hor_vel_list)
+        ver_vel_array = self.convert_functions_to_array(ver_vel_list)
            
-        dict_results = {"horizontal displacement": hor_disp_list, 
-                        "horizontal velocity": hor_vel_list, 
-                        "vertical displacement": ver_disp_list, 
-                        "vertical velocity": ver_vel_list, 
+        dict_results = {"horizontal displacement": hor_disp_array, 
+                        "vertical displacement": ver_disp_array, 
+                        "horizontal velocity": hor_vel_array, 
+                        "vertical velocity": ver_vel_array, 
                         "energy": energy_vec}
         
         return dict_results
@@ -450,10 +461,15 @@ class VonKarmanBeam:
             ver_vel_list.append(ver_vel_old.copy(deepcopy=True))
 
 
-        dict_results = {"horizontal displacement": hor_disp_list, 
-                        "horizontal velocity": hor_vel_list, 
-                        "vertical displacement": ver_disp_list, 
-                        "vertical velocity": ver_vel_list, 
+        hor_disp_array = self.convert_functions_to_array(hor_disp_list)
+        ver_disp_array = self.convert_functions_to_array(ver_disp_list)
+        hor_vel_array = self.convert_functions_to_array(hor_vel_list)
+        ver_vel_array = self.convert_functions_to_array(ver_vel_list)
+           
+        dict_results = {"horizontal displacement": hor_disp_array, 
+                        "vertical displacement": ver_disp_array, 
+                        "horizontal velocity": hor_vel_array, 
+                        "vertical velocity": ver_vel_array, 
                         "energy": energy_vec}
         
         return dict_results
@@ -598,10 +614,15 @@ class VonKarmanBeam:
             hor_vel_list.append(hor_vel_old.copy(deepcopy=True))
             ver_vel_list.append(ver_vel_old.copy(deepcopy=True))
            
-        dict_results = {"horizontal displacement": hor_disp_list, 
-                        "horizontal velocity": hor_vel_list, 
-                        "vertical displacement": ver_disp_list, 
-                        "vertical velocity": ver_vel_list, 
+        hor_disp_array = self.convert_functions_to_array(hor_disp_list)
+        ver_disp_array = self.convert_functions_to_array(ver_disp_list)
+        hor_vel_array = self.convert_functions_to_array(hor_vel_list)
+        ver_vel_array = self.convert_functions_to_array(ver_vel_list)
+           
+        dict_results = {"horizontal displacement": hor_disp_array, 
+                        "vertical displacement": ver_disp_array, 
+                        "horizontal velocity": hor_vel_array, 
+                        "vertical velocity": ver_vel_array, 
                         "energy": energy_vec}
         
         return dict_results

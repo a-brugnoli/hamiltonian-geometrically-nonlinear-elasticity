@@ -3,7 +3,7 @@ import numpy as np
 from src.postprocessing.options import configure_matplotib
 configure_matplotib()
 
-def plot_results(results_dict, explicit=True):
+def plot_time_series(results_dict, explicit=True):
     # Create plots
     t_vec = results_dict["time"]
     dict_position = results_dict["position"]
