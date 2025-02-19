@@ -5,27 +5,15 @@ from src.postprocessing.options import configure_matplotib
 configure_matplotib()
 
 def plot_surface_from_matrix(t_vec, x_vec, z_values, **kwargs):
-    """
-    Create a 3D surface plot from a grid of samples.
-    
-    Parameters:
-    -----------
-    z_values : 2D numpy array
-        Grid of f(x,t) values with shape (n, m)
-    x_range : array-like, optional
-        Array of x values. If None, uses indices
-    t_range : array-like, optional
-        Array of t values. If None, uses indices
-    title : str, optional
-        Title for the plot
-    """
-    
     # Create coordinate matrices
     X, T = np.meshgrid(x_vec, t_vec)
     
     # Create the 3D plot
-    fig = plt.figure()
-    ax = fig.add_subplot(111, projection='3d')
+    if "axes" in kwargs:
+        ax = kwargs["axes"]
+    else:
+        fig = plt.figure()
+        ax = fig.add_subplot(111, projection='3d')
         
     # Plot the surface
     surface = ax.plot_surface(X, T, z_values, 
@@ -34,7 +22,7 @@ def plot_surface_from_matrix(t_vec, x_vec, z_values, **kwargs):
                             alpha=0.8)
     
     # Add colorbar
-    fig.colorbar(surface, ax=ax, shrink=0.5, aspect=5)
+    # fig.colorbar(surface, ax=ax, shrink=0.5, aspect=5)
     
     # Set labels and title
     if "x_label" in kwargs:
@@ -56,7 +44,7 @@ def plot_surface_from_matrix(t_vec, x_vec, z_values, **kwargs):
     # Adjust the viewing angle
     ax.view_init(elev=30, azim=45)
     
-    return fig, ax
+    return surface
 
 # Example usage:
 if __name__ == "__main__":
@@ -72,5 +60,6 @@ if __name__ == "__main__":
     print(X.shape, T.shape, Z.shape)
     
     # Plot the surface
-    fig, ax = plot_surface_from_matrix(t_vec, x_vec, Z)
+    
+    plot_surface_from_matrix(t_vec, x_vec, Z)
     plt.show()

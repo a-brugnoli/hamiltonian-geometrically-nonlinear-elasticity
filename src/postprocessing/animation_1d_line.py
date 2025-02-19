@@ -51,8 +51,6 @@ def create_1d_line_animation(t_vec, x_vec, y_matrix, interval=100, **kwargs):
         line.set_label(f'Time {t_vec[frame]:.1f} [ms]')
         leg = ax.legend()
         return line, leg
-        
-
     
     # Create animation
     anim = animation.FuncAnimation(fig, update, init_func=init,

@@ -1,102 +1,112 @@
+import matplotlib.pyplot as plt
+from src.postprocessing.plot_convergence import plot_convergence
 from src.norm_computation import error_norm_time, error_norm_space_time
+from parameters import *
+import pickle
+from src.postprocessing.options import configure_matplotib
+configure_matplotib()
+
+norm_type = "Linf"
+with open(file_results_reference, "rb") as f:
+        dict_results_reference = pickle.load(f)
+
+energy_vec_reference = dict_results_reference["energy"]
+q_x_array_reference = dict_results_reference["horizontal displacement"]
+v_x_array_reference = dict_results_reference["horizontal velocity"]
+q_z_array_reference = dict_results_reference["vertical displacement"]
+v_z_array_reference = dict_results_reference["vertical velocity"]
     
+with open(file_results_dis_gradient, "rb") as f:
+        dict_results_dis_gradient = pickle.load(f)
 
-norm_type = "L2"
+energy_vec_dis_gradient = dict_results_dis_gradient["energy"]
+q_x_array_dis_gradient = dict_results_dis_gradient["horizontal displacement"]
+v_x_array_dis_gradient = dict_results_dis_gradient["horizontal velocity"]
+q_z_array_dis_gradient = dict_results_dis_gradient["vertical displacement"]
+v_z_array_dis_gradient = dict_results_dis_gradient["vertical velocity"]
+comp_time_dis_gradient = dict_results_dis_gradient["elapsed time"]
 
+avg_diff_E_dis_gradient = np.mean(np.diff(energy_vec_dis_gradient, axis=0))
 
+with open(file_results_lin_implicit, "rb") as f:
+        dict_results_lin_implicit = pickle.load(f)
 
+energy_vec_lin_implicit = dict_results_lin_implicit["energy"]
+q_x_array_lin_implicit = dict_results_lin_implicit["horizontal displacement"]
+v_x_array_lin_implicit = dict_results_lin_implicit["horizontal velocity"]
+q_z_array_lin_implicit = dict_results_lin_implicit["vertical displacement"]
+v_z_array_lin_implicit = dict_results_lin_implicit["vertical velocity"]
+comp_time_lin_implicit = dict_results_lin_implicit["elapsed time"]
 
-#  # # Compute error
-# error_q_x_dis_gradient = error_norm_space_time(q_x_array_reference, \
-#                                                 q_x_array_dis_gradient, dt_output, norm=norm_type)
-# error_q_x_lin_implicit = error_norm_space_time(q_x_array_reference, \
-#                                                 q_x_array_lin_implicit, dt_output, norm=norm_type)
-
-# error_q_z_dis_gradient = error_norm_space_time(q_z_array_reference, \
-#                                                 q_z_array_dis_gradient, dt_output, norm=norm_type)
-# error_q_z_lin_implicit = error_norm_space_time(q_z_array_reference, \
-#                                                 q_z_array_lin_implicit, dt_output, norm=norm_type)
-
-# error_v_x_dis_gradient = error_norm_space_time(v_x_array_reference, \
-#                                                 v_x_array_dis_gradient, dt_output, norm=norm_type)
-# error_v_x_lin_implicit = error_norm_space_time(v_x_array_reference, \
-#                                                 v_x_array_lin_implicit, dt_output, norm=norm_type)
-
-# error_v_z_dis_gradient = error_norm_space_time(v_z_array_reference, \
-#                                                 v_z_array_dis_gradient, dt_output, norm=norm_type)
-# error_v_z_lin_implicit = error_norm_space_time(v_z_array_reference, \
-#                                                 v_z_array_lin_implicit, dt_output, norm=norm_type)
+avg_diff_E_lin_implicit = np.mean(np.diff(energy_vec_lin_implicit, axis=0))
 
 
-# error_vec_q_x_dis_gradient[ii] = error_q_x_dis_gradient
-# error_vec_q_z_dis_gradient[ii] = error_q_z_dis_gradient
+error_q_x_dis_gradient = np.zeros(n_cases)
+error_q_z_dis_gradient = np.zeros(n_cases)
+error_v_x_dis_gradient = np.zeros(n_cases)
+error_v_z_dis_gradient = np.zeros(n_cases)
 
-# error_vec_v_x_dis_gradient[ii] = error_v_x_dis_gradient
-# error_vec_v_z_dis_gradient[ii] = error_v_z_dis_gradient
+error_q_x_lin_implicit = np.zeros(n_cases)
+error_q_z_lin_implicit = np.zeros(n_cases)
+error_v_x_lin_implicit = np.zeros(n_cases)
+error_v_z_lin_implicit = np.zeros(n_cases)
 
-# diff_E_vec_dis_gradient[ii] = np.mean(np.diff(energy_vec_dis_gradient))
+ # # Compute error
 
-# elapsed_vec_dis_gradient[ii] = elapsed_dis_gradient
+for ii in range(n_cases):
+        error_q_x_dis_gradient[ii] = error_norm_space_time(q_x_array_reference, \
+                                                           q_x_array_dis_gradient[:, :, ii], dt_output, norm=norm_type)
+        error_q_z_dis_gradient[ii] = error_norm_space_time(q_z_array_reference, \
+                                                           q_z_array_dis_gradient[:, :, ii], dt_output, norm=norm_type)
+        error_v_x_dis_gradient[ii] = error_norm_space_time(v_x_array_reference, \
+                                                           v_x_array_dis_gradient[:, :, ii], dt_output, norm=norm_type)
+        error_v_z_dis_gradient[ii] = error_norm_space_time(v_z_array_reference, \
+                                                           v_z_array_dis_gradient[:, :, ii], dt_output, norm=norm_type)
 
-# error_vec_q_x_lin_implicit[ii] = error_q_x_lin_implicit
-# error_vec_q_z_lin_implicit[ii] = error_q_z_lin_implicit
-
-# error_vec_v_x_lin_implicit[ii] = error_v_x_lin_implicit
-# error_vec_v_z_lin_implicit[ii] = error_v_z_lin_implicit
-
-# diff_E_vec_lin_implicit[ii] = np.mean(np.diff(energy_vec_lin_implicit))
-
-# elapsed_vec_lin_implicit[ii] = elapsed_lin_implicit
-
-
-
-# dict_hor_position = {"Discrete gradient": error_vec_q_x_dis_gradient,\
-#                 "Linear implicit": error_vec_q_x_lin_implicit}
-
-# dict_ver_position = {"Discrete gradient": error_vec_q_z_dis_gradient,\
-#                 "Linear implicit": error_vec_q_z_lin_implicit}
-
-
-# dict_hor_velocity = {"Discrete gradient": error_vec_v_x_dis_gradient,\
-#                 "Linear implicit": error_vec_v_x_lin_implicit}
-
-# dict_ver_velocity = {"Discrete gradient": error_vec_v_z_dis_gradient,\
-#                 "Linear implicit": error_vec_v_z_lin_implicit}
+        error_q_x_lin_implicit[ii] = error_norm_space_time(q_x_array_reference, \
+                                                           q_x_array_lin_implicit[:, :, ii], dt_output, norm=norm_type)
+        error_q_z_lin_implicit[ii] = error_norm_space_time(q_z_array_reference, \
+                                                           q_z_array_lin_implicit[:, :, ii], dt_output, norm=norm_type)
+        error_v_x_lin_implicit[ii] = error_norm_space_time(v_x_array_reference, \
+                                                           v_x_array_lin_implicit[:, :, ii], dt_output, norm=norm_type)
+        error_v_z_lin_implicit[ii] = error_norm_space_time(v_z_array_reference, \
+                                                           v_z_array_lin_implicit[:, :, ii], dt_output, norm=norm_type)
 
 
-# str_xlabel = '$\log \Delta t \; \mathrm{[s]}$'
-# plot_convergence(time_step_vec, dict_hor_position, xlabel=str_xlabel, ylabel="$\log \Delta q$", \
-#                 title='Position error', savefig=f"{directory_results}convergence_horizontal_position.pdf")
-# plot_convergence(time_step_vec, dict_hor_velocity, xlabel=str_xlabel, ylabel="$\log \Delta v$",  \
-#                  title='Velocity error', savefig=f"{directory_results}convergence_horizontal_velocity.pdf")
+dict_hor_position = {"Linear implicit": error_q_x_lin_implicit, \
+                     "Discrete gradient": error_q_x_dis_gradient}
 
-# plot_convergence(time_step_vec, dict_ver_position, xlabel=str_xlabel, ylabel="$\log \Delta q$", \
-#                 title='Position error', savefig=f"{directory_results}convergence_vertical_position.pdf")
-# plot_convergence(time_step_vec, dict_ver_velocity, xlabel=str_xlabel, ylabel="$\log \Delta v$",  \
-#                  title='Velocity error', savefig=f"{directory_results}convergence_vertical_velocity.pdf")
+dict_ver_position = {"Linear implicit": error_q_z_lin_implicit, \
+                     "Discrete gradient": error_q_z_dis_gradient}
+
+dict_hor_velocity = {"Linear implicit": error_v_x_lin_implicit, \
+                     "Discrete gradient": error_v_x_dis_gradient}
+
+dict_ver_velocity = {"Linear implicit": error_v_z_lin_implicit, \
+                     "Discrete gradient": error_v_z_dis_gradient}
+
+str_xlabel = '$\log \Delta t \; \mathrm{[s]}$'
+plot_convergence(time_step_vec, dict_hor_position, xlabel=str_xlabel, ylabel="$\log \Delta q_x$", \
+                title='Error position $q_x$', savefig=f"{directory_results}convergence_horizontal_position.pdf")
+plot_convergence(time_step_vec, dict_hor_velocity, xlabel=str_xlabel, ylabel="$\log \Delta v_x$",  \
+                 title='Error velocity $v_x$', savefig=f"{directory_results}convergence_horizontal_velocity.pdf")
+
+plot_convergence(time_step_vec, dict_ver_position, xlabel=str_xlabel, ylabel="$\log \Delta q$", \
+                title='Error position $q_z$', savefig=f"{directory_results}convergence_vertical_position.pdf")
+plot_convergence(time_step_vec, dict_ver_velocity, xlabel=str_xlabel, ylabel="$\log \Delta v$",  \
+                 title='Error velocity $v_z$', savefig=f"{directory_results}convergence_vertical_velocity.pdf")
 
 
-# plt.figure()
-# plt.loglog(time_step_vec, diff_E_vec_dis_gradient, 'o-', label='Discrete gradient')
-# plt.loglog(time_step_vec, diff_E_vec_lin_implicit, '+-', label='Linear implicit')
-# plt.grid(color='0.8', linestyle='-', linewidth=.5)
-# plt.xlabel(str_xlabel)
-# plt.ylabel("$\log \Delta H$")
 
-# plt.legend()
-# plt.grid(True)
-# plt.title("Energy error")
-# plt.savefig(f"{directory_results}energy_error.pdf", dpi='figure', format='pdf', bbox_inches="tight")
+plt.figure()
+plt.loglog(time_step_vec, comp_time_dis_gradient, 'o-', label='Discrete gradient')
+plt.loglog(time_step_vec, comp_time_lin_implicit, '+-', label='Linear implicit')
+plt.grid(color='0.8', linestyle='-', linewidth=.5)
+plt.xlabel(str_xlabel)
+plt.ylabel("$\log \\tau$")
+plt.legend()
+plt.grid(True)
+plt.title("Computational time [ms]")
+plt.savefig(f"{directory_results}computational_time.pdf", dpi='figure', format='pdf', bbox_inches="tight")
 
-# plt.figure()
-# plt.loglog(time_step_vec, elapsed_vec_dis_gradient, 'o-', label='Discrete gradient')
-# plt.loglog(time_step_vec, elapsed_vec_lin_implicit, '+-', label='Linear implicit')
-# plt.grid(color='0.8', linestyle='-', linewidth=.5)
-# plt.xlabel(str_xlabel)
-# plt.ylabel("$\log \\tau$")
-# plt.legend()
-# plt.grid(True)
-# plt.title("Computational time [ms]")
-# plt.savefig(f"{directory_results}computational_time.pdf", dpi='figure', format='pdf', bbox_inches="tight")
-
-# plt.show()
+plt.show()

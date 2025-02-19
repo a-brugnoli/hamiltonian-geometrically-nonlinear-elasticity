@@ -1,100 +1,179 @@
-#     plt.figure()
-#     plt.plot(t_vec_output, energy_vec_dis_gradient, label="Dis gradient")
-#     plt.plot(t_vec_output, energy_vec_lin_implicit, label="Linear implicit")
-#     plt.legend()
-#     plt.xlabel("Time [ms]")
-#     plt.title("Energy")
+import matplotlib.pyplot as plt
+from parameters import *
+import pickle
+import matplotlib.patches as mpatches
+from matplotlib import cm
+from src.postprocessing.options import configure_matplotib
+configure_matplotib()
 
-#     hor_disp_at_point_dis_gradient = q_x_array_dis_gradient[:, index_point]
-#     hor_disp_at_point_lin_implicit = q_x_array_lin_implicit[:, index_point]
 
-#     plt.figure()
-#     plt.plot(t_vec_output, hor_disp_at_point_reference, label="reference")
-#     plt.plot(t_vec_output, hor_disp_at_point_dis_gradient, label="Dis gradient")
-#     plt.plot(t_vec_output, hor_disp_at_point_lin_implicit, label="Linear implicit")
-#     plt.legend()
-#     plt.xlabel("Time [ms]")
-#     plt.title("Horizontal displacement")
+with open(file_results_reference, "rb") as f:
+        dict_results_reference = pickle.load(f)
 
-#     ver_disp_at_point_dis_gradient = q_z_array_dis_gradient[:, index_point]
-#     ver_disp_at_point_lin_implicit = q_z_array_lin_implicit[:, index_point]
-#     # ver_disp_at_point_leapfrog = q_z_array_leapfrog[:, index_point]
-
-#     plt.figure()
-#     plt.plot(t_vec_output, ver_disp_at_point_reference, label="reference")
-#     plt.plot(t_vec_output, ver_disp_at_point_dis_gradient, label="Dis gradient")
-#     plt.plot(t_vec_output, ver_disp_at_point_lin_implicit, label="Linear implicit")
-# #     # plt.plot(t_vec_output, ver_disp_at_point_leapfrog, label="Leapfrog")
-
-#     plt.legend()
-#     plt.xlabel("Time [ms]")
-#     plt.title("Vertical displacement")
-
-#     # fig_x_imp_midpoint, ax_x_imp_midpoint = plot_surface_from_matrix(t_vec_output, x_vec, \
-#     #                                             q_x_array_imp_midpoint, \
-#     #                                             x_label="$x$", y_label="$t$", z_label="$q_x$", \
-#     #                                             title="Horizontal displacement discrete gradient")
-
+energy_vec_reference = dict_results_reference["energy"]
+q_x_array_reference = dict_results_reference["horizontal displacement"]
+v_x_array_reference = dict_results_reference["horizontal velocity"]
+q_z_array_reference = dict_results_reference["vertical displacement"]
+v_z_array_reference = dict_results_reference["vertical velocity"]
     
-#     # fig_z_imp_midpoint, ax_z_imp_midpoint = plot_surface_from_matrix(t_vec_output, x_vec, \
-#     #                                         q_z_array_imp_midpoint, \
-#     #                                         x_label="$x \; \mathrm{[m]}$", \
-#     #                                         y_label="$t \; \mathrm{[ms]}$", \
-#     #                                         z_label="$q_z \; \mathrm{[m]}$ ", \
-#     #                                         title="Vertical displacement discrete gradient")
+with open(file_results_dis_gradient, "rb") as f:
+        dict_results_dis_gradient = pickle.load(f)
 
+energy_vec_dis_gradient = dict_results_dis_gradient["energy"]
+q_x_array_dis_gradient = dict_results_dis_gradient["horizontal displacement"]
+v_x_array_dis_gradient = dict_results_dis_gradient["horizontal velocity"]
+q_z_array_dis_gradient = dict_results_dis_gradient["vertical displacement"]
+v_z_array_dis_gradient = dict_results_dis_gradient["vertical velocity"]
+comp_time_dis_gradient = dict_results_dis_gradient["elapsed time"]
 
+diff_E_dis_gradient = np.diff(energy_vec_dis_gradient, axis=0)
+
+with open(file_results_lin_implicit, "rb") as f:
+        dict_results_lin_implicit = pickle.load(f)
+
+energy_vec_lin_implicit = dict_results_lin_implicit["energy"]
+q_x_array_lin_implicit = dict_results_lin_implicit["horizontal displacement"]
+v_x_array_lin_implicit = dict_results_lin_implicit["horizontal velocity"]
+q_z_array_lin_implicit = dict_results_lin_implicit["vertical displacement"]
+v_z_array_lin_implicit = dict_results_lin_implicit["vertical velocity"]
+comp_time_lin_implicit = dict_results_lin_implicit["elapsed time"]
+
+diff_E_lin_implicit = np.diff(energy_vec_lin_implicit, axis=0)
+
+# The coefficient depends on the magnitude of the time step (in this case milliseconds)
+interval = 1e6 * beam.output_frequency * float(beam.dt)
+# for ii in range(n_cases):
     
-#     # fig_x_lin_implicit, ax_x_lin_implicit = plot_surface_from_matrix(t_vec_output, x_vec, \
-#     #                                         q_x_array_lin_implicit, \
-#     #                                         x_label="$x$", y_label="$t$", z_label="$q_x$", \
-#     #                                         title="Horizontal displacement linear implicit")
+# plt.figure()
+# for ii in range(n_cases):
+#     plt.plot(t_vec_output_ms, energy_vec_dis_gradient[:, ii], '-.', \
+#              label=fr"DG $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
+#     plt.plot(t_vec_output_ms, energy_vec_lin_implicit[:, ii], ':', \
+#              label=fr"LI $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
+# plt.legend()
+# plt.xlabel("Time [ms]")
+# plt.title("Energy")
 
+
+# plt.figure()
+# for ii in range(n_cases):
+#     plt.plot(t_vec_output_ms[1:], diff_E_dis_gradient[:, ii], '-.', \
+#             label=fr"DG $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
+#     plt.plot(t_vec_output_ms[1:], diff_E_lin_implicit[:, ii], ':', \
+#             label=fr"LI $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
+# plt.legend()
+# plt.xlabel("Time [ms]")
+# plt.ylabel("$H(t_{n+1}) - H(t_n)$")
+# plt.title("Difference Energy")
+
+hor_disp_at_point_reference = q_x_array_reference[:, index_point]
+hor_disp_at_point_dis_gradient = q_x_array_dis_gradient[:, index_point]
+hor_disp_at_point_lin_implicit = q_x_array_lin_implicit[:, index_point]
+
+# plt.figure()
+# plt.plot(t_vec_output, hor_disp_at_point_reference, \
+#             label=fr"Ref $\Delta t = {dt_reference*1e6:.1f} \; \mathrm{{[\mu s]}}$")
+# for ii in range(n_cases):
+#     plt.plot(t_vec_output, hor_disp_at_point_dis_gradient[:, ii], \
+#              label=fr"DG $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
+#     plt.plot(t_vec_output, hor_disp_at_point_lin_implicit[:, ii], \
+#              label=fr"LI $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
+# plt.legend()
+# plt.xlabel("Time [ms]")
+# plt.title("Horizontal displacement")
+
+ver_disp_at_point_reference = q_z_array_reference[:, index_point]
+ver_disp_at_point_dis_gradient = q_z_array_dis_gradient[:, index_point]
+ver_disp_at_point_lin_implicit = q_z_array_lin_implicit[:, index_point]
+
+plt.figure()
+plt.plot(t_vec_output_ms, ver_disp_at_point_reference, \
+            label=fr"Ref $\Delta t = {dt_reference*1e6:.1f} \; \mathrm{{[\mu s]}}$")
+for ii in range(n_cases):
+    plt.plot(t_vec_output_ms, ver_disp_at_point_dis_gradient[:, ii], \
+            label=fr"DG $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
+    # plt.plot(t_vec_output_ms, ver_disp_at_point_lin_implicit, \
+    #         label=fr"LI $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
+plt.legend()
+plt.xlabel("Time [ms]")
+plt.title("Vertical displacement")
+
+
+plt.figure()
+plt.plot(t_vec_output_ms, ver_disp_at_point_reference, \
+            label=fr"Ref $\Delta t = {dt_reference*1e6:.1f} \; \mathrm{{[\mu s]}}$")
+for ii in range(n_cases):
+    # plt.plot(t_vec_output_ms, ver_disp_at_point_dis_gradient, \
+    #         label=fr"DG $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
+    plt.plot(t_vec_output_ms, ver_disp_at_point_lin_implicit[:, ii], \
+            label=fr"LI $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
+plt.legend()
+plt.xlabel("Time [ms]")
+plt.title("Vertical displacement")
+
+
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+X_array, T_array_ms = np.meshgrid(x_vec, t_vec_output_ms)
+surf = ax.plot_surface(X_array, T_array_ms, 1e3*q_x_array_reference, \
+                        cmap=cm.viridis, alpha=0.7, linewidth=0, antialiased=True)
+# Add labels and legend
+ax.set_xlabel("$x \; \mathrm{[m]}$")
+ax.set_ylabel("$t \; \mathrm{[ms]}$")
+ax.set_zlabel("$q_x \; \mathrm{[mm]}$ ")
+ax.set_title("Horizontal displacement ref")
+# Set viewing angle
+ax.view_init(elev=30, azim=45)
+plt.tight_layout()
+
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+X_array, T_array_ms = np.meshgrid(x_vec, t_vec_output_ms)
+surf = ax.plot_surface(X_array, T_array_ms, 1e3*q_z_array_reference, \
+                       cmap=cm.viridis, alpha=0.7, linewidth=0, antialiased=True)
+# Add labels and legend
+ax.set_xlabel("$x \; \mathrm{[m]}$")
+ax.set_ylabel("$t \; \mathrm{[ms]}$")
+ax.set_zlabel("$q_z \; \mathrm{[mm]}$ ")
+ax.set_title("Vertical displacement ref")
+# Set viewing angle
+ax.view_init(elev=30, azim=45)
+plt.tight_layout()
+
+plt.show()
+
+
+
+# diff_q_z_array_lin_implicit = q_z_array_reference[:,:,np.newaxis] - q_z_array_lin_implicit
+
+# fig_surfaces = plt.figure()
+# ax_surfaces = fig_surfaces.add_subplot(111, projection='3d')
+
+# colormaps = [cm.viridis, cm.plasma, cm.inferno, cm.magma, cm.cividis, cm.turbo]
+# proxy_artists = []
+# for ii in range(n_cases):
+#     # Choose colormap for this surface
+#     current_cmap = colormaps[ii % len(colormaps)]
     
-#     # fig_z_lin_implicit, ax_z_lin_implicit = plot_surface_from_matrix(t_vec_output, x_vec, \
-#     #                                         q_z_array_lin_implicit, \
-#     #                                         x_label="$x \; \mathrm{[m]}$", \
-#     #                                         y_label="$t \; \mathrm{[ms]}$", \
-#     #                                         z_label="$q_z \; \mathrm{[m]}$ ", \
-#     #                                         title="Vertical displacement lin implicit")
+#     # Create surface with alpha transparency
+#     surf = ax_surfaces.plot_surface(X_array, T_array_ms, diff_q_z_array_lin_implicit[:,:, ii], \
+#                                     cmap=current_cmap, alpha=0.7, linewidth=0, antialiased=True)
     
+#     # Create proxy artist for legend
+#     proxy = mpatches.Patch(color=current_cmap(0.7), 
+#                            label=fr"LI $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
+#     proxy_artists.append(proxy)
+
+# # Add labels and legend
+# ax_surfaces.set_xlabel("$x \; \mathrm{[m]}$")
+# ax_surfaces.set_ylabel("$t \; \mathrm{[ms]}$")
+# ax_surfaces.set_zlabel("$q_z \; \mathrm{[m]}$ ")
+# ax_surfaces.set_title("Vertical displacement LI")
+# ax_surfaces.legend(handles=proxy_artists, loc='upper right')
+# # Set viewing angle
+# ax_surfaces.view_init(elev=30, azim=45)
+# plt.tight_layout()
 
 
-#     # fig_x_dis_gradient, ax_x_dis_gradient = plot_surface_from_matrix(t_vec_output, x_vec, \
-#     #                                             q_x_array_dis_gradient, \
-#     #                                             x_label="$x$", y_label="$t$", z_label="$q_x$", \
-#     #                                             title="Horizontal displacement discrete gradient")
+# plt.show()
 
-    
-#     # fig_z_dis_gradient, ax_z_dis_gradient = plot_surface_from_matrix(t_vec_output, x_vec, \
-#     #                                         q_z_array_dis_gradient, \
-#     #                                         x_label="$x \; \mathrm{[m]}$", \
-#     #                                         y_label="$t \; \mathrm{[ms]}$", \
-#     #                                         z_label="$q_z \; \mathrm{[m]}$ ", \
-#     #                                         title="Vertical displacement discrete gradient")
-
-
-#     # fig_x_leapfrog, ax_x_leapfrog = plot_surface_from_matrix(t_vec_output, x_vec, \
-#     #                                             q_x_array_leapfrog, \
-#     #                                             x_label="$x$", y_label="$t$", z_label="$q_x$", \
-#     #                                             title="Horizontal displacement leapfrog")
-
-    
-#     # fig_z_leapfrog, ax_z_leapfrog = plot_surface_from_matrix(t_vec_output, x_vec, \
-#     #                                         q_z_array_leapfrog, \
-#     #                                         x_label="$x \; \mathrm{[m]}$", \
-#     #                                         y_label="$t \; \mathrm{[ms]}$", \
-#     #                                         z_label="$q_z \; \mathrm{[m]}$ ", \
-#     #                                         title="Vertical displacement leapfrog")    
-    
-#     # anim_x_imp_midpoint = create_1d_line_animation(t_vec_output, x_vec, \
-#     #                         q_x_array_imp_midpoint, interval=interval,
-#     #                         xlabel="x", ylabel="$q_x$", \
-#     #                         title=f"Horizontal displacement $\\alpha={alpha}$", \
-#     #                         filename=f"{directory_results}Hor_disp_impl_midpoint.mp4")
-
-#     # anim_z_imp_midpoint = create_1d_line_animation(t_vec_output, x_vec, \
-#     #                                             q_z_array_imp_midpoint, interval=interval/10, \
-#     #                                             xlabel="x", ylabel="$q_z$", \
-#     #                                             title=f"Vertical displacement $\\alpha={alpha}$", \
-#     #                                             filename=f"{directory_results}Ver_disp_impl_midpoint.mp4")

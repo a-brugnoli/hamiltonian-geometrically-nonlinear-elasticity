@@ -71,7 +71,8 @@ class VonKarmanBeam:
 
         self.space_ver_disp = fdrk.FunctionSpace(self.domain, "Hermite", 3)
         self.space_ver_vel = self.space_ver_disp
-
+        # When non linear effects are strong the degree for the axial variable needs
+        # to be high
         self.space_axial_stress = fdrk.FunctionSpace(self.domain, "DG", 4)
         self.space_bending_stress = fdrk.FunctionSpace(self.domain, "DG", 1)
 
@@ -101,7 +102,8 @@ class VonKarmanBeam:
 
 
     def get_initial_conditions(self):
-        hor_disp_exp = self.q0_hor*fdrk.sin(fdrk.pi*self.x_coord/self.length)
+        hor_disp_exp = self.q0_hor*fdrk.cos(fdrk.pi*self.x_coord/self.length)
+        
         ver_disp_exp = self.q0_ver*fdrk.sin(fdrk.pi*self.x_coord/self.length)
         return {"horizontal displacement": hor_disp_exp, "vertical displacement": ver_disp_exp}
 
@@ -305,6 +307,7 @@ class VonKarmanBeam:
         kk = 0
 
         for ii in tqdm(range(self.n_steps)):
+            actural_time = (ii+1)*float(self.dt)
             solver_hor_vel.solve()
             solver_ver_vel.solve()
             
@@ -316,6 +319,8 @@ class VonKarmanBeam:
                 # energy_vec[kk] = fdrk.assemble(self.kinetic_energy(hor_vel_new, ver_vel_new) \
                 #                 + self.deformation_energy_leapfrog(hor_disp_half, hor_disp_new_half, ver_disp_half, ver_disp_new_half))
                 kk += 1
+                assert np.isclose(actural_time, self.t_vec_output[kk])
+
                 energy_vec[kk] = fdrk.assemble(self.hamiltonian(hor_disp_new, ver_disp_new, hor_vel_new, ver_vel_new))
                 if save_vars: 
                     hor_disp_list.append(hor_disp_new.copy(deepcopy=True))
@@ -441,12 +446,16 @@ class VonKarmanBeam:
         kk = 0
 
         for ii in tqdm(range(self.n_steps)):
+            actural_time = (ii+1)*float(self.dt)
+
             implicit_solver.solve()
 
             states_old.assign(states_new)
 
             if (ii+1)%self.output_frequency==0:
                 kk += 1
+                assert np.isclose(actural_time, self.t_vec_output[kk])
+
                 energy_vec[kk] = fdrk.assemble(self.hamiltonian(hor_disp_old, ver_disp_old, hor_vel_old, ver_vel_old))
                 if save_vars: 
                     hor_disp_list.append(hor_disp_old.copy(deepcopy=True))
@@ -586,6 +595,8 @@ class VonKarmanBeam:
         kk = 0
 
         for ii in tqdm(range(self.n_steps)):
+            actural_time = (ii+1)*float(self.dt)
+
             linear_implicit_solver.solve()
 
             hor_disp_new.assign(0.5*(hor_disp_half + hor_disp_new_half))      
@@ -595,6 +606,7 @@ class VonKarmanBeam:
                 # energy_vec[kk] = fdrk.assemble(self.kinetic_energy(hor_vel_new, ver_vel_new) \
                 #                 + self.deformation_energy_leapfrog(hor_disp_half, hor_disp_new_half, ver_disp_half, ver_disp_new_half))
                 kk += 1
+                assert np.isclose(actural_time, self.t_vec_output[kk])
                 energy_vec[kk] = 0.5*fdrk.assemble(self.energy_form_linear_implicit(tuple_states_new, \
                                                                                     tuple_states_new))
                 if save_vars: 

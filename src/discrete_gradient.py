@@ -1,6 +1,5 @@
 import numpy as np
 from numpy.linalg import norm
-import firedrake as fdrk
 from scipy.integrate import simpson, quad
 
 def midpoint_discrete_gradient(x_new, x_old, H, grad_H):

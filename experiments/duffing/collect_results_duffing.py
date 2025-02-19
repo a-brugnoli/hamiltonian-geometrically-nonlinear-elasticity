@@ -3,7 +3,7 @@ from math import pi
 import time
 import os
 from duffing_oscillator import DuffingOscillator
-from experiments.duffing.plot_signals_duffing import plot_results
+from experiments.duffing.plot_signals_duffing import plot_signals
 import matplotlib.pyplot as plt
 from src.postprocessing.plot_convergence import plot_convergence
 from src.postprocessing.options import configure_matplotib
@@ -23,7 +23,7 @@ t_end = T*100
 # Time parameters
 t_span = [0, t_end]
 
-norm_type = "L2" 
+norm_type = "Linf" 
 dt_base = T/100
 # sec_factor = 1/10
 # dt_base = sec_factor*2/omega_0import numpy as np
