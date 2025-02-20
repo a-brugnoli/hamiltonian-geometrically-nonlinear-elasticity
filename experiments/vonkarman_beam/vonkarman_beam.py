@@ -71,8 +71,8 @@ class VonKarmanBeam:
 
         self.space_ver_disp = fdrk.FunctionSpace(self.domain, "Hermite", 3)
         self.space_ver_vel = self.space_ver_disp
-        # When non linear effects are strong the degree for the axial variable needs
-        # to be high
+        # When non linear effects are strong
+        # the degree for the axial variable needs to be high
         self.space_axial_stress = fdrk.FunctionSpace(self.domain, "DG", 4)
         self.space_bending_stress = fdrk.FunctionSpace(self.domain, "DG", 1)
 
@@ -167,6 +167,7 @@ class VonKarmanBeam:
         
         return form_dV_hor_disp, form_dV_ver_disp
     
+
     def weak_grad_potential_stress(self, test_hor_vel, test_ver_vel, ver_disp, \
                                     axial_stress, bending_stress):
 
@@ -177,6 +178,7 @@ class VonKarmanBeam:
         
 
         return form_dV_hor_disp, form_dV_ver_disp
+
 
     def weak_grad_potential_linear(self, test_hor_vel, test_ver_vel, \
                                             hor_disp, ver_disp):
@@ -307,7 +309,6 @@ class VonKarmanBeam:
         kk = 0
 
         for ii in tqdm(range(self.n_steps)):
-            actural_time = (ii+1)*float(self.dt)
             solver_hor_vel.solve()
             solver_ver_vel.solve()
             
@@ -319,6 +320,8 @@ class VonKarmanBeam:
                 # energy_vec[kk] = fdrk.assemble(self.kinetic_energy(hor_vel_new, ver_vel_new) \
                 #                 + self.deformation_energy_leapfrog(hor_disp_half, hor_disp_new_half, ver_disp_half, ver_disp_new_half))
                 kk += 1
+                actural_time = (ii+1)*float(self.dt)
+
                 assert np.isclose(actural_time, self.t_vec_output[kk])
 
                 energy_vec[kk] = fdrk.assemble(self.hamiltonian(hor_disp_new, ver_disp_new, hor_vel_new, ver_vel_new))
@@ -446,7 +449,6 @@ class VonKarmanBeam:
         kk = 0
 
         for ii in tqdm(range(self.n_steps)):
-            actural_time = (ii+1)*float(self.dt)
 
             implicit_solver.solve()
 
@@ -454,6 +456,7 @@ class VonKarmanBeam:
 
             if (ii+1)%self.output_frequency==0:
                 kk += 1
+                actural_time = (ii+1)*float(self.dt)
                 assert np.isclose(actural_time, self.t_vec_output[kk])
 
                 energy_vec[kk] = fdrk.assemble(self.hamiltonian(hor_disp_old, ver_disp_old, hor_vel_old, ver_vel_old))
@@ -484,7 +487,6 @@ class VonKarmanBeam:
         return dict_results
     
 
-
     def energy_form_linear_implicit(self, test_functions, trial_functions):
 
         test_hor_velocity, test_ver_velocity, test_axial_stress, test_bending_stress = test_functions
@@ -512,6 +514,7 @@ class VonKarmanBeam:
         interconnection_form = - D_transpose_hor - D_transpose_ver + D_hor + D_ver 
 
         return interconnection_form
+
 
     def linear_implicit(self, save_vars=False):
         # bc_hor_vel = fdrk.DirichletBC(self.mixed_space_linear_implicit.sub(0), \
@@ -595,7 +598,6 @@ class VonKarmanBeam:
         kk = 0
 
         for ii in tqdm(range(self.n_steps)):
-            actural_time = (ii+1)*float(self.dt)
 
             linear_implicit_solver.solve()
 
@@ -603,9 +605,8 @@ class VonKarmanBeam:
             ver_disp_new.assign(0.5*(ver_disp_half + ver_disp_new_half))
 
             if (ii+1)%self.output_frequency==0:
-                # energy_vec[kk] = fdrk.assemble(self.kinetic_energy(hor_vel_new, ver_vel_new) \
-                #                 + self.deformation_energy_leapfrog(hor_disp_half, hor_disp_new_half, ver_disp_half, ver_disp_new_half))
                 kk += 1
+                actural_time = (ii+1)*float(self.dt)
                 assert np.isclose(actural_time, self.t_vec_output[kk])
                 energy_vec[kk] = 0.5*fdrk.assemble(self.energy_form_linear_implicit(tuple_states_new, \
                                                                                     tuple_states_new))
@@ -621,6 +622,166 @@ class VonKarmanBeam:
             states_old.assign(states_new)
 
         if not save_vars:
+            # If not save variables, only return the last time step
+            hor_disp_list.append(hor_disp_old.copy(deepcopy=True))
+            ver_disp_list.append(ver_disp_old.copy(deepcopy=True))
+            hor_vel_list.append(hor_vel_old.copy(deepcopy=True))
+            ver_vel_list.append(ver_vel_old.copy(deepcopy=True))
+           
+        hor_disp_array = self.convert_functions_to_array(hor_disp_list)
+        ver_disp_array = self.convert_functions_to_array(ver_disp_list)
+        hor_vel_array = self.convert_functions_to_array(hor_vel_list)
+        ver_vel_array = self.convert_functions_to_array(ver_vel_list)
+           
+        dict_results = {"horizontal displacement": hor_disp_array, 
+                        "vertical displacement": ver_disp_array, 
+                        "horizontal velocity": hor_vel_array, 
+                        "vertical velocity": ver_vel_array, 
+                        "energy": energy_vec}
+        
+        return dict_results
+    
+
+    
+    
+    def linear_implicit_static_condensation(self, save_vars=False):
+        tuple_test_functions = fdrk.TestFunctions(self.mixed_space_linear_implicit)
+        tuple_trial_functions = fdrk.TrialFunctions(self.mixed_space_linear_implicit)
+
+        states_old = fdrk.Function(self.mixed_space_linear_implicit) 
+        hor_vel_old, ver_vel_old, axial_stress_old, bending_stress_old = states_old.subfunctions 
+        tuple_states_old = (hor_vel_old, ver_vel_old, axial_stress_old, bending_stress_old)
+
+        hor_disp_old = fdrk.Function(self.space_hor_disp)
+        ver_disp_old = fdrk.Function(self.space_ver_disp)
+
+        dict_init_conditions_disp = self.get_initial_conditions()
+
+        hor_disp_0 = dict_init_conditions_disp["horizontal displacement"]
+        hor_disp_old.interpolate(hor_disp_0)
+
+        ver_disp_0 = dict_init_conditions_disp["vertical displacement"]
+        ver_disp_old.assign(fdrk.project(ver_disp_0, self.space_ver_disp, \
+                    fdrk.DirichletBC(self.space_ver_disp, fdrk.Constant(0), "on_boundary")))
+        
+        states_old.sub(2).interpolate(self.axial_stress(hor_disp_old, ver_disp_old))
+        states_old.sub(3).interpolate(self.bending_stress(ver_disp_old))
+
+
+        states_new = fdrk.Function(self.mixed_space_linear_implicit)
+        hor_vel_new, ver_vel_new, axial_stress_new, bending_stress_new = states_new.subfunctions
+        tuple_states_new = (hor_vel_new, ver_vel_new, axial_stress_new, bending_stress_new)
+
+        hor_disp_new = fdrk.Function(self.space_hor_disp)
+        ver_disp_new = fdrk.Function(self.space_ver_disp)
+
+        hor_disp_half = fdrk.Function(self.space_hor_disp)
+        hor_disp_half.assign(hor_disp_old + 0.5*self.dt*hor_vel_old)
+
+        ver_disp_half = fdrk.Function(self.space_ver_disp)
+        ver_disp_half.assign(ver_disp_old + 0.5*self.dt*ver_vel_old)
+
+        hor_disp_new_half = hor_disp_half + self.dt*hor_vel_new
+        ver_disp_new_half = ver_disp_half + self.dt*ver_vel_new
+
+        bilinear_form = self.energy_form_linear_implicit(tuple_test_functions, tuple_trial_functions) \
+            - self.dt/2*self.interconnection_form_linear_implicit(tuple_test_functions, \
+                                                                tuple_trial_functions, \
+                                                                ver_disp_half)
+
+
+        linear_form = self.energy_form_linear_implicit(tuple_test_functions, tuple_states_old) \
+            + self.dt/2*self.interconnection_form_linear_implicit(tuple_test_functions, \
+                                                                tuple_states_old, \
+                                                                ver_disp_half)
+
+
+        # Apply static condensation to solve for the two velocity fields
+        A_tensor = fdrk.Tensor(bilinear_form)
+        A_blocks = A_tensor.blocks
+
+        b_tensor = fdrk.Tensor(linear_form)
+        b_blocks = b_tensor.blocks
+
+        A_blocks_vel = A_blocks[:2, :2]  - A_blocks[:2, 2:] * A_blocks[2:, 2:].inv * A_blocks[2:, :2]
+        b_blocks_vel = b_blocks[:2]  - A_blocks[:2, 2:] * A_blocks[2:, 2:].inv * b_blocks[2:]
+
+        space_velocity = self.space_hor_vel * self.space_ver_vel
+        velocity_new = fdrk.Function(space_velocity)
+
+        # # bc_hor_vel = fdrk.DirichletBC(space_velocity.sub(0), \
+        # #                             fdrk.Constant(0), "on_boundary")
+        bc_ver_vel = fdrk.DirichletBC(space_velocity.sub(1), \
+                                      fdrk.Constant(0), "on_boundary")
+        bcs = [bc_ver_vel]
+
+
+        hor_disp_list = []
+        ver_disp_list = []
+        hor_vel_list = []
+        ver_vel_list = []
+
+        if save_vars:   
+            hor_disp_list.append(hor_disp_old.copy(deepcopy=True))
+            ver_disp_list.append(ver_disp_old.copy(deepcopy=True))
+            hor_vel_list.append(hor_vel_old.copy(deepcopy=True))
+            ver_vel_list.append(ver_vel_old.copy(deepcopy=True))
+
+        energy_vec = np.zeros(len(self.t_vec_output))
+        energy_vec[0] = 0.5* fdrk.assemble(self.energy_form_linear_implicit(tuple_states_old, \
+                                                                            tuple_states_old))
+        kk = 0            
+
+        M_inv_axial_stress = fdrk.assemble(A_blocks[2, 2].inv).M.handle
+        M_inv_bend_stress = fdrk.assemble(A_blocks[3, 3].inv).M.handle
+
+        for ii in tqdm(range(self.n_steps)):
+
+            # Solve for velocity block
+            A_vel = fdrk.assemble(A_blocks_vel, bcs=bcs)
+            b_vel = fdrk.assemble(b_blocks_vel)
+            fdrk.solve(A_vel, velocity_new, b_vel)
+
+            states_new.sub(0).assign(velocity_new.sub(0))
+            states_new.sub(1).assign(velocity_new.sub(1))
+
+            # Reconstruction of the new state vector
+            local_velocity = fdrk.AssembledVector(velocity_new)
+
+            b_axial_stress= fdrk.assemble(b_blocks[2] - A_blocks[2, :2] * local_velocity)
+
+            with b_axial_stress.dat.vec_ro as b_axial_stress_petsc:
+                with axial_stress_new.dat.vec_wo as axial_stress_new_vec:
+                    M_inv_axial_stress.mult(b_axial_stress_petsc, axial_stress_new_vec)
+            
+            b_bend_stress= fdrk.assemble(b_blocks[3] - A_blocks[3, :2] * local_velocity)
+
+            with b_bend_stress.dat.vec_ro as b_bend_stress_petsc:
+                with bending_stress_new.dat.vec_wo as bending_stress_new_vec:
+                    M_inv_bend_stress.mult(b_bend_stress_petsc, bending_stress_new_vec)
+
+            hor_disp_new.assign(0.5*(hor_disp_half + hor_disp_new_half))      
+            ver_disp_new.assign(0.5*(ver_disp_half + ver_disp_new_half))
+
+            if (ii+1)%self.output_frequency==0:
+                kk += 1
+                actural_time = (ii+1)*float(self.dt)
+                assert np.isclose(actural_time, self.t_vec_output[kk])
+                energy_vec[kk] = 0.5*fdrk.assemble(self.energy_form_linear_implicit(tuple_states_new, \
+                                                                                    tuple_states_new))
+                if save_vars: 
+                    hor_disp_list.append(hor_disp_new.copy(deepcopy=True))
+                    ver_disp_list.append(ver_disp_new.copy(deepcopy=True))
+                    hor_vel_list.append(hor_vel_new.copy(deepcopy=True))
+                    ver_vel_list.append(ver_vel_new.copy(deepcopy=True))
+
+            hor_disp_half.assign(hor_disp_new_half)
+            ver_disp_half.assign(ver_disp_new_half)
+
+            states_old.assign(states_new)
+
+        if not save_vars:
+            # If not save variables, only return the last time step
             hor_disp_list.append(hor_disp_old.copy(deepcopy=True))
             ver_disp_list.append(ver_disp_old.copy(deepcopy=True))
             hor_vel_list.append(hor_vel_old.copy(deepcopy=True))

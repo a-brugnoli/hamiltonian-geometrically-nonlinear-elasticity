@@ -16,6 +16,20 @@ v_x_array_reference = dict_results_reference["horizontal velocity"]
 q_z_array_reference = dict_results_reference["vertical displacement"]
 v_z_array_reference = dict_results_reference["vertical velocity"]
     
+
+with open(file_results_leapfrog, "rb") as f:
+        dict_results_leapfrog = pickle.load(f)
+
+energy_vec_leapfrog = dict_results_leapfrog["energy"]
+q_x_array_leapfrog = dict_results_leapfrog["horizontal displacement"]
+v_x_array_leapfrog = dict_results_leapfrog["horizontal velocity"]
+q_z_array_leapfrog = dict_results_leapfrog["vertical displacement"]
+v_z_array_leapfrog = dict_results_leapfrog["vertical velocity"]
+comp_time_leapfrog = dict_results_leapfrog["elapsed time"]
+
+diff_E_leapfrog = np.diff(energy_vec_leapfrog, axis=0)
+
+
 with open(file_results_dis_gradient, "rb") as f:
         dict_results_dis_gradient = pickle.load(f)
 
@@ -40,33 +54,34 @@ comp_time_lin_implicit = dict_results_lin_implicit["elapsed time"]
 
 diff_E_lin_implicit = np.diff(energy_vec_lin_implicit, axis=0)
 
-# The coefficient depends on the magnitude of the time step (in this case milliseconds)
-interval = 1e6 * beam.output_frequency * float(beam.dt)
-# for ii in range(n_cases):
-    
-# plt.figure()
-# for ii in range(n_cases):
-#     plt.plot(t_vec_output_ms, energy_vec_dis_gradient[:, ii], '-.', \
-#              label=fr"DG $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
-#     plt.plot(t_vec_output_ms, energy_vec_lin_implicit[:, ii], ':', \
-#              label=fr"LI $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
-# plt.legend()
-# plt.xlabel("Time [ms]")
-# plt.title("Energy")
+plt.figure()
+for ii in range(n_cases):
+    plt.plot(t_vec_output_ms, energy_vec_leapfrog[:, ii], '-.', \
+             label=fr"LF $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
+    plt.plot(t_vec_output_ms, energy_vec_dis_gradient[:, ii], '-.', \
+             label=fr"DG $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
+    plt.plot(t_vec_output_ms, energy_vec_lin_implicit[:, ii], ':', \
+             label=fr"LI $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
+plt.legend()
+plt.xlabel("Time [ms]")
+plt.title("Energy")
 
 
-# plt.figure()
-# for ii in range(n_cases):
-#     plt.plot(t_vec_output_ms[1:], diff_E_dis_gradient[:, ii], '-.', \
-#             label=fr"DG $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
-#     plt.plot(t_vec_output_ms[1:], diff_E_lin_implicit[:, ii], ':', \
-#             label=fr"LI $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
-# plt.legend()
-# plt.xlabel("Time [ms]")
-# plt.ylabel("$H(t_{n+1}) - H(t_n)$")
-# plt.title("Difference Energy")
+plt.figure()
+for ii in range(n_cases):
+    plt.plot(t_vec_output_ms[1:], diff_E_leapfrog[:, ii], '-.', \
+            label=fr"LF $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
+    plt.plot(t_vec_output_ms[1:], diff_E_dis_gradient[:, ii], '-.', \
+            label=fr"DG $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
+    plt.plot(t_vec_output_ms[1:], diff_E_lin_implicit[:, ii], ':', \
+            label=fr"LI $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
+plt.legend()
+plt.xlabel("Time [ms]")
+plt.ylabel("$H(t_{n+1}) - H(t_n)$")
+plt.title("Difference Energy")
 
 hor_disp_at_point_reference = q_x_array_reference[:, index_point]
+hor_disp_at_point_leapfrog = q_x_array_leapfrog[:, index_point]
 hor_disp_at_point_dis_gradient = q_x_array_dis_gradient[:, index_point]
 hor_disp_at_point_lin_implicit = q_x_array_lin_implicit[:, index_point]
 
@@ -74,6 +89,8 @@ hor_disp_at_point_lin_implicit = q_x_array_lin_implicit[:, index_point]
 # plt.plot(t_vec_output, hor_disp_at_point_reference, \
 #             label=fr"Ref $\Delta t = {dt_reference*1e6:.1f} \; \mathrm{{[\mu s]}}$")
 # for ii in range(n_cases):
+#     plt.plot(t_vec_output, hor_disp_at_point_leapfrog[:, ii], \
+#              label=fr"DG $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
 #     plt.plot(t_vec_output, hor_disp_at_point_dis_gradient[:, ii], \
 #              label=fr"DG $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
 #     plt.plot(t_vec_output, hor_disp_at_point_lin_implicit[:, ii], \
@@ -83,17 +100,17 @@ hor_disp_at_point_lin_implicit = q_x_array_lin_implicit[:, index_point]
 # plt.title("Horizontal displacement")
 
 ver_disp_at_point_reference = q_z_array_reference[:, index_point]
+ver_disp_at_point_leapfrog = q_z_array_leapfrog[:, index_point]
 ver_disp_at_point_dis_gradient = q_z_array_dis_gradient[:, index_point]
 ver_disp_at_point_lin_implicit = q_z_array_lin_implicit[:, index_point]
+
 
 plt.figure()
 plt.plot(t_vec_output_ms, ver_disp_at_point_reference, \
             label=fr"Ref $\Delta t = {dt_reference*1e6:.1f} \; \mathrm{{[\mu s]}}$")
 for ii in range(n_cases):
-    plt.plot(t_vec_output_ms, ver_disp_at_point_dis_gradient[:, ii], \
+    plt.plot(t_vec_output_ms, ver_disp_at_point_leapfrog[:, ii], \
             label=fr"DG $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
-    # plt.plot(t_vec_output_ms, ver_disp_at_point_lin_implicit, \
-    #         label=fr"LI $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
 plt.legend()
 plt.xlabel("Time [ms]")
 plt.title("Vertical displacement")
@@ -103,8 +120,17 @@ plt.figure()
 plt.plot(t_vec_output_ms, ver_disp_at_point_reference, \
             label=fr"Ref $\Delta t = {dt_reference*1e6:.1f} \; \mathrm{{[\mu s]}}$")
 for ii in range(n_cases):
-    # plt.plot(t_vec_output_ms, ver_disp_at_point_dis_gradient, \
-    #         label=fr"DG $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
+    plt.plot(t_vec_output_ms, ver_disp_at_point_dis_gradient[:, ii], \
+            label=fr"DG $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
+plt.legend()
+plt.xlabel("Time [ms]")
+plt.title("Vertical displacement")
+
+
+plt.figure()
+plt.plot(t_vec_output_ms, ver_disp_at_point_reference, \
+            label=fr"Ref $\Delta t = {dt_reference*1e6:.1f} \; \mathrm{{[\mu s]}}$")
+for ii in range(n_cases):
     plt.plot(t_vec_output_ms, ver_disp_at_point_lin_implicit[:, ii], \
             label=fr"LI $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
 plt.legend()

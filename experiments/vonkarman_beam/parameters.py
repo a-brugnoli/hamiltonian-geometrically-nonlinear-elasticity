@@ -85,7 +85,9 @@ dt_output = np.mean(np.diff(t_vec_output))
 directory_results = f"{os.path.dirname(os.path.abspath(__file__))}/results/"
 if not os.path.exists(directory_results):
     os.makedirs(directory_results)
+
 file_results_reference = directory_results + "results_reference.pkl"
+file_results_leapfrog = directory_results + "results_leapfrog.pkl"
 file_results_dis_gradient = directory_results + "results_discrete_gradient.pkl"
 file_results_lin_implicit = directory_results + "results_linear_implicit.pkl"
 

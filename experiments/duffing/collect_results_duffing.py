@@ -23,7 +23,7 @@ t_end = T*100
 # Time parameters
 t_span = [0, t_end]
 
-norm_type = "Linf" 
+norm_type = "L2" 
 dt_base = T/100
 # sec_factor = 1/10
 # dt_base = sec_factor*2/omega_0import numpy as np
@@ -141,9 +141,9 @@ dict_velocity = {"Leapfrog": error_vec_v_leapfrog,\
 
 
 str_xlabel = '$\log \Delta t \; \mathrm{[s]}$'
-plot_convergence(time_step_vec, dict_position, xlabel=str_xlabel, ylabel="$\log \Delta q$", \
+plot_convergence(time_step_vec, dict_position, xlabel=str_xlabel, ylabel="$\log \epsilon_q$", \
                 title='Position error', savefig=f"{directory_results}convergence_position.pdf")
-plot_convergence(time_step_vec, dict_velocity, xlabel=str_xlabel, ylabel="$\log \Delta v$",  \
+plot_convergence(time_step_vec, dict_velocity, xlabel=str_xlabel, ylabel="$\log \epsilon_v$",  \
                  title='Velocity error', savefig=f"{directory_results}convergence_velocity.pdf")
 
 plt.figure()
@@ -152,7 +152,7 @@ plt.loglog(time_step_vec, error_vec_E_dis_gradient, 'o-', label='Discrete gradie
 plt.loglog(time_step_vec, error_vec_E_lin_implicit, '+-', label='Linear implicit')
 plt.grid(color='0.8', linestyle='-', linewidth=.5)
 plt.xlabel(str_xlabel)
-plt.ylabel("$\log \Delta H$")
+plt.ylabel("$\log \epsilon_H$")
 
 plt.legend()
 plt.grid(True)
@@ -165,7 +165,7 @@ plt.loglog(time_step_vec, elapsed_vec_dis_gradient, 'o-', label='Discrete gradie
 plt.loglog(time_step_vec, elapsed_vec_lin_implicit, '+-', label='Linear implicit')
 plt.grid(color='0.8', linestyle='-', linewidth=.5)
 plt.xlabel(str_xlabel)
-plt.ylabel("$\log \\tau$")
+plt.ylabel(r"$\log T_{\rm comp}$")
 plt.legend()
 plt.grid(True)
 plt.title("Computational time [ms]")

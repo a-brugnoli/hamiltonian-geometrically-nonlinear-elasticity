@@ -22,6 +22,14 @@ except Exception as e:
     print(f"An unexpected error occurred: {e}")
 
 
+energy_vec_leapfrog = np.zeros((n_sim_output, n_cases))
+q_x_array_leapfrog = np.zeros((n_sim_output, n_dofs_hor, n_cases))
+v_x_array_leapfrog = np.zeros((n_sim_output, n_dofs_hor, n_cases))
+q_z_array_leapfrog = np.zeros((n_sim_output, n_dofs_hor, n_cases))
+v_z_array_leapfrog = np.zeros((n_sim_output, n_dofs_hor, n_cases))
+elapsed_vec_leapfrog = np.zeros(n_cases)
+
+
 energy_vec_dis_gradient = np.zeros((n_sim_output, n_cases))
 q_x_array_dis_gradient = np.zeros((n_sim_output, n_dofs_hor, n_cases))
 v_x_array_dis_gradient = np.zeros((n_sim_output, n_dofs_hor, n_cases))
@@ -44,6 +52,19 @@ for ii in range(n_cases):
     beam.set_time_step(dt)
     
     assert np.linalg.norm(t_vec_output-beam.t_vec_output)<1e-12
+
+    print(f"Running leapfrog")
+    t0_leapfrog = time.perf_counter()
+    dict_results_leapfrog = beam.leapfrog(save_vars=True)
+    tf_leapfrog = time.perf_counter()
+    elapsed_vec_leapfrog[ii] = tf_leapfrog - t0_leapfrog
+
+    energy_vec_leapfrog[:, ii] = dict_results_leapfrog["energy"]
+    q_x_array_leapfrog[:, :, ii] = dict_results_leapfrog["horizontal displacement"]
+    v_x_array_leapfrog[:, :, ii] = dict_results_leapfrog["horizontal velocity"]
+    q_z_array_leapfrog[:, :, ii] = dict_results_leapfrog["vertical displacement"]
+    v_z_array_leapfrog[:, :, ii] = dict_results_leapfrog["vertical velocity"]
+
 
     print(f"Running discrete gradient")
     t0_dis_gradient = time.perf_counter()
@@ -70,10 +91,23 @@ for ii in range(n_cases):
     v_z_array_lin_implicit[:, :, ii] = dict_results_lin_implicit["vertical velocity"]
 
 
+    print(f"Elapsed time Leapfrog : {elapsed_vec_leapfrog[ii]}")
     print(f"Elapsed time Midpoint Discrete gradient : {elapsed_vec_dis_gradient[ii]}")
     print(f"Elapsed time Linear implicit : {elapsed_vec_lin_implicit[ii]}")
 
-    
+
+dict_results_leapfrog_cases = {"energy": energy_vec_leapfrog, 
+                                "horizontal displacement": q_x_array_leapfrog,
+                                "horizontal velocity": v_x_array_leapfrog,
+                                "vertical displacement": q_z_array_leapfrog, 
+                                "vertical velocity": v_z_array_leapfrog,
+                                "elapsed time": elapsed_vec_leapfrog}
+
+with open(file_results_leapfrog, "wb") as f:
+        pickle.dump(dict_results_leapfrog_cases, f)
+
+
+
 dict_results_dis_gradient_cases = {"energy": energy_vec_dis_gradient, 
                                 "horizontal displacement": q_x_array_dis_gradient,
                                 "horizontal velocity": v_x_array_dis_gradient,
