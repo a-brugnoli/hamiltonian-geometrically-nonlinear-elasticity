@@ -1,12 +1,17 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from .options import styles
+
 
 def plot_convergence(dt_vec, dict_error_vec, **options):
     
     plt.figure()
-    for key_label, error_vec in dict_error_vec.items():
+    for i, (key_label, error_vec) in enumerate(dict_error_vec.items()):
 
-            plt.plot(np.log10(dt_vec), np.log10(error_vec), '-.+', label=key_label)
+            plt.plot(np.log10(dt_vec), np.log10(error_vec), \
+                    label=key_label, \
+                    marker=styles['markers'][i], \
+                    linestyle=styles['linestyles'][i])
 
         # # Define the coordinates of the triangle's vertices
         # if "rate" in options:

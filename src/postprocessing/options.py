@@ -1,6 +1,12 @@
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
 
+styles = {
+    'markers': ['o', '+', '^', 's'],  # circle, square, triangle, diamond
+    'linestyles': ['-', '--', ':', '-.'],  # solid, dashed, dotted, dash-dot
+    'colors': ['blue', 'red', 'green', 'purple']
+}
+
 def configure_matplotib():
     SMALL_SIZE = 18
     MEDIUM_SIZE = 20

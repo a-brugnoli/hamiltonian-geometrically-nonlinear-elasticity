@@ -5,6 +5,7 @@ import time
 from src.postprocessing.options import configure_matplotib
 configure_matplotib()
 
+
 dt = time_step_vec[0]
 beam.set_time_step(dt)
 

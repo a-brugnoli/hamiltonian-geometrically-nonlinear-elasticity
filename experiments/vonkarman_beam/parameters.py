@@ -15,8 +15,6 @@ I = (width * height**3) / 12 # Second moment of inertia
 L = 1
 
 n_elements = 50
-n_dofs_hor = n_elements+1
-n_dofs_ver = 2*(n_elements+1)
 mesh_size = L/n_elements
 
 # # Initial condition
@@ -50,7 +48,7 @@ T1_bending = 2*pi/omega1_bending
 t_end_approx = 0.1*T1_bending
 n_steps_approx = np.round(t_end_approx/dt_base).astype(int)
 
-# Clmputation of the final time and number of steps to collect a maximum number of 
+# Computation of the final time and number of steps to collect a maximum number of 
 # output data set to 1e4
 max_output = 10000
 if n_steps_approx+1<=max_output:
@@ -91,6 +89,6 @@ file_results_leapfrog = directory_results + "results_leapfrog.pkl"
 file_results_dis_gradient = directory_results + "results_discrete_gradient.pkl"
 file_results_lin_implicit = directory_results + "results_linear_implicit.pkl"
 
-n_cases = 5
+n_cases = 6
 time_step_vec = np.array([dt_base/2**n for n in range(n_cases)])
 time_step_vec_mus = time_step_vec*1e6

@@ -26,7 +26,8 @@ q_z_array_leapfrog = dict_results_leapfrog["vertical displacement"]
 v_z_array_leapfrog = dict_results_leapfrog["vertical velocity"]
 comp_time_leapfrog = dict_results_leapfrog["elapsed time"]
 
-avg_diff_E_leapfrog = np.mean(np.diff(energy_vec_leapfrog, axis=0))
+diff_energy_vec_leapfrog = np.abs(np.diff(energy_vec_leapfrog, axis=0))
+avg_diff_E_leapfrog = np.mean(diff_energy_vec_leapfrog, axis=0)
 
 with open(file_results_dis_gradient, "rb") as f:
         dict_results_dis_gradient = pickle.load(f)
@@ -38,7 +39,8 @@ q_z_array_dis_gradient = dict_results_dis_gradient["vertical displacement"]
 v_z_array_dis_gradient = dict_results_dis_gradient["vertical velocity"]
 comp_time_dis_gradient = dict_results_dis_gradient["elapsed time"]
 
-avg_diff_E_dis_gradient = np.mean(np.diff(energy_vec_dis_gradient, axis=0))
+diff_energy_dis_gradient = np.abs(np.diff(energy_vec_dis_gradient, axis=0))
+avg_diff_E_dis_gradient = np.mean(diff_energy_dis_gradient, axis=0)
 
 with open(file_results_lin_implicit, "rb") as f:
         dict_results_lin_implicit = pickle.load(f)
@@ -50,8 +52,8 @@ q_z_array_lin_implicit = dict_results_lin_implicit["vertical displacement"]
 v_z_array_lin_implicit = dict_results_lin_implicit["vertical velocity"]
 comp_time_lin_implicit = dict_results_lin_implicit["elapsed time"]
 
-avg_diff_E_lin_implicit = np.mean(np.diff(energy_vec_lin_implicit, axis=0))
-
+diff_energy_vec_lin_implicit = np.abs(np.diff(energy_vec_lin_implicit, axis=0))
+avg_diff_E_lin_implicit = np.mean(diff_energy_vec_lin_implicit, axis=0)
 
 error_q_x_leapfrog = np.zeros(n_cases)
 error_q_z_leapfrog = np.zeros(n_cases)
@@ -116,14 +118,14 @@ dict_ver_velocity = {"Linear implicit": error_v_z_lin_implicit, \
                      "Leapfrog": error_v_z_leapfrog}
 
 str_xlabel = '$\log \Delta t \; \mathrm{[s]}$'
-plot_convergence(time_step_vec, dict_hor_position, xlabel=str_xlabel, ylabel="$\log \Delta q_x$", \
+plot_convergence(time_step_vec, dict_hor_position, xlabel=str_xlabel, ylabel="$\log \epsilon_{q_x}$", \
                 title='Error position $q_x$', savefig=f"{directory_results}convergence_horizontal_position.pdf")
-plot_convergence(time_step_vec, dict_hor_velocity, xlabel=str_xlabel, ylabel="$\log \Delta v_x$",  \
+plot_convergence(time_step_vec, dict_hor_velocity, xlabel=str_xlabel, ylabel="$\log \epsilon_{v_x}$",  \
                  title='Error velocity $v_x$', savefig=f"{directory_results}convergence_horizontal_velocity.pdf")
 
-plot_convergence(time_step_vec, dict_ver_position, xlabel=str_xlabel, ylabel="$\log \Delta q$", \
+plot_convergence(time_step_vec, dict_ver_position, xlabel=str_xlabel, ylabel="$\log \epsilon_{q_z}$", \
                 title='Error position $q_z$', savefig=f"{directory_results}convergence_vertical_position.pdf")
-plot_convergence(time_step_vec, dict_ver_velocity, xlabel=str_xlabel, ylabel="$\log \Delta v$",  \
+plot_convergence(time_step_vec, dict_ver_velocity, xlabel=str_xlabel, ylabel="$\log \epsilon_{v_z}$",  \
                  title='Error velocity $v_z$', savefig=f"{directory_results}convergence_vertical_velocity.pdf")
 
 
@@ -131,13 +133,26 @@ plot_convergence(time_step_vec, dict_ver_velocity, xlabel=str_xlabel, ylabel="$\
 plt.figure()
 plt.loglog(time_step_vec, comp_time_dis_gradient, 'o-', label='Discrete gradient')
 plt.loglog(time_step_vec, comp_time_lin_implicit, '+-', label='Linear implicit')
-plt.loglog(time_step_vec, comp_time_leapfrog, '+-', label='Leapfrog')
+plt.loglog(time_step_vec, comp_time_leapfrog, '^-', label='Leapfrog')
 plt.grid(color='0.8', linestyle='-', linewidth=.5)
 plt.xlabel(str_xlabel)
-plt.ylabel("$\log \\tau$")
+plt.ylabel(r"$\log T_{\rm comp}$")
 plt.legend()
 plt.grid(True)
 plt.title("Computational time [s]")
 plt.savefig(f"{directory_results}computational_time.pdf", dpi='figure', format='pdf', bbox_inches="tight")
+
+
+plt.figure()
+plt.loglog(time_step_vec, avg_diff_E_dis_gradient, 'o-', label='Discrete gradient')
+plt.loglog(time_step_vec, avg_diff_E_lin_implicit, '+-', label='Linear implicit')
+plt.loglog(time_step_vec, avg_diff_E_leapfrog, '^-', label='Leapfrog')
+plt.grid(color='0.8', linestyle='-', linewidth=.5)
+plt.xlabel(str_xlabel)
+plt.legend()
+plt.grid(True)
+plt.title("Mean of energy difference")
+plt.savefig(f"{directory_results}energy_difference.pdf", dpi='figure', format='pdf', bbox_inches="tight")
+
 
 plt.show()

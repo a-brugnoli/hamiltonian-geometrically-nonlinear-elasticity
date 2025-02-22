@@ -1,8 +1,6 @@
 import firedrake as fdrk
 import numpy as np
 from tqdm import tqdm
-import matplotlib.pyplot as plt
-
 
 class VonKarmanBeam:
     def __init__(self, **kwargs): 
@@ -71,6 +69,9 @@ class VonKarmanBeam:
 
         self.space_ver_disp = fdrk.FunctionSpace(self.domain, "Hermite", 3)
         self.space_ver_vel = self.space_ver_disp
+
+        self.n_dofs_hor_disp = self.space_hor_disp.dim()
+        self.n_dofs_ver_disp = self.space_ver_disp.dim()
         # When non linear effects are strong
         # the degree for the axial variable needs to be high
         self.space_axial_stress = fdrk.FunctionSpace(self.domain, "DG", 4)
@@ -196,37 +197,22 @@ class VonKarmanBeam:
         return fdrk.inner(test, self.density*trial)*fdrk.dx
 
 
-    def convert_functions_to_array(self, list_functions):
+    def convert_function_to_array(self, function:fdrk.Function):
         """
-        Convert a list of function to an array of size n_t * n_dofs
-        where n_t is len(list_functions) (the number of simulation instants)
+        Convert a function to an array of size n_dofs
         """
 
-        n_times = len(list_functions)
-
-        f_0 = list_functions[0] 
-        V = f_0.function_space()
+        V = function.function_space()
         finite_element = V.ufl_element()
 
         is_hermite = 'Hermite' in finite_element.family()
         
         if is_hermite:
-            n_dofs = int(V.dim()/2)
+            y_array =  function.dat.data_ro[::2]
         else:
-            n_dofs = V.dim()
+            y_array =  function.dat.data_ro[:]
 
-        y_matrix = np.zeros((n_times, n_dofs))
-
-
-        for count, function in enumerate(list_functions):
-            if is_hermite:
-                
-                y_matrix[count, :] =  function.dat.data_ro[::2]
-            else:
-                y_matrix[count, :] =  function.dat.data_ro[:]
-
-
-        return y_matrix
+        return y_array
     
 
     def leapfrog(self, save_vars=False):
@@ -292,16 +278,19 @@ class VonKarmanBeam:
         
         solver_ver_vel = fdrk.LinearVariationalSolver(problem_ver_vel)
 
-        hor_disp_list = []
-        ver_disp_list = []
-        hor_vel_list = []
-        ver_vel_list = []
-
         if save_vars:   
-            hor_disp_list.append(hor_disp_old.copy(deepcopy=True))
-            ver_disp_list.append(ver_disp_old.copy(deepcopy=True))
-            hor_vel_list.append(hor_vel_old.copy(deepcopy=True))
-            ver_vel_list.append(ver_vel_old.copy(deepcopy=True))
+            hor_disp_array = np.zeros((self.n_output, self.n_dofs_hor_disp))
+            ver_disp_array = np.zeros((self.n_output, self.n_dofs_hor_disp))
+
+            hor_vel_array = np.zeros((self.n_output, self.n_dofs_hor_disp))
+            ver_vel_array = np.zeros((self.n_output, self.n_dofs_hor_disp))
+            
+            hor_disp_array[0] = self.convert_function_to_array(hor_disp_old)
+            ver_disp_array[0] = self.convert_function_to_array(ver_disp_old)
+
+            hor_vel_array[0] = self.convert_function_to_array(hor_vel_old)
+            ver_vel_array[0] = self.convert_function_to_array(ver_vel_old)
+
 
         # energy_vec = np.zeros(len(self.t_vec_output)-1)
         energy_vec = np.zeros(len(self.t_vec_output))
@@ -320,16 +309,16 @@ class VonKarmanBeam:
                 # energy_vec[kk] = fdrk.assemble(self.kinetic_energy(hor_vel_new, ver_vel_new) \
                 #                 + self.deformation_energy_leapfrog(hor_disp_half, hor_disp_new_half, ver_disp_half, ver_disp_new_half))
                 kk += 1
-                actural_time = (ii+1)*float(self.dt)
-
-                assert np.isclose(actural_time, self.t_vec_output[kk])
+                # actural_time = (ii+1)*float(self.dt)
+                # assert np.isclose(actural_time, self.t_vec_output[kk])
 
                 energy_vec[kk] = fdrk.assemble(self.hamiltonian(hor_disp_new, ver_disp_new, hor_vel_new, ver_vel_new))
                 if save_vars: 
-                    hor_disp_list.append(hor_disp_new.copy(deepcopy=True))
-                    ver_disp_list.append(ver_disp_new.copy(deepcopy=True))
-                    hor_vel_list.append(hor_vel_new.copy(deepcopy=True))
-                    ver_vel_list.append(ver_vel_new.copy(deepcopy=True))
+                    hor_disp_array[kk] = self.convert_function_to_array(hor_disp_new)
+                    ver_disp_array[kk] = self.convert_function_to_array(ver_disp_new)
+
+                    hor_vel_array[kk] = self.convert_function_to_array(hor_vel_new)
+                    ver_vel_array[kk] = self.convert_function_to_array(ver_vel_new)
 
             hor_disp_half.assign(hor_disp_new_half)
             ver_disp_half.assign(ver_disp_new_half)
@@ -338,16 +327,12 @@ class VonKarmanBeam:
             ver_vel_old.assign(ver_vel_new)
 
         if not save_vars:
-            hor_disp_list.append(hor_disp_old.copy(deepcopy=True))
-            ver_disp_list.append(ver_disp_old.copy(deepcopy=True))
-            hor_vel_list.append(hor_vel_old.copy(deepcopy=True))
-            ver_vel_list.append(ver_vel_old.copy(deepcopy=True))
+            hor_disp_array = self.convert_function_to_array(hor_disp_new)
+            ver_disp_array = self.convert_function_to_array(ver_disp_new)
 
-        hor_disp_array = self.convert_functions_to_array(hor_disp_list)
-        ver_disp_array = self.convert_functions_to_array(ver_disp_list)
-        hor_vel_array = self.convert_functions_to_array(hor_vel_list)
-        ver_vel_array = self.convert_functions_to_array(ver_vel_list)
-           
+            hor_vel_array = self.convert_function_to_array(hor_vel_new)
+            ver_vel_array = self.convert_function_to_array(ver_vel_new)
+
         dict_results = {"horizontal displacement": hor_disp_array, 
                         "vertical displacement": ver_disp_array, 
                         "horizontal velocity": hor_vel_array, 
@@ -428,21 +413,22 @@ class VonKarmanBeam:
                         + self.dt * dV_ver_disp
 
         residual = res_hor_disp + res_ver_disp + res_hor_vel + res_ver_vel
-
         
         implicit_problem = fdrk.NonlinearVariationalProblem(residual, states_new, bcs=bcs)
         implicit_solver = fdrk.NonlinearVariationalSolver(implicit_problem)
 
-        hor_disp_list = []
-        ver_disp_list = []
-        hor_vel_list = []
-        ver_vel_list = []
-
         if save_vars:   
-            hor_disp_list.append(hor_disp_old.copy(deepcopy=True))
-            ver_disp_list.append(ver_disp_old.copy(deepcopy=True))
-            hor_vel_list.append(hor_vel_old.copy(deepcopy=True))
-            ver_vel_list.append(ver_vel_old.copy(deepcopy=True))
+            hor_disp_array = np.zeros((self.n_output, self.n_dofs_hor_disp))
+            ver_disp_array = np.zeros((self.n_output, self.n_dofs_hor_disp))
+
+            hor_vel_array = np.zeros((self.n_output, self.n_dofs_hor_disp))
+            ver_vel_array = np.zeros((self.n_output, self.n_dofs_hor_disp))
+            
+            hor_disp_array[0] = self.convert_function_to_array(hor_disp_old)
+            ver_disp_array[0] = self.convert_function_to_array(ver_disp_old)
+
+            hor_vel_array[0] = self.convert_function_to_array(hor_vel_old)
+            ver_vel_array[0] = self.convert_function_to_array(ver_vel_old)
 
         energy_vec = np.zeros(len(self.t_vec_output))
         energy_vec[0] = fdrk.assemble(self.hamiltonian(hor_disp_old, ver_disp_old, hor_vel_old, ver_vel_old))
@@ -456,28 +442,24 @@ class VonKarmanBeam:
 
             if (ii+1)%self.output_frequency==0:
                 kk += 1
-                actural_time = (ii+1)*float(self.dt)
-                assert np.isclose(actural_time, self.t_vec_output[kk])
+                # actural_time = (ii+1)*float(self.dt)
+                # assert np.isclose(actural_time, self.t_vec_output[kk])
 
                 energy_vec[kk] = fdrk.assemble(self.hamiltonian(hor_disp_old, ver_disp_old, hor_vel_old, ver_vel_old))
                 if save_vars: 
-                    hor_disp_list.append(hor_disp_old.copy(deepcopy=True))
-                    ver_disp_list.append(ver_disp_old.copy(deepcopy=True))
-                    hor_vel_list.append(hor_vel_old.copy(deepcopy=True))
-                    ver_vel_list.append(ver_vel_old.copy(deepcopy=True))
+                    hor_disp_array[kk] = self.convert_function_to_array(hor_disp_old)
+                    ver_disp_array[kk] = self.convert_function_to_array(ver_disp_old)
+
+                    hor_vel_array[kk] = self.convert_function_to_array(hor_vel_old)
+                    ver_vel_array[kk] = self.convert_function_to_array(ver_vel_old)
 
         if not save_vars:
-            hor_disp_list.append(hor_disp_old.copy(deepcopy=True))
-            ver_disp_list.append(ver_disp_old.copy(deepcopy=True))
-            hor_vel_list.append(hor_vel_old.copy(deepcopy=True))
-            ver_vel_list.append(ver_vel_old.copy(deepcopy=True))
+            hor_disp_array = self.convert_function_to_array(hor_disp_old)
+            ver_disp_array = self.convert_function_to_array(ver_disp_old)
 
+            hor_vel_array = self.convert_function_to_array(hor_vel_old)
+            ver_vel_array = self.convert_function_to_array(ver_vel_old)
 
-        hor_disp_array = self.convert_functions_to_array(hor_disp_list)
-        ver_disp_array = self.convert_functions_to_array(ver_disp_list)
-        hor_vel_array = self.convert_functions_to_array(hor_vel_list)
-        ver_vel_array = self.convert_functions_to_array(ver_vel_list)
-           
         dict_results = {"horizontal displacement": hor_disp_array, 
                         "vertical displacement": ver_disp_array, 
                         "horizontal velocity": hor_vel_array, 
@@ -581,16 +563,19 @@ class VonKarmanBeam:
         
         linear_implicit_solver = fdrk.LinearVariationalSolver(linear_implicit_problem)
 
-        hor_disp_list = []
-        ver_disp_list = []
-        hor_vel_list = []
-        ver_vel_list = []
-
         if save_vars:   
-            hor_disp_list.append(hor_disp_old.copy(deepcopy=True))
-            ver_disp_list.append(ver_disp_old.copy(deepcopy=True))
-            hor_vel_list.append(hor_vel_old.copy(deepcopy=True))
-            ver_vel_list.append(ver_vel_old.copy(deepcopy=True))
+            hor_disp_array = np.zeros((self.n_output, self.n_dofs_hor_disp))
+            ver_disp_array = np.zeros((self.n_output, self.n_dofs_hor_disp))
+
+            hor_vel_array = np.zeros((self.n_output, self.n_dofs_hor_disp))
+            ver_vel_array = np.zeros((self.n_output, self.n_dofs_hor_disp))
+            
+            hor_disp_array[0] = self.convert_function_to_array(hor_disp_old)
+            ver_disp_array[0] = self.convert_function_to_array(ver_disp_old)
+
+            hor_vel_array[0] = self.convert_function_to_array(hor_vel_old)
+            ver_vel_array[0] = self.convert_function_to_array(ver_vel_old)
+
 
         energy_vec = np.zeros(len(self.t_vec_output))
         energy_vec[0] = 0.5* fdrk.assemble(self.energy_form_linear_implicit(tuple_states_old, \
@@ -604,35 +589,33 @@ class VonKarmanBeam:
             hor_disp_new.assign(0.5*(hor_disp_half + hor_disp_new_half))      
             ver_disp_new.assign(0.5*(ver_disp_half + ver_disp_new_half))
 
-            if (ii+1)%self.output_frequency==0:
-                kk += 1
-                actural_time = (ii+1)*float(self.dt)
-                assert np.isclose(actural_time, self.t_vec_output[kk])
-                energy_vec[kk] = 0.5*fdrk.assemble(self.energy_form_linear_implicit(tuple_states_new, \
-                                                                                    tuple_states_new))
-                if save_vars: 
-                    hor_disp_list.append(hor_disp_new.copy(deepcopy=True))
-                    ver_disp_list.append(ver_disp_new.copy(deepcopy=True))
-                    hor_vel_list.append(hor_vel_new.copy(deepcopy=True))
-                    ver_vel_list.append(ver_vel_new.copy(deepcopy=True))
-
             hor_disp_half.assign(hor_disp_new_half)
             ver_disp_half.assign(ver_disp_new_half)
 
             states_old.assign(states_new)
 
+            if (ii+1)%self.output_frequency==0:
+                kk += 1
+                # actural_time = (ii+1)*float(self.dt)
+                # assert np.isclose(actural_time, self.t_vec_output[kk])
+                energy_vec[kk] = 0.5*fdrk.assemble(self.energy_form_linear_implicit(tuple_states_new, \
+                                                                                    tuple_states_new))
+                
+                if save_vars: 
+                    hor_disp_array[kk] = self.convert_function_to_array(hor_disp_new)
+                    ver_disp_array[kk] = self.convert_function_to_array(ver_disp_new)
+
+                    hor_vel_array[kk] = self.convert_function_to_array(hor_vel_new)
+                    ver_vel_array[kk] = self.convert_function_to_array(ver_vel_new)
+
         if not save_vars:
-            # If not save variables, only return the last time step
-            hor_disp_list.append(hor_disp_old.copy(deepcopy=True))
-            ver_disp_list.append(ver_disp_old.copy(deepcopy=True))
-            hor_vel_list.append(hor_vel_old.copy(deepcopy=True))
-            ver_vel_list.append(ver_vel_old.copy(deepcopy=True))
-           
-        hor_disp_array = self.convert_functions_to_array(hor_disp_list)
-        ver_disp_array = self.convert_functions_to_array(ver_disp_list)
-        hor_vel_array = self.convert_functions_to_array(hor_vel_list)
-        ver_vel_array = self.convert_functions_to_array(ver_vel_list)
-           
+            hor_disp_array = self.convert_function_to_array(hor_disp_new)
+            ver_disp_array = self.convert_function_to_array(ver_disp_new)
+
+            hor_vel_array = self.convert_function_to_array(hor_vel_new)
+            ver_vel_array = self.convert_function_to_array(ver_vel_new)
+
+
         dict_results = {"horizontal displacement": hor_disp_array, 
                         "vertical displacement": ver_disp_array, 
                         "horizontal velocity": hor_vel_array, 
@@ -715,17 +698,18 @@ class VonKarmanBeam:
                                       fdrk.Constant(0), "on_boundary")
         bcs = [bc_ver_vel]
 
-
-        hor_disp_list = []
-        ver_disp_list = []
-        hor_vel_list = []
-        ver_vel_list = []
-
         if save_vars:   
-            hor_disp_list.append(hor_disp_old.copy(deepcopy=True))
-            ver_disp_list.append(ver_disp_old.copy(deepcopy=True))
-            hor_vel_list.append(hor_vel_old.copy(deepcopy=True))
-            ver_vel_list.append(ver_vel_old.copy(deepcopy=True))
+            hor_disp_array = np.zeros((self.n_output, self.n_dofs_hor_disp))
+            ver_disp_array = np.zeros((self.n_output, self.n_dofs_hor_disp))
+
+            hor_vel_array = np.zeros((self.n_output, self.n_dofs_hor_disp))
+            ver_vel_array = np.zeros((self.n_output, self.n_dofs_hor_disp))
+            
+            hor_disp_array[0] = self.convert_function_to_array(hor_disp_old)
+            ver_disp_array[0] = self.convert_function_to_array(ver_disp_old)
+
+            hor_vel_array[0] = self.convert_function_to_array(hor_vel_old)
+            ver_vel_array[0] = self.convert_function_to_array(ver_vel_old)
 
         energy_vec = np.zeros(len(self.t_vec_output))
         energy_vec[0] = 0.5* fdrk.assemble(self.energy_form_linear_implicit(tuple_states_old, \
@@ -763,35 +747,33 @@ class VonKarmanBeam:
             hor_disp_new.assign(0.5*(hor_disp_half + hor_disp_new_half))      
             ver_disp_new.assign(0.5*(ver_disp_half + ver_disp_new_half))
 
-            if (ii+1)%self.output_frequency==0:
-                kk += 1
-                actural_time = (ii+1)*float(self.dt)
-                assert np.isclose(actural_time, self.t_vec_output[kk])
-                energy_vec[kk] = 0.5*fdrk.assemble(self.energy_form_linear_implicit(tuple_states_new, \
-                                                                                    tuple_states_new))
-                if save_vars: 
-                    hor_disp_list.append(hor_disp_new.copy(deepcopy=True))
-                    ver_disp_list.append(ver_disp_new.copy(deepcopy=True))
-                    hor_vel_list.append(hor_vel_new.copy(deepcopy=True))
-                    ver_vel_list.append(ver_vel_new.copy(deepcopy=True))
-
             hor_disp_half.assign(hor_disp_new_half)
             ver_disp_half.assign(ver_disp_new_half)
 
             states_old.assign(states_new)
 
+            if (ii+1)%self.output_frequency==0:
+                kk += 1
+                # actural_time = (ii+1)*float(self.dt)
+                # assert np.isclose(actural_time, self.t_vec_output[kk])
+                energy_vec[kk] = 0.5*fdrk.assemble(self.energy_form_linear_implicit(tuple_states_new, \
+                                                                                    tuple_states_new))
+                
+                if save_vars: 
+                    hor_disp_array[kk] = self.convert_function_to_array(hor_disp_new)
+                    ver_disp_array[kk] = self.convert_function_to_array(ver_disp_new)
+
+                    hor_vel_array[kk] = self.convert_function_to_array(hor_vel_new)
+                    ver_vel_array[kk] = self.convert_function_to_array(ver_vel_new)
+
         if not save_vars:
-            # If not save variables, only return the last time step
-            hor_disp_list.append(hor_disp_old.copy(deepcopy=True))
-            ver_disp_list.append(ver_disp_old.copy(deepcopy=True))
-            hor_vel_list.append(hor_vel_old.copy(deepcopy=True))
-            ver_vel_list.append(ver_vel_old.copy(deepcopy=True))
-           
-        hor_disp_array = self.convert_functions_to_array(hor_disp_list)
-        ver_disp_array = self.convert_functions_to_array(ver_disp_list)
-        hor_vel_array = self.convert_functions_to_array(hor_vel_list)
-        ver_vel_array = self.convert_functions_to_array(ver_vel_list)
-           
+            hor_disp_array = self.convert_function_to_array(hor_disp_new)
+            ver_disp_array = self.convert_function_to_array(ver_disp_new)
+
+            hor_vel_array = self.convert_function_to_array(hor_vel_new)
+            ver_vel_array = self.convert_function_to_array(ver_vel_new)
+
+
         dict_results = {"horizontal displacement": hor_disp_array, 
                         "vertical displacement": ver_disp_array, 
                         "horizontal velocity": hor_vel_array, 

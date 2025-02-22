@@ -1,6 +1,5 @@
 import time
 import pickle
-from experiments.vonkarman_beam.vonkarman_beam import VonKarmanBeam
 import numpy as np
 from parameters import *
 
@@ -21,27 +20,28 @@ except pickle.UnpicklingError:
 except Exception as e:
     print(f"An unexpected error occurred: {e}")
 
+n_dofs_hor_disp = beam.space_hor_disp.dim()
 
 energy_vec_leapfrog = np.zeros((n_sim_output, n_cases))
-q_x_array_leapfrog = np.zeros((n_sim_output, n_dofs_hor, n_cases))
-v_x_array_leapfrog = np.zeros((n_sim_output, n_dofs_hor, n_cases))
-q_z_array_leapfrog = np.zeros((n_sim_output, n_dofs_hor, n_cases))
-v_z_array_leapfrog = np.zeros((n_sim_output, n_dofs_hor, n_cases))
+q_x_array_leapfrog = np.zeros((n_sim_output, n_dofs_hor_disp, n_cases))
+v_x_array_leapfrog = np.zeros((n_sim_output, n_dofs_hor_disp, n_cases))
+q_z_array_leapfrog = np.zeros((n_sim_output, n_dofs_hor_disp, n_cases))
+v_z_array_leapfrog = np.zeros((n_sim_output, n_dofs_hor_disp, n_cases))
 elapsed_vec_leapfrog = np.zeros(n_cases)
 
 
 energy_vec_dis_gradient = np.zeros((n_sim_output, n_cases))
-q_x_array_dis_gradient = np.zeros((n_sim_output, n_dofs_hor, n_cases))
-v_x_array_dis_gradient = np.zeros((n_sim_output, n_dofs_hor, n_cases))
-q_z_array_dis_gradient = np.zeros((n_sim_output, n_dofs_hor, n_cases))
-v_z_array_dis_gradient = np.zeros((n_sim_output, n_dofs_hor, n_cases))
+q_x_array_dis_gradient = np.zeros((n_sim_output, n_dofs_hor_disp, n_cases))
+v_x_array_dis_gradient = np.zeros((n_sim_output, n_dofs_hor_disp, n_cases))
+q_z_array_dis_gradient = np.zeros((n_sim_output, n_dofs_hor_disp, n_cases))
+v_z_array_dis_gradient = np.zeros((n_sim_output, n_dofs_hor_disp, n_cases))
 elapsed_vec_dis_gradient = np.zeros(n_cases)
 
 energy_vec_lin_implicit = np.zeros((n_sim_output, n_cases))
-q_x_array_lin_implicit = np.zeros((n_sim_output, n_dofs_hor, n_cases))
-v_x_array_lin_implicit = np.zeros((n_sim_output, n_dofs_hor, n_cases))
-q_z_array_lin_implicit = np.zeros((n_sim_output, n_dofs_hor, n_cases))
-v_z_array_lin_implicit = np.zeros((n_sim_output, n_dofs_hor, n_cases))
+q_x_array_lin_implicit = np.zeros((n_sim_output, n_dofs_hor_disp, n_cases))
+v_x_array_lin_implicit = np.zeros((n_sim_output, n_dofs_hor_disp, n_cases))
+q_z_array_lin_implicit = np.zeros((n_sim_output, n_dofs_hor_disp, n_cases))
+v_z_array_lin_implicit = np.zeros((n_sim_output, n_dofs_hor_disp, n_cases))
 elapsed_vec_lin_implicit = np.zeros(n_cases)
 
 
