@@ -33,14 +33,14 @@ sec_coeff_bend = 4
 sec_coeff_traction = 2
 
 # CFL in finite differences scheme (or finite element with mass lumping)
-dt_max_bending = mesh_size**2/(2*wave_speed_bending)
-dt_max_traction = mesh_size/wave_speed_traction
+dt_CFL_bending = mesh_size**2/(2*wave_speed_bending)
+dt_CFL_traction = mesh_size/wave_speed_traction
 
-dt_CFL_bending = dt_max_bending/sec_coeff_bend
-dt_CFL_traction = dt_max_traction/sec_coeff_traction
+dt_CFL_bending_cons = dt_CFL_bending/sec_coeff_bend
+dt_CFL_traction_cons = dt_CFL_traction/sec_coeff_traction
 
 # # Time step to have sufficient resolution
-dt_base = dt_CFL_bending
+dt_base = dt_CFL_bending_cons
 
 omega1_bending = (pi/L)**2*wave_speed_bending
 T1_bending = 2*pi/omega1_bending
@@ -92,3 +92,8 @@ file_results_lin_implicit = directory_results + "results_linear_implicit.pkl"
 n_cases = 6
 time_step_vec = np.array([dt_base/2**n for n in range(n_cases)])
 time_step_vec_mus = time_step_vec*1e6
+
+mask_stable_leapfrog = time_step_vec <= dt_CFL_traction
+n_cases_stable_leapfrog = np.sum(mask_stable_leapfrog==True)
+
+time_step_stable_leapfrog = time_step_vec[mask_stable_leapfrog]

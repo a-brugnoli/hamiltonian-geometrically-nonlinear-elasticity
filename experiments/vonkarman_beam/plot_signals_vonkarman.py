@@ -56,12 +56,13 @@ diff_E_lin_implicit = np.diff(energy_vec_lin_implicit, axis=0)
 
 plt.figure()
 for ii in range(n_cases):
-    plt.plot(t_vec_output_ms, energy_vec_leapfrog[:, ii], '-.', \
-             label=fr"LF $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
     plt.plot(t_vec_output_ms, energy_vec_dis_gradient[:, ii], '-.', \
              label=fr"DG $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
     plt.plot(t_vec_output_ms, energy_vec_lin_implicit[:, ii], ':', \
              label=fr"LI $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
+    if mask_stable_leapfrog[ii]:
+        plt.plot(t_vec_output_ms, energy_vec_leapfrog[:, ii], '-.', \
+             label=fr"LF $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
 plt.legend()
 plt.xlabel("Time [ms]")
 plt.title("Energy")
@@ -69,12 +70,13 @@ plt.title("Energy")
 
 plt.figure()
 for ii in range(n_cases):
-    plt.plot(t_vec_output_ms[1:], diff_E_leapfrog[:, ii], '-.', \
-            label=fr"LF $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
     plt.plot(t_vec_output_ms[1:], diff_E_dis_gradient[:, ii], '-.', \
             label=fr"DG $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
     plt.plot(t_vec_output_ms[1:], diff_E_lin_implicit[:, ii], ':', \
             label=fr"LI $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
+    if mask_stable_leapfrog[ii]:
+        plt.plot(t_vec_output_ms[1:], diff_E_leapfrog[:, ii], '-.', \
+                label=fr"LF $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
 plt.legend()
 plt.xlabel("Time [ms]")
 plt.ylabel("$H(t_{n+1}) - H(t_n)$")
@@ -109,8 +111,9 @@ plt.figure()
 plt.plot(t_vec_output_ms, ver_disp_at_point_reference, \
             label=fr"Ref $\Delta t = {dt_reference*1e6:.1f} \; \mathrm{{[\mu s]}}$")
 for ii in range(n_cases):
-    plt.plot(t_vec_output_ms, ver_disp_at_point_leapfrog[:, ii], \
-            label=fr"DG $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
+    if mask_stable_leapfrog[ii]:
+        plt.plot(t_vec_output_ms, ver_disp_at_point_leapfrog[:, ii], \
+                label=fr"LF $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
 plt.legend()
 plt.xlabel("Time [ms]")
 plt.title("Vertical displacement")
@@ -138,6 +141,9 @@ plt.xlabel("Time [ms]")
 plt.title("Vertical displacement")
 
 
+from matplotlib.transforms import Bbox
+bbox = Bbox.from_extents(0.75, 0.05, 6.75, 6)  # Adjust these values as needed
+
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
 X_array, T_array_ms = np.meshgrid(x_vec, t_vec_output_ms)
@@ -147,10 +153,11 @@ surf = ax.plot_surface(X_array, T_array_ms, 1e3*q_x_array_reference, \
 ax.set_xlabel("$x \; \mathrm{[m]}$")
 ax.set_ylabel("$t \; \mathrm{[ms]}$")
 ax.set_zlabel("$q_x \; \mathrm{[mm]}$ ")
-ax.set_title("Horizontal displacement ref")
+ax.set_title("Horizontal displacement")
 # Set viewing angle
 ax.view_init(elev=30, azim=45)
-plt.tight_layout()
+plt.savefig(f"{directory_results}horizontal_displacement.pdf",dpi='figure',\
+             format='pdf', bbox_inches=bbox)
 
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
@@ -161,12 +168,13 @@ surf = ax.plot_surface(X_array, T_array_ms, 1e3*q_z_array_reference, \
 ax.set_xlabel("$x \; \mathrm{[m]}$")
 ax.set_ylabel("$t \; \mathrm{[ms]}$")
 ax.set_zlabel("$q_z \; \mathrm{[mm]}$ ")
-ax.set_title("Vertical displacement ref")
+ax.set_title("Vertical displacement")
 # Set viewing angle
 ax.view_init(elev=30, azim=45)
-plt.tight_layout()
-
-plt.show()
+# ax.set_box_aspect(None, zoom=zoom)
+plt.savefig(f"{directory_results}vertical_displacement.pdf", dpi='figure', \
+            format='pdf', bbox_inches=bbox)
+# plt.show()
 
 
 

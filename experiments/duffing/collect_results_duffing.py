@@ -26,8 +26,7 @@ t_span = [0, t_end]
 norm_type = "L2" 
 dt_base = T/100
 # sec_factor = 1/10
-# dt_base = sec_factor*2/omega_0import numpy as np
-
+# dt_base = sec_factor*2/omega_0
 n_case = 5
 log_base = 2
 time_step_vec = [dt_base/log_base**n for n in range(n_case)]
@@ -141,9 +140,9 @@ dict_velocity = {"Leapfrog": error_vec_v_leapfrog,\
 
 
 str_xlabel = '$\log \Delta t \; \mathrm{[s]}$'
-plot_convergence(time_step_vec, dict_position, xlabel=str_xlabel, ylabel="$\log \epsilon_q$", \
+plot_convergence(time_step_vec, dict_position, rate=True, xlabel=str_xlabel, ylabel="$\log \epsilon_q$", \
                 title='Position error', savefig=f"{directory_results}convergence_position.pdf")
-plot_convergence(time_step_vec, dict_velocity, xlabel=str_xlabel, ylabel="$\log \epsilon_v$",  \
+plot_convergence(time_step_vec, dict_velocity,  rate=True, xlabel=str_xlabel, ylabel="$\log \epsilon_v$",  \
                  title='Velocity error', savefig=f"{directory_results}convergence_velocity.pdf")
 
 plt.figure()

@@ -55,11 +55,6 @@ comp_time_lin_implicit = dict_results_lin_implicit["elapsed time"]
 diff_energy_vec_lin_implicit = np.abs(np.diff(energy_vec_lin_implicit, axis=0))
 avg_diff_E_lin_implicit = np.mean(diff_energy_vec_lin_implicit, axis=0)
 
-error_q_x_leapfrog = np.zeros(n_cases)
-error_q_z_leapfrog = np.zeros(n_cases)
-error_v_x_leapfrog = np.zeros(n_cases)
-error_v_z_leapfrog = np.zeros(n_cases)
-
 error_q_x_dis_gradient = np.zeros(n_cases)
 error_q_z_dis_gradient = np.zeros(n_cases)
 error_v_x_dis_gradient = np.zeros(n_cases)
@@ -71,16 +66,36 @@ error_v_x_lin_implicit = np.zeros(n_cases)
 error_v_z_lin_implicit = np.zeros(n_cases)
 
  # # Compute error
+error_q_x_leapfrog = np.zeros(n_cases)
+error_q_z_leapfrog = np.zeros(n_cases)
+error_v_x_leapfrog = np.zeros(n_cases)
+error_v_z_leapfrog = np.zeros(n_cases) 
 
+# error_q_x_leapfrog = np.zeros(n_cases_stable_leapfrog)
+# error_q_z_leapfrog = np.zeros(n_cases_stable_leapfrog)
+# error_v_x_leapfrog = np.zeros(n_cases_stable_leapfrog)
+# error_v_z_leapfrog = np.zeros(n_cases_stable_leapfrog)
+# kk=0
 for ii in range(n_cases):
         error_q_x_leapfrog[ii] = error_norm_space_time(q_x_array_reference, \
-                                                           q_x_array_leapfrog[:, :, ii], dt_output, norm=norm_type)
+                                                q_x_array_leapfrog[:, :, ii], dt_output, norm=norm_type)
         error_q_z_leapfrog[ii] = error_norm_space_time(q_z_array_reference, \
-                                                           q_z_array_leapfrog[:, :, ii], dt_output, norm=norm_type)
+                                                q_z_array_leapfrog[:, :, ii], dt_output, norm=norm_type)
         error_v_x_leapfrog[ii] = error_norm_space_time(v_x_array_reference, \
-                                                           v_x_array_leapfrog[:, :, ii], dt_output, norm=norm_type)
+                                                v_x_array_leapfrog[:, :, ii], dt_output, norm=norm_type)
         error_v_z_leapfrog[ii] = error_norm_space_time(v_z_array_reference, \
-                                                           v_z_array_leapfrog[:, :, ii], dt_output, norm=norm_type)
+                                                v_z_array_leapfrog[:, :, ii], dt_output, norm=norm_type)
+
+        # if mask_stable_leapfrog[ii]:
+        #         error_q_x_leapfrog[kk] = error_norm_space_time(q_x_array_reference, \
+        #                                                 q_x_array_leapfrog[:, :, ii], dt_output, norm=norm_type)
+        #         error_q_z_leapfrog[kk] = error_norm_space_time(q_z_array_reference, \
+        #                                                 q_z_array_leapfrog[:, :, ii], dt_output, norm=norm_type)
+        #         error_v_x_leapfrog[kk] = error_norm_space_time(v_x_array_reference, \
+        #                                                 v_x_array_leapfrog[:, :, ii], dt_output, norm=norm_type)
+        #         error_v_z_leapfrog[kk] = error_norm_space_time(v_z_array_reference, \
+        #                                                 v_z_array_leapfrog[:, :, ii], dt_output, norm=norm_type)
+        #         kk+=1
         
         error_q_x_dis_gradient[ii] = error_norm_space_time(q_x_array_reference, \
                                                            q_x_array_dis_gradient[:, :, ii], dt_output, norm=norm_type)
@@ -101,6 +116,7 @@ for ii in range(n_cases):
                                                            v_z_array_lin_implicit[:, :, ii], dt_output, norm=norm_type)
 
 
+
 dict_hor_position = {"Linear implicit": error_q_x_lin_implicit, \
                 "Discrete gradient": error_q_x_dis_gradient, \
                 "Leapfrog": error_q_x_leapfrog}
@@ -118,15 +134,17 @@ dict_ver_velocity = {"Linear implicit": error_v_z_lin_implicit, \
                      "Leapfrog": error_v_z_leapfrog}
 
 str_xlabel = '$\log \Delta t \; \mathrm{[s]}$'
-plot_convergence(time_step_vec, dict_hor_position, xlabel=str_xlabel, ylabel="$\log \epsilon_{q_x}$", \
-                title='Error position $q_x$', savefig=f"{directory_results}convergence_horizontal_position.pdf")
-plot_convergence(time_step_vec, dict_hor_velocity, xlabel=str_xlabel, ylabel="$\log \epsilon_{v_x}$",  \
-                 title='Error velocity $v_x$', savefig=f"{directory_results}convergence_horizontal_velocity.pdf")
+plot_convergence(time_step_vec, dict_hor_position, rate=True, xlabel=str_xlabel, ylabel="$\log \epsilon_{q_x}$", \
+                title='Error position $q_x$', savefig=f"{directory_results}convergence_horizontal_position")
 
-plot_convergence(time_step_vec, dict_ver_position, xlabel=str_xlabel, ylabel="$\log \epsilon_{q_z}$", \
-                title='Error position $q_z$', savefig=f"{directory_results}convergence_vertical_position.pdf")
-plot_convergence(time_step_vec, dict_ver_velocity, xlabel=str_xlabel, ylabel="$\log \epsilon_{v_z}$",  \
-                 title='Error velocity $v_z$', savefig=f"{directory_results}convergence_vertical_velocity.pdf")
+plot_convergence(time_step_vec, dict_hor_velocity, rate=True, xlabel=str_xlabel, ylabel="$\log \epsilon_{v_x}$",  \
+                 title='Error velocity $v_x$', savefig=f"{directory_results}convergence_horizontal_velocity")
+
+plot_convergence(time_step_vec, dict_ver_position, rate=True, xlabel=str_xlabel, ylabel="$\log \epsilon_{q_z}$", \
+                title='Error position $q_z$', savefig=f"{directory_results}convergence_vertical_position")
+
+plot_convergence(time_step_vec, dict_ver_velocity, rate=True, xlabel=str_xlabel, ylabel="$\log \epsilon_{v_z}$",  \
+                 title='Error velocity $v_z$', savefig=f"{directory_results}convergence_vertical_velocity")
 
 
 
