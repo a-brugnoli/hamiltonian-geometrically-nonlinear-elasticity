@@ -135,16 +135,16 @@ dict_ver_velocity = {"Linear implicit": error_v_z_lin_implicit, \
 
 str_xlabel = '$\log \Delta t \; \mathrm{[s]}$'
 plot_convergence(time_step_vec, dict_hor_position, rate=True, xlabel=str_xlabel, ylabel="$\log \epsilon_{q_x}$", \
-                title='Error position $q_x$', savefig=f"{directory_results}convergence_horizontal_position")
+                title='Error position $q_x$', savefig=f"{directory_images}convergence_horizontal_position")
 
 plot_convergence(time_step_vec, dict_hor_velocity, rate=True, xlabel=str_xlabel, ylabel="$\log \epsilon_{v_x}$",  \
-                 title='Error velocity $v_x$', savefig=f"{directory_results}convergence_horizontal_velocity")
+                 title='Error velocity $v_x$', savefig=f"{directory_images}convergence_horizontal_velocity")
 
 plot_convergence(time_step_vec, dict_ver_position, rate=True, xlabel=str_xlabel, ylabel="$\log \epsilon_{q_z}$", \
-                title='Error position $q_z$', savefig=f"{directory_results}convergence_vertical_position")
+                title='Error position $q_z$', savefig=f"{directory_images}convergence_vertical_position")
 
 plot_convergence(time_step_vec, dict_ver_velocity, rate=True, xlabel=str_xlabel, ylabel="$\log \epsilon_{v_z}$",  \
-                 title='Error velocity $v_z$', savefig=f"{directory_results}convergence_vertical_velocity")
+                 title='Error velocity $v_z$', savefig=f"{directory_images}convergence_vertical_velocity")
 
 
 
@@ -158,7 +158,7 @@ plt.ylabel(r"$\log T_{\rm comp}$")
 plt.legend()
 plt.grid(True)
 plt.title("Computational time [s]")
-plt.savefig(f"{directory_results}computational_time.pdf", dpi='figure', format='pdf', bbox_inches="tight")
+plt.savefig(f"{directory_images}computational_time.pdf", dpi='figure', format='pdf', bbox_inches="tight")
 
 
 plt.figure()
@@ -170,7 +170,7 @@ plt.xlabel(str_xlabel)
 plt.legend()
 plt.grid(True)
 plt.title("Mean of energy difference")
-plt.savefig(f"{directory_results}energy_difference.pdf", dpi='figure', format='pdf', bbox_inches="tight")
+plt.savefig(f"{directory_images}energy_difference.pdf", dpi='figure', format='pdf', bbox_inches="tight")
 
 
 plt.show()

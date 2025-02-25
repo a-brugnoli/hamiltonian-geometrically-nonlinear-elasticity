@@ -79,6 +79,15 @@ t_vec_output = beam.t_vec_output
 t_vec_output_ms = t_vec_output*1e3
 dt_output = np.mean(np.diff(t_vec_output)) 
 
+n_cases = 6
+time_step_vec = np.array([dt_base/2**n for n in range(n_cases)])
+time_step_vec_mus = time_step_vec*1e6
+
+mask_stable_leapfrog = time_step_vec <= dt_CFL_traction
+n_cases_stable_leapfrog = np.sum(mask_stable_leapfrog==True)
+
+time_step_stable_leapfrog = time_step_vec[mask_stable_leapfrog]
+
 # Paths for results
 directory_results = f"{os.path.dirname(os.path.abspath(__file__))}/results/"
 if not os.path.exists(directory_results):
@@ -89,11 +98,7 @@ file_results_leapfrog = directory_results + "results_leapfrog.pkl"
 file_results_dis_gradient = directory_results + "results_discrete_gradient.pkl"
 file_results_lin_implicit = directory_results + "results_linear_implicit.pkl"
 
-n_cases = 6
-time_step_vec = np.array([dt_base/2**n for n in range(n_cases)])
-time_step_vec_mus = time_step_vec*1e6
-
-mask_stable_leapfrog = time_step_vec <= dt_CFL_traction
-n_cases_stable_leapfrog = np.sum(mask_stable_leapfrog==True)
-
-time_step_stable_leapfrog = time_step_vec[mask_stable_leapfrog]
+directory_images = f"{os.path.dirname(os.path.abspath(__file__))}/images/"
+if not os.path.exists(directory_images):
+    os.makedirs(directory_images)
+    

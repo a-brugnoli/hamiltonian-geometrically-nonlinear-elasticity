@@ -1,37 +1,11 @@
 import numpy as np
-from math import pi
 import time
-import os
 from duffing_oscillator import DuffingOscillator
-from experiments.duffing.plot_signals_duffing import plot_signals
-import matplotlib.pyplot as plt
-from src.postprocessing.plot_convergence import plot_convergence
 from src.postprocessing.options import configure_matplotib
 from src.norm_computation import error_norm_time
 configure_matplotib()
-
-# Initial condition
-q0 = 10
-
-# Pyisical parameters
-alpha = 10
-beta = 5
-omega_0 = np.sqrt(alpha + beta * q0**2)
-
-T = 2*pi/omega_0
-t_end = T*100
-# Time parameters
-t_span = [0, t_end]
-
-norm_type = "L2" 
-dt_base = T/100
-# sec_factor = 1/10
-# dt_base = sec_factor*2/omega_0
-n_case = 5
-log_base = 2
-time_step_vec = [dt_base/log_base**n for n in range(n_case)]
-
-output_frequency_vec = [int(dt_base/dt) for dt in time_step_vec]
+import pickle
+from parameters import *
 
 error_vec_q_leapfrog = np.zeros(n_case)
 error_vec_v_leapfrog = np.zeros(n_case)
@@ -126,48 +100,63 @@ for ii in range(n_case):
     error_vec_E_lin_implicit[ii] = error_E_lin_implicit
     elapsed_vec_lin_implicit[ii] = elapsed_lin_implicit
 
-directory_results = f"{os.path.dirname(os.path.abspath(__file__))}/results/"
-if not os.path.exists(directory_results):
-    os.makedirs(directory_results)
 
-dict_position = {"Leapfrog": error_vec_q_leapfrog,\
+dict_time = {"Time":t_vec}
+with open(file_time, "wb") as f:
+        pickle.dump(dict_time, f)
+
+dict_position = {"Exact": q_exact, \
+                "Leapfrog": q_leapfrog,\
+                "Discrete gradient": q_dis_gradient,\
+                "Linear implicit": q_lin_implicit}
+
+with open(file_results_position, "wb") as f:
+        pickle.dump(dict_position, f)
+
+dict_velocity = {"Exact": v_exact, \
+                "Leapfrog": v_leapfrog,\
+                "Discrete gradient": v_dis_gradient,\
+                "Linear implicit": v_lin_implicit}
+
+with open(file_results_velocity, "wb") as f:
+        pickle.dump(dict_velocity, f)
+
+dict_energy = {"Exact": E_exact, \
+                "Leapfrog": E_leapfrog,\
+                "Discrete gradient": E_dis_gradient,\
+                "Linear implicit": E_lin_implicit}
+
+with open(file_results_energy, "wb") as f:
+        pickle.dump(dict_energy, f)
+
+dict_error_position = {"Leapfrog": error_vec_q_leapfrog,\
                 "Discrete gradient": error_vec_q_dis_gradient,\
                 "Linear implicit": error_vec_q_lin_implicit}
-    
-dict_velocity = {"Leapfrog": error_vec_v_leapfrog,\
+
+with open(file_results_error_position, "wb") as f:
+        pickle.dump(dict_error_position, f)
+
+
+dict_error_velocity = {"Leapfrog": error_vec_v_leapfrog,\
                 "Discrete gradient": error_vec_v_dis_gradient,\
                 "Linear implicit": error_vec_v_lin_implicit}
 
+with open(file_results_error_velocity, "wb") as f:
+        pickle.dump(dict_error_velocity, f)
 
-str_xlabel = '$\log \Delta t \; \mathrm{[s]}$'
-plot_convergence(time_step_vec, dict_position, rate=True, xlabel=str_xlabel, ylabel="$\log \epsilon_q$", \
-                title='Position error', savefig=f"{directory_results}convergence_position.pdf")
-plot_convergence(time_step_vec, dict_velocity,  rate=True, xlabel=str_xlabel, ylabel="$\log \epsilon_v$",  \
-                 title='Velocity error', savefig=f"{directory_results}convergence_velocity.pdf")
+dict_error_energy = {"Leapfrog": error_vec_E_leapfrog,\
+                "Discrete gradient": error_vec_E_dis_gradient,\
+                "Linear implicit": error_vec_E_lin_implicit}
 
-plt.figure()
-plt.loglog(time_step_vec, error_vec_E_leapfrog, '*-', label='Leapfrog')
-plt.loglog(time_step_vec, error_vec_E_dis_gradient, 'o-', label='Discrete gradient')
-plt.loglog(time_step_vec, error_vec_E_lin_implicit, '+-', label='Linear implicit')
-plt.grid(color='0.8', linestyle='-', linewidth=.5)
-plt.xlabel(str_xlabel)
-plt.ylabel("$\log \epsilon_H$")
+with open(file_results_error_energy, "wb") as f:
+        pickle.dump(dict_error_energy, f)
 
-plt.legend()
-plt.grid(True)
-plt.title("Energy error")
-plt.savefig(f"{directory_results}energy_error.pdf", dpi='figure', format='pdf', bbox_inches="tight")
+dict_elapsed_time = {"Leapfrog": elapsed_vec_leapfrog,\
+                "Discrete gradient": elapsed_vec_dis_gradient,\
+                "Linear implicit": elapsed_vec_lin_implicit}
 
-plt.figure()
-plt.loglog(time_step_vec, elapsed_vec_leapfrog, '*-', label='Leapfrog')
-plt.loglog(time_step_vec, elapsed_vec_dis_gradient, 'o-', label='Discrete gradient')
-plt.loglog(time_step_vec, elapsed_vec_lin_implicit, '+-', label='Linear implicit')
-plt.grid(color='0.8', linestyle='-', linewidth=.5)
-plt.xlabel(str_xlabel)
-plt.ylabel(r"$\log T_{\rm comp}$")
-plt.legend()
-plt.grid(True)
-plt.title("Computational time [ms]")
-plt.savefig(f"{directory_results}computational_time.pdf", dpi='figure', format='pdf', bbox_inches="tight")
+with open(file_results_comp_time, "wb") as f:
+        pickle.dump(dict_elapsed_time, f)
 
-plt.show()
+
+
