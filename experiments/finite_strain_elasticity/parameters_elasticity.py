@@ -14,7 +14,7 @@ kappa = lamda + 2/3*mu
 
 # Geometrical parameters
 Lx, Ly, Lz = 1, 1, 6
-n_elements = (3, 3, 18)
+n_elements = (6, 6, 32)
 n_elements_x, n_elements_y, n_elements_z = n_elements
 mesh_size_x = Lx/n_elements_x
 mesh_size_y = Ly/n_elements_y
@@ -32,7 +32,7 @@ dt_CFL = dt_max/sec_coeff
 
 # # Time step to have sufficient resolution
 dt_base = dt_CFL
-t_end_approx = 1
+t_end_approx = 1/20
 n_steps_approx = np.round(t_end_approx/dt_base).astype(int)
 
 # Computation of the final time and number of steps to collect a maximum number of 
@@ -53,7 +53,7 @@ t_span = [0, t_end]
 coeff_reference = 2**7
 dt_reference = dt_base/coeff_reference
 
-bending_column = FiniteStrainElasticity(time_step=dt_reference, t_span=t_span, n_output= n_sim_output,
+bending_column = FiniteStrainElasticity(time_step=dt_base, t_span=t_span, n_output= n_sim_output,
                                         n_elem = n_elements, Lx=Lx, Ly=Ly, Lz=Lz, 
                                         rho = rho, E = E, nu = nu)
 

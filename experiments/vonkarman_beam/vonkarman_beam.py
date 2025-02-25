@@ -685,8 +685,10 @@ class VonKarmanBeam:
         b_tensor = fdrk.Tensor(linear_form)
         b_blocks = b_tensor.blocks
 
-        A_blocks_vel = A_blocks[:2, :2]  - A_blocks[:2, 2:] * A_blocks[2:, 2:].inv * A_blocks[2:, :2]
-        b_blocks_vel = b_blocks[:2]  - A_blocks[:2, 2:] * A_blocks[2:, 2:].inv * b_blocks[2:]
+        A_22_blocks_inv = A_blocks[2:, 2:].inv
+
+        A_blocks_vel = A_blocks[:2, :2] - A_blocks[:2, 2:] * A_22_blocks_inv * A_blocks[2:, :2]
+        b_blocks_vel = b_blocks[:2] - A_blocks[:2, 2:] * A_22_blocks_inv * b_blocks[2:]
 
         space_velocity = self.space_hor_vel * self.space_ver_vel
         velocity_new = fdrk.Function(space_velocity)
