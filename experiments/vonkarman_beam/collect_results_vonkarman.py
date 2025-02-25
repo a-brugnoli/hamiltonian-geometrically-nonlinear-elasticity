@@ -1,7 +1,7 @@
 import time
 import pickle
 import numpy as np
-from parameters import *
+from experiments.vonkarman_beam.parameters_vonkarman import *
 
 try:
     with open(file_results_reference, "rb") as f:
@@ -68,7 +68,7 @@ for ii in range(n_cases):
 
     print(f"Running discrete gradient")
     t0_dis_gradient = time.perf_counter()
-    dict_results_dis_gradient = beam.implicit_method(save_vars=True, type="discrete gradient")
+    dict_results_dis_gradient = beam.implicit_method(method="discrete gradient", save_vars=True)
     tf_dis_gradient = time.perf_counter()
     elapsed_vec_dis_gradient[ii] = tf_dis_gradient - t0_dis_gradient
 

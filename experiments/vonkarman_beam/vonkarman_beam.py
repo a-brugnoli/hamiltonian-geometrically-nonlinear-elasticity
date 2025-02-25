@@ -101,7 +101,6 @@ class VonKarmanBeam:
         self.t_vec_output = self.t_vec[::self.output_frequency]
 
 
-
     def get_initial_conditions(self):
         hor_disp_exp = self.q0_hor*fdrk.cos(fdrk.pi*self.x_coord/self.length)
         
@@ -169,18 +168,6 @@ class VonKarmanBeam:
         return form_dV_hor_disp, form_dV_ver_disp
     
 
-    def weak_grad_potential_stress(self, test_hor_vel, test_ver_vel, ver_disp, \
-                                    axial_stress, bending_stress):
-
-        form_dV_hor_disp = + fdrk.inner(test_hor_vel.dx(0), axial_stress)*fdrk.dx 
-        
-        form_dV_ver_disp = + fdrk.inner(test_ver_vel.dx(0).dx(0), bending_stress)*fdrk.dx \
-                      + fdrk.inner(test_ver_vel.dx(0), axial_stress*ver_disp.dx(0))*fdrk.dx
-        
-
-        return form_dV_hor_disp, form_dV_ver_disp
-
-
     def weak_grad_potential_linear(self, test_hor_vel, test_ver_vel, \
                                             hor_disp, ver_disp):
         N_xx = self.axial_stiffness*hor_disp.dx(0)
@@ -192,6 +179,18 @@ class VonKarmanBeam:
         
         return form_dV_hor_disp, form_dV_ver_disp
     
+
+    def weak_grad_potential_stress(self, test_hor_vel, test_ver_vel, ver_disp, \
+                                    axial_stress, bending_stress):
+
+        form_dV_hor_disp = + fdrk.inner(test_hor_vel.dx(0), axial_stress)*fdrk.dx 
+        
+        form_dV_ver_disp = + fdrk.inner(test_ver_vel.dx(0).dx(0), bending_stress)*fdrk.dx \
+                      + fdrk.inner(test_ver_vel.dx(0), axial_stress*ver_disp.dx(0))*fdrk.dx
+        
+
+        return form_dV_hor_disp, form_dV_ver_disp
+
 
     def mass_form(self, test, trial):
         return fdrk.inner(test, self.density*trial)*fdrk.dx
@@ -309,8 +308,8 @@ class VonKarmanBeam:
                 # energy_vec[kk] = fdrk.assemble(self.kinetic_energy(hor_vel_new, ver_vel_new) \
                 #                 + self.deformation_energy_leapfrog(hor_disp_half, hor_disp_new_half, ver_disp_half, ver_disp_new_half))
                 kk += 1
-                # actural_time = (ii+1)*float(self.dt)
-                # assert np.isclose(actural_time, self.t_vec_output[kk])
+                # actual_time = (ii+1)*float(self.dt)
+                # assert np.isclose(actual_time, self.t_vec_output[kk])
 
                 energy_vec[kk] = fdrk.assemble(self.hamiltonian(hor_disp_new, ver_disp_new, hor_vel_new, ver_vel_new))
                 if save_vars: 
@@ -342,7 +341,7 @@ class VonKarmanBeam:
         return dict_results
     
 
-    def implicit_method(self, save_vars=False, type="implicit midpoint"):
+    def implicit_method(self, method="implicit midpoint", save_vars=False):
         """
         Solve using leapfrog/Verlet method
         Two version 
@@ -384,12 +383,12 @@ class VonKarmanBeam:
 
         ver_disp_midpoint = 0.5*(ver_disp_old + ver_disp_new)
 
-        if type == "implicit midpoint":
+        if method == "implicit midpoint":
             hor_disp_midpoint = 0.5*(hor_disp_old + hor_disp_new)
 
             dV_hor_disp, dV_ver_disp = self.weak_grad_potential(test_hor_vel, test_ver_vel, \
                                                                 hor_disp_midpoint, ver_disp_midpoint)
-        elif type == "discrete gradient":
+        elif method == "discrete gradient":
             # To conserve the energy one needs the average axial stress and not the axial stress of the 
             # midpoint displacement (see Simo paper)
             axial_stress_old = self.axial_stress(hor_disp_old, ver_disp_old)
@@ -442,8 +441,8 @@ class VonKarmanBeam:
 
             if (ii+1)%self.output_frequency==0:
                 kk += 1
-                # actural_time = (ii+1)*float(self.dt)
-                # assert np.isclose(actural_time, self.t_vec_output[kk])
+                # actual_time = (ii+1)*float(self.dt)
+                # assert np.isclose(actual_time, self.t_vec_output[kk])
 
                 energy_vec[kk] = fdrk.assemble(self.hamiltonian(hor_disp_old, ver_disp_old, hor_vel_old, ver_vel_old))
                 if save_vars: 
@@ -596,8 +595,8 @@ class VonKarmanBeam:
 
             if (ii+1)%self.output_frequency==0:
                 kk += 1
-                # actural_time = (ii+1)*float(self.dt)
-                # assert np.isclose(actural_time, self.t_vec_output[kk])
+                # actual_time = (ii+1)*float(self.dt)
+                # assert np.isclose(actual_time, self.t_vec_output[kk])
                 energy_vec[kk] = 0.5*fdrk.assemble(self.energy_form_linear_implicit(tuple_states_new, \
                                                                                     tuple_states_new))
                 
@@ -754,8 +753,8 @@ class VonKarmanBeam:
 
             if (ii+1)%self.output_frequency==0:
                 kk += 1
-                # actural_time = (ii+1)*float(self.dt)
-                # assert np.isclose(actural_time, self.t_vec_output[kk])
+                # actual_time = (ii+1)*float(self.dt)
+                # assert np.isclose(actual_time, self.t_vec_output[kk])
                 energy_vec[kk] = 0.5*fdrk.assemble(self.energy_form_linear_implicit(tuple_states_new, \
                                                                                     tuple_states_new))
                 

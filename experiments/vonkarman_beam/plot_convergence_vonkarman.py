@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 from src.postprocessing.plot_convergence import plot_convergence
 from src.norm_computation import error_norm_time, error_norm_space_time
-from parameters import *
+from experiments.vonkarman_beam.parameters_vonkarman import *
 import pickle
 from src.postprocessing.options import configure_matplotib
 configure_matplotib()

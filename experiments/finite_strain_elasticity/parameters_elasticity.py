@@ -14,7 +14,7 @@ kappa = lamda + 2/3*mu
 
 # Geometrical parameters
 Lx, Ly, Lz = 1, 1, 6
-n_elements = (6, 6, 36)
+n_elements = (3, 3, 18)
 n_elements_x, n_elements_y, n_elements_z = n_elements
 mesh_size_x = Lx/n_elements_x
 mesh_size_y = Ly/n_elements_y
@@ -24,10 +24,7 @@ mesh_size = min(mesh_size_x, mesh_size_y, mesh_size_z)
 # Wave speed and connection with time step
 wave_speed = np.sqrt((kappa + 4/3*mu)/rho)    
 
-# # In finite elements, the minimum security coefficient is:
-# - 4 for bending 
-# - 2 for traction
-sec_coeff = 10
+sec_coeff = 4
 
 # CFL in finite differences scheme (or finite element with mass lumping)
 dt_max = mesh_size/wave_speed
@@ -35,7 +32,7 @@ dt_CFL = dt_max/sec_coeff
 
 # # Time step to have sufficient resolution
 dt_base = dt_CFL
-t_end_approx = .1
+t_end_approx = 1
 n_steps_approx = np.round(t_end_approx/dt_base).astype(int)
 
 # Computation of the final time and number of steps to collect a maximum number of 
@@ -60,11 +57,21 @@ bending_column = FiniteStrainElasticity(time_step=dt_reference, t_span=t_span, n
                                         n_elem = n_elements, Lx=Lx, Ly=Ly, Lz=Lz, 
                                         rho = rho, E = E, nu = nu)
 
+# Point to analyze results
 x_point = np.array([0, 0, Lz])
+array_coordinates = bending_column.domain.coordinates.dat.data
+distances = np.sum((array_coordinates - x_point)**2, axis=1)
+# Find index of minimum distance
+index_point = np.argmin(distances)
+
 
 t_vec_output = bending_column.t_vec_output
 t_vec_output_ms = t_vec_output*1e3
 dt_output = np.mean(np.diff(t_vec_output)) 
+
+n_cases = 5
+time_step_vec = np.array([dt_base/2**n for n in range(n_cases)])
+time_step_vec_mus = time_step_vec*1e5
 
 # Paths for results
 directory_results = f"{os.path.dirname(os.path.abspath(__file__))}/results/"
@@ -76,6 +83,6 @@ file_results_leapfrog = directory_results + "results_leapfrog.pkl"
 file_results_dis_gradient = directory_results + "results_discrete_gradient.pkl"
 file_results_lin_implicit = directory_results + "results_linear_implicit.pkl"
 
-n_cases = 5
-time_step_vec = np.array([dt_base/2**n for n in range(n_cases)])
-time_step_vec_mus = time_step_vec*1e5
+# Paraview folder
+
+paraview_directory = "/home/dmsm/a.brugnoli/StoreResults/FiniteStrainElasticity/"

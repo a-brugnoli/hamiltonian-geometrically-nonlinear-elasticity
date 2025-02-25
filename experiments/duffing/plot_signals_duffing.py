@@ -3,7 +3,7 @@ import numpy as np
 from src.postprocessing.options import configure_matplotib
 import pickle
 configure_matplotib()
-from parameters import *
+from experiments.duffing.parameters_duffing import *
 
 with open(file_results_energy, "rb") as f:
         dict_energy = pickle.load(f)

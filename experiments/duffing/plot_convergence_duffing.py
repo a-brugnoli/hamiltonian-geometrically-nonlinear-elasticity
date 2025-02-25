@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 from src.postprocessing.plot_convergence import plot_convergence
-from parameters import *
+from experiments.duffing.parameters_duffing import *
 import pickle
 from src.postprocessing.options import configure_matplotib
 configure_matplotib()

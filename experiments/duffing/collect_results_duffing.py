@@ -5,7 +5,7 @@ from src.postprocessing.options import configure_matplotib
 from src.norm_computation import error_norm_time
 configure_matplotib()
 import pickle
-from parameters import *
+from experiments.duffing.parameters_duffing import *
 
 error_vec_q_leapfrog = np.zeros(n_case)
 error_vec_v_leapfrog = np.zeros(n_case)

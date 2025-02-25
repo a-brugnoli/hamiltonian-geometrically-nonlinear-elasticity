@@ -93,7 +93,7 @@ class DuffingOscillator:
         return q_vec, v_vec
 
 
-    def implicit_method(self, type="implicit midpoint"):
+    def implicit_method(self, method="implicit midpoint"):
         """
         Solve using an implicit method. 
         - type : a string defining the method. Possible values are 
@@ -116,13 +116,13 @@ class DuffingOscillator:
             q_mid = (q_old + q_new) / 2
             v_mid = (v_old + v_new) / 2
 
-            if type == "implicit midpoint":
+            if method == "implicit midpoint":
                 dV_discrete = self.grad_potential_energy(q_mid)
-            elif type == "midpoint discrete gradient":
+            elif method == "midpoint discrete gradient":
                 # dV_discrete = midpoint_discrete_gradient(q_new, q_old, \
                 #                 self.potential_energy, self.grad_potential_energy)
                 dV_discrete = self.discrete_potential_gradient(q_new, q_old)
-            elif type == "mean value discrete gradient":
+            elif method == "mean value discrete gradient":
                 dV_discrete = mean_value_discrete_gradient(q_new, q_old, self.grad_potential_energy)
             else:
                 raise ValueError("Unknown type of implicit method")

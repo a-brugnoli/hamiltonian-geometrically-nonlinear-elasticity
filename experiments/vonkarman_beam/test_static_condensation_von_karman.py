@@ -1,4 +1,4 @@
-from parameters import *
+from experiments.vonkarman_beam.parameters_vonkarman import *
 import matplotlib.pyplot as plt
 from matplotlib import cm
 import time

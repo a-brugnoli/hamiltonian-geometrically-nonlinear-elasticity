@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from parameters import *
+from experiments.vonkarman_beam.parameters_vonkarman import *
 import pickle
 import matplotlib.patches as mpatches
 from matplotlib import cm
