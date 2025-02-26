@@ -445,27 +445,32 @@ class FiniteStrainElasticity:
         return dict_results
     
 
-    def energy_form_linear_implicit(self, test_functions, trial_functions):
+    def energy_form_linear_implicit(self, test_functions, functions):
 
         test_velocity, test_stress = test_functions
-        trial_velocity, trial_stress = trial_functions
+        velocity, stress = functions
 
-        energy_density = fdrk.inner(test_velocity, self.density*trial_velocity) \
-                       + fdrk.inner(test_stress, self.compliance_tensor(trial_stress))
+        energy_density = fdrk.inner(test_velocity, self.density*velocity) \
+                       + fdrk.inner(test_stress, self.compliance_tensor(stress))
 
         return energy_density*fdrk.dx
     
 
-    def interconnection_form_linear_implicit(self, test_functions, trial_functions, displacement):
+    def interconnection_form_linear_implicit(self, test_functions, functions, displacement):
 
         test_velocity, test_stress = test_functions
-        trial_velocity, trial_stress = trial_functions
+        velocity, stress = functions
 
-        D_transpose = self.weak_grad_potential_stress(test_velocity, displacement, trial_stress)
-        
-        D = self.weak_grad_potential_stress(trial_velocity, displacement, test_stress) 
-        
-        interconnection_form = - D_transpose  + D
+        # D_transpose = self.weak_grad_potential_stress(test_velocity, displacement, trial_stress)
+        # D = self.weak_grad_potential_stress(trial_velocity, displacement, test_stress) 
+        # interconnection_form = - D_transpose  + D
+
+        # def_gradient = self.deformation_gradient(displacement)
+        # interconnection_form =  - fdrk.inner(fdrk.grad(test_velocity), fdrk.dot(def_gradient, stress))*fdrk.dx \
+        #     + fdrk.inner(test_stress, fdrk.dot(fdrk.transpose(def_gradient), fdrk.grad(velocity)))*fdrk.dx
+
+        interconnection_form =  - fdrk.inner(fdrk.grad(test_velocity), stress)*fdrk.dx \
+            + fdrk.inner(test_stress, fdrk.grad(velocity))*fdrk.dx
 
         return interconnection_form
 
@@ -588,8 +593,6 @@ class FiniteStrainElasticity:
     
 
     def linear_implicit_static_condensation(self, save_vars=False, paraview_directory=""):
-        dict_essential = self.get_essential_bcs()
-        velocity_bc_data = dict_essential["velocity"]
         
         tuple_test_functions = fdrk.TestFunctions(self.mixed_space_linear_implicit)
         tuple_trial_functions = fdrk.TrialFunctions(self.mixed_space_linear_implicit)
@@ -615,11 +618,9 @@ class FiniteStrainElasticity:
 
         disp_new = fdrk.Function(self.space_displacement, name="disp_new")
         vel_new = fdrk.Function(self.space_velocity, name="vel_new")
-        bcs_velocity = [fdrk.DirichletBC(self.space_velocity, item[1], item[0]) \
-                        for item in velocity_bc_data.items()]
-        
+
         disp_half = fdrk.Function(self.space_displacement)
-        disp_half.assign(disp_old + 0.5*self.dt*states_old.sub(0))
+        disp_half.assign(disp_old + 0.5*self.dt*vel_old)
         disp_new_half = disp_half + self.dt*vel_new
 
         bilinear_form = self.energy_form_linear_implicit(tuple_test_functions, tuple_trial_functions) \
@@ -647,13 +648,18 @@ class FiniteStrainElasticity:
 
         b_block_vel = b_blocks[0] - A_blocks[0, 1] * A_11_inv * b_blocks[1]
         
-        # # # Misterious bug. This is not working as expected
-        # linear_implicit_velocity_problem = fdrk.LinearVariationalProblem(A_block_vel, \
-        #                                                                 b_block_vel, \
-        #                                                                 vel_new, \
-        #                                                                 bcs=bcs_velocity)
+        # # Misterious bug. This is not working as expected
+        dict_essential = self.get_essential_bcs()
+        velocity_bc_data = dict_essential["velocity"]
+        bcs_velocity = [fdrk.DirichletBC(self.space_velocity, item[1], item[0]) \
+                        for item in velocity_bc_data.items()]
         
-        # linear_implicit_velocity_solver = fdrk.LinearVariationalSolver(linear_implicit_velocity_problem)
+        linear_implicit_velocity_problem = fdrk.LinearVariationalProblem(A_block_vel, \
+                                                                        b_block_vel, \
+                                                                        vel_new, \
+                                                                        bcs=bcs_velocity)
+        
+        linear_implicit_velocity_solver = fdrk.LinearVariationalSolver(linear_implicit_velocity_problem)
 
         if save_vars:   
             disp_array = np.zeros((self.n_output, self.n_dofs_disp, 3))
@@ -684,31 +690,31 @@ class FiniteStrainElasticity:
 
         for ii in tqdm(range(self.n_steps)):
 
-            # linear_implicit_velocity_solver.solve()
+            linear_implicit_velocity_solver.solve()
 
-            # local_new_vel = fdrk.AssembledVector(vel_new)
+            local_new_vel = fdrk.AssembledVector(vel_new)
 
-            # stress_new = fdrk.assemble(self.A_blocks[1, 1].inv * (self.b_blocks[1] \
-            #                             - self.A_blocks[1, 0] * local_new_vel))
+            stress_new = fdrk.assemble(A_11_inv * (b_blocks[1] \
+                                        - A_blocks[1, 0] * local_new_vel))
             
-            # states_new.sub(0).assign(vel_new)
-            # states_new.sub(1).vector().set_local(stress_new)
-
-            # Solve for velocity block
-            A_vel = fdrk.assemble(A_block_vel, bcs=bcs_velocity)
-            b_vel = fdrk.assemble(b_block_vel)
-            fdrk.solve(A_vel, vel_new, b_vel)
-
             states_new.sub(0).assign(vel_new)
+            states_new.sub(1).vector().set_local(stress_new.vector().get_local())
 
-            # Reconstruction of the new state vector
-            local_velocity = fdrk.AssembledVector(vel_new)
+            # # Solve for velocity block
+            # A_vel = fdrk.assemble(A_block_vel, bcs=bcs_velocity)
+            # b_vel = fdrk.assemble(b_block_vel)
+            # fdrk.solve(A_vel, vel_new, b_vel)
 
-            b_stress= fdrk.assemble(b_blocks[1] - A_blocks[1, 0] * local_velocity)
+            # states_new.sub(0).assign(vel_new)
 
-            with b_stress.dat.vec_ro as b_stress_petsc:
-                with stress_new.dat.vec_wo as stress_new_vec:
-                    M_inv_stress.mult(b_stress_petsc, stress_new_vec)
+            # # Reconstruction of the new state vector
+            # local_velocity = fdrk.AssembledVector(vel_new)
+
+            # b_stress= fdrk.assemble(b_blocks[1] - A_blocks[1, 0] * local_velocity)
+
+            # with b_stress.dat.vec_ro as b_stress_petsc:
+            #     with stress_new.dat.vec_wo as stress_new_vec:
+            #         M_inv_stress.mult(b_stress_petsc, stress_new_vec)
             
             disp_new.assign(0.5*(disp_half + disp_new_half))
             disp_half.assign(disp_new_half)

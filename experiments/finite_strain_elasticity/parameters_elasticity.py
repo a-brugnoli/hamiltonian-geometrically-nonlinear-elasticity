@@ -14,7 +14,7 @@ kappa = lamda + 2/3*mu
 
 # Geometrical parameters
 Lx, Ly, Lz = 1, 1, 6
-n_elements = (6, 6, 32)
+n_elements = (3, 3, 18)
 n_elements_x, n_elements_y, n_elements_z = n_elements
 mesh_size_x = Lx/n_elements_x
 mesh_size_y = Ly/n_elements_y
@@ -32,7 +32,7 @@ dt_CFL = dt_max/sec_coeff
 
 # # Time step to have sufficient resolution
 dt_base = dt_CFL
-t_end_approx = 1/20
+t_end_approx = 1/10
 n_steps_approx = np.round(t_end_approx/dt_base).astype(int)
 
 # Computation of the final time and number of steps to collect a maximum number of 
@@ -84,5 +84,5 @@ file_results_dis_gradient = directory_results + "results_discrete_gradient.pkl"
 file_results_lin_implicit = directory_results + "results_linear_implicit.pkl"
 
 # Paraview folder
-
-paraview_directory = "/home/dmsm/a.brugnoli/StoreResults/FiniteStrainElasticity/"
+home_dir = os.path.expanduser("~")
+paraview_directory = home_dir + "/StoreResults/FiniteStrainElasticity/"
