@@ -26,7 +26,7 @@ configure_matplotib()
 # disp_at_point_dis_gradient = disp_array_dis_gradient[:, index_point, :]
 
 t0_lin_implicit = time.perf_counter()
-dict_results_lin_implicit = bending_column.linear_implicit(save_vars=True, paraview_directory=paraview_directory)
+dict_results_lin_implicit = bending_column.linear_implicit_static_condensation(save_vars=True, paraview_directory=paraview_directory)
 tf_lin_implicit = time.perf_counter()
 
 disp_array_lin_implicit = dict_results_lin_implicit["displacement"]

@@ -24,7 +24,7 @@ mesh_size = min(mesh_size_x, mesh_size_y, mesh_size_z)
 # Wave speed and connection with time step
 wave_speed = np.sqrt((kappa + 4/3*mu)/rho)    
 
-sec_coeff = 4
+sec_coeff = 5/4
 
 # CFL in finite differences scheme (or finite element with mass lumping)
 dt_max = mesh_size/wave_speed
@@ -32,7 +32,7 @@ dt_CFL = dt_max/sec_coeff
 
 # # Time step to have sufficient resolution
 dt_base = dt_CFL
-t_end_approx = 1/10
+t_end_approx = 1
 n_steps_approx = np.round(t_end_approx/dt_base).astype(int)
 
 # Computation of the final time and number of steps to collect a maximum number of 
