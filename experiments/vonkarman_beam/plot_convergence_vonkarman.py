@@ -117,11 +117,11 @@ for ii in range(n_cases):
 
 
 
-dict_hor_position = {"Linear implicit": error_q_x_lin_implicit, \
+dict_hor_displacement = {"Linear implicit": error_q_x_lin_implicit, \
                 "Discrete gradient": error_q_x_dis_gradient, \
                 "Leapfrog": error_q_x_leapfrog}
 
-dict_ver_position = {"Linear implicit": error_q_z_lin_implicit, \
+dict_ver_displacement = {"Linear implicit": error_q_z_lin_implicit, \
                 "Discrete gradient": error_q_z_dis_gradient, \
                 "Leapfrog": error_q_z_leapfrog}
 
@@ -134,14 +134,14 @@ dict_ver_velocity = {"Linear implicit": error_v_z_lin_implicit, \
                      "Leapfrog": error_v_z_leapfrog}
 
 str_xlabel = '$\log \Delta t \; \mathrm{[s]}$'
-plot_convergence(time_step_vec, dict_hor_position, rate=True, xlabel=str_xlabel, ylabel="$\log \epsilon_{q_x}$", \
-                title='Error position $q_x$', savefig=f"{directory_images}convergence_horizontal_position")
+plot_convergence(time_step_vec, dict_hor_displacement, rate=True, xlabel=str_xlabel, ylabel="$\log \epsilon_{q_x}$", \
+                title='Error displacement $q_x$', savefig=f"{directory_images}convergence_horizontal_displacement")
 
 plot_convergence(time_step_vec, dict_hor_velocity, rate=True, xlabel=str_xlabel, ylabel="$\log \epsilon_{v_x}$",  \
                  title='Error velocity $v_x$', savefig=f"{directory_images}convergence_horizontal_velocity")
 
-plot_convergence(time_step_vec, dict_ver_position, rate=True, xlabel=str_xlabel, ylabel="$\log \epsilon_{q_z}$", \
-                title='Error position $q_z$', savefig=f"{directory_images}convergence_vertical_position")
+plot_convergence(time_step_vec, dict_ver_displacement, rate=True, xlabel=str_xlabel, ylabel="$\log \epsilon_{q_z}$", \
+                title='Error displacement $q_z$', savefig=f"{directory_images}convergence_vertical_displacement")
 
 plot_convergence(time_step_vec, dict_ver_velocity, rate=True, xlabel=str_xlabel, ylabel="$\log \epsilon_{v_z}$",  \
                  title='Error velocity $v_z$', savefig=f"{directory_images}convergence_vertical_velocity")

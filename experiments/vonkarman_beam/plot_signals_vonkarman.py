@@ -174,7 +174,7 @@ ax.view_init(elev=30, azim=45)
 # ax.set_box_aspect(None, zoom=zoom)
 plt.savefig(f"{directory_images}vertical_displacement.pdf", dpi='figure', \
             format='pdf', bbox_inches=bbox)
-# plt.show()
+plt.show()
 
 
 

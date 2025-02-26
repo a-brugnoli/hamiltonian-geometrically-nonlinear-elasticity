@@ -66,7 +66,7 @@ t_span = [0, t_end]
 coeff_reference = 2**7
 dt_reference = dt_base/coeff_reference
 
-beam = VonKarmanBeam(time_step=dt_reference, t_span=t_span, n_output= n_sim_output,\
+beam = VonKarmanBeam(time_step=dt_base, t_span=t_span, n_output= n_sim_output,\
                         n_elem = n_elements, q0_hor = ampl_hor_disp_0, q0_ver=ampl_ver_disp_0, \
                         rho = rho, E = E, I = I, A=A, L=L)
 
@@ -85,7 +85,6 @@ time_step_vec_mus = time_step_vec*1e6
 
 mask_stable_leapfrog = time_step_vec <= dt_CFL_traction
 n_cases_stable_leapfrog = np.sum(mask_stable_leapfrog==True)
-
 time_step_stable_leapfrog = time_step_vec[mask_stable_leapfrog]
 
 # Paths for results

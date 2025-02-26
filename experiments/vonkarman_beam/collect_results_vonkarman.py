@@ -10,6 +10,7 @@ try:
 except FileNotFoundError:
     print(f"Error: The file '{file_results_reference}' does not exist.")
     print(f"Running reference")
+    beam.set_time_step(dt_reference)
     t0_reference = time.perf_counter()
     dict_results_reference = beam.leapfrog(save_vars=True)
     tf_reference = time.perf_counter()
@@ -28,7 +29,6 @@ v_x_array_leapfrog = np.zeros((n_sim_output, n_dofs_hor_disp, n_cases))
 q_z_array_leapfrog = np.zeros((n_sim_output, n_dofs_hor_disp, n_cases))
 v_z_array_leapfrog = np.zeros((n_sim_output, n_dofs_hor_disp, n_cases))
 elapsed_vec_leapfrog = np.zeros(n_cases)
-
 
 energy_vec_dis_gradient = np.zeros((n_sim_output, n_cases))
 q_x_array_dis_gradient = np.zeros((n_sim_output, n_dofs_hor_disp, n_cases))

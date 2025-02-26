@@ -17,6 +17,13 @@ def error_norm_time(exact_vec, numerical_vec, time_step, norm="Linf"):
 
 def error_norm_space_time(exact_array, numerical_array, time_step, norm="Linf"):
 
+    assert exact_array.shape == numerical_array.shape
+
+    if exact_array.ndim == 4:
+        shape_3d_tensor = (exact_array.shape[0], exact_array.shape[1] * exact_array.shape[2], exact_array.shape[3])
+        exact_array = exact_array.reshape(shape_3d_tensor)
+        numerical_array = numerical_array.reshape(shape_3d_tensor)
+
     difference_array = np.abs(numerical_array - exact_array)
     norm_space_difference = np.linalg.norm(difference_array, axis=1)
     norm_space_exact = np.linalg.norm(exact_array, axis=1)
