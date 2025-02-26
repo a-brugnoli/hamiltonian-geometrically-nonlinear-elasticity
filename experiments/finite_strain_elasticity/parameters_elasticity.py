@@ -81,7 +81,8 @@ time_step_stable_leapfrog = time_step_vec[mask_stable_leapfrog]
 
 
 # Paths for results
-directory_results = f"{os.path.dirname(os.path.abspath(__file__))}/results/"
+home_dir = os.path.expanduser("~")
+directory_results = home_dir + "/StoreResults/FiniteStrainElasticity/results/"
 if not os.path.exists(directory_results):
     os.makedirs(directory_results)
 
@@ -95,6 +96,5 @@ if not os.path.exists(directory_images):
     os.makedirs(directory_images)
 
 # Paraview folder
-home_dir = os.path.expanduser("~")
 paraview_directory = home_dir + "/StoreResults/FiniteStrainElasticity/"
 
