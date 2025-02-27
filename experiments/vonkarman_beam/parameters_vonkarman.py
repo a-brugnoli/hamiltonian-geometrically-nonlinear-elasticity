@@ -92,6 +92,7 @@ directory_results = f"{os.path.dirname(os.path.abspath(__file__))}/results/"
 if not os.path.exists(directory_results):
     os.makedirs(directory_results)
 
+file_time = directory_results + "time_vector.pkl"
 file_results_reference = directory_results + "results_reference.pkl"
 file_results_leapfrog = directory_results + "results_leapfrog.pkl"
 file_results_dis_gradient = directory_results + "results_discrete_gradient.pkl"

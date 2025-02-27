@@ -4,6 +4,11 @@ import pickle
 from src.postprocessing.options import configure_matplotib
 configure_matplotib()
 
+with open(file_time, "rb") as f:
+        dict_time = pickle.load(f)
+
+t_vec_results_ms = 1e3*dict_time["Time"]
+
 with open(file_results_reference, "rb") as f:
         dict_results_reference = pickle.load(f)
 
@@ -43,12 +48,12 @@ diff_E_lin_implicit = np.diff(energy_vec_lin_implicit, axis=0)
 
 plt.figure()
 for ii in range(n_cases):
-    plt.plot(t_vec_output_ms, energy_vec_dis_gradient[:, ii], '-.', \
+    plt.plot(t_vec_results_ms, energy_vec_dis_gradient[:, ii], '-.', \
              label=fr"DG $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
-    plt.plot(t_vec_output_ms, energy_vec_lin_implicit[:, ii], ':', \
+    plt.plot(t_vec_results_ms, energy_vec_lin_implicit[:, ii], ':', \
              label=fr"LI $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
     if mask_stable_leapfrog[ii]:
-        plt.plot(t_vec_output_ms, energy_vec_leapfrog[:, ii], '-.', \
+        plt.plot(t_vec_results_ms, energy_vec_leapfrog[:, ii], '-.', \
              label=fr"LF $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
 plt.legend()
 plt.xlabel("Time [ms]")
@@ -57,12 +62,12 @@ plt.title("Energy")
 
 plt.figure()
 for ii in range(n_cases):
-    plt.plot(t_vec_output_ms[1:], diff_E_dis_gradient[:, ii], '-.', \
+    plt.plot(t_vec_results_ms[1:], diff_E_dis_gradient[:, ii], '-.', \
             label=fr"DG $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
-    plt.plot(t_vec_output_ms[1:], diff_E_lin_implicit[:, ii], ':', \
+    plt.plot(t_vec_results_ms[1:], diff_E_lin_implicit[:, ii], ':', \
             label=fr"LI $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
     if mask_stable_leapfrog[ii]:
-        plt.plot(t_vec_output_ms[1:], diff_E_leapfrog[:, ii], '-.', \
+        plt.plot(t_vec_results_ms[1:], diff_E_leapfrog[:, ii], '-.', \
                 label=fr"LF $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
 plt.legend()
 plt.xlabel("Time [ms]")
@@ -75,31 +80,31 @@ q_x_at_point_dis_gradient = q_array_dis_gradient[:, index_point, 0, :]
 q_x_at_point_lin_implicit = q_array_lin_implicit[:, index_point, 0, :]
 
 plt.figure()
-plt.plot(t_vec_output_ms, q_x_at_point_reference, \
+plt.plot(t_vec_results_ms, q_x_at_point_reference, \
             label=fr"Ref $\Delta t = {dt_reference*1e6:.1f} \; \mathrm{{[\mu s]}}$")
 for ii in range(n_cases):
     if mask_stable_leapfrog[ii]:
-        plt.plot(t_vec_output_ms, q_x_at_point_leapfrog[:, ii], \
+        plt.plot(t_vec_results_ms, q_x_at_point_leapfrog[:, ii], \
                 label=fr"LF $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
 plt.legend()
 plt.xlabel("Time [ms]")
 plt.title("Displacement $q_x$")
 
 plt.figure()
-plt.plot(t_vec_output_ms, q_x_at_point_reference, \
+plt.plot(t_vec_results_ms, q_x_at_point_reference, \
             label=fr"Ref $\Delta t = {dt_reference*1e6:.1f} \; \mathrm{{[\mu s]}}$")
 for ii in range(n_cases):
-    plt.plot(t_vec_output_ms, q_x_at_point_dis_gradient[:, ii], \
+    plt.plot(t_vec_results_ms, q_x_at_point_dis_gradient[:, ii], \
             label=fr"DG $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
 plt.legend()
 plt.xlabel("Time [ms]")
 plt.title("Displacement $q_x$")
 
 plt.figure()
-plt.plot(t_vec_output_ms, q_x_at_point_reference, \
+plt.plot(t_vec_results_ms, q_x_at_point_reference, \
             label=fr"Ref $\Delta t = {dt_reference*1e6:.1f} \; \mathrm{{[\mu s]}}$")
 for ii in range(n_cases):
-    plt.plot(t_vec_output_ms, q_x_at_point_lin_implicit[:, ii], \
+    plt.plot(t_vec_results_ms, q_x_at_point_lin_implicit[:, ii], \
             label=fr"LI $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
 plt.legend()
 plt.xlabel("Time [ms]")
@@ -112,11 +117,11 @@ q_y_at_point_lin_implicit = q_array_lin_implicit[:, index_point, 1, :]
 
 
 plt.figure()
-plt.plot(t_vec_output_ms, q_y_at_point_reference, \
+plt.plot(t_vec_results_ms, q_y_at_point_reference, \
             label=fr"Ref $\Delta t = {dt_reference*1e6:.1f} \; \mathrm{{[\mu s]}}$")
 for ii in range(n_cases):
     if mask_stable_leapfrog[ii]:
-        plt.plot(t_vec_output_ms, q_y_at_point_leapfrog[:, ii], \
+        plt.plot(t_vec_results_ms, q_y_at_point_leapfrog[:, ii], \
                 label=fr"LF $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
 plt.legend()
 plt.xlabel("Time [ms]")
@@ -124,10 +129,10 @@ plt.title("Displacement $q_y$")
 
 
 plt.figure()
-plt.plot(t_vec_output_ms, q_y_at_point_reference, \
+plt.plot(t_vec_results_ms, q_y_at_point_reference, \
             label=fr"Ref $\Delta t = {dt_reference*1e6:.1f} \; \mathrm{{[\mu s]}}$")
 for ii in range(n_cases):
-    plt.plot(t_vec_output_ms, q_y_at_point_dis_gradient[:, ii], \
+    plt.plot(t_vec_results_ms, q_y_at_point_dis_gradient[:, ii], \
             label=fr"DG $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
 plt.legend()
 plt.xlabel("Time [ms]")
@@ -135,10 +140,10 @@ plt.title("Displacement $q_y$")
 
 
 plt.figure()
-plt.plot(t_vec_output_ms, q_y_at_point_reference, \
+plt.plot(t_vec_results_ms, q_y_at_point_reference, \
             label=fr"Ref $\Delta t = {dt_reference*1e6:.1f} \; \mathrm{{[\mu s]}}$")
 for ii in range(n_cases):
-    plt.plot(t_vec_output_ms, q_y_at_point_lin_implicit[:, ii], \
+    plt.plot(t_vec_results_ms, q_y_at_point_lin_implicit[:, ii], \
             label=fr"LI $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
 plt.legend()
 plt.xlabel("Time [ms]")

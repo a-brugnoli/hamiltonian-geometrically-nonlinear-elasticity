@@ -27,7 +27,7 @@ directory_results = f"{os.path.dirname(os.path.abspath(__file__))}/results/"
 if not os.path.exists(directory_results):
     os.makedirs(directory_results)
 
-file_time = directory_results + "results_time.pkl"
+file_time = directory_results + "time_vector.pkl"
 file_results_position = directory_results + "results_position.pkl"
 file_results_velocity = directory_results + "results_velocity.pkl"
 file_results_energy = directory_results + "results_energy.pkl"

@@ -79,6 +79,11 @@ for ii in range(n_cases):
     print(f"Elapsed time Midpoint Discrete gradient : {elapsed_vec_dis_gradient[ii]}")
     print(f"Elapsed time Linear implicit : {elapsed_vec_lin_implicit[ii]}")
 
+
+dict_time = {"Time":t_vec_output}
+with open(file_time, "wb") as f:
+        pickle.dump(dict_time, f)
+
 dict_results_leapfrog_cases = {"energy": energy_vec_leapfrog, 
                                 "displacement": q_array_leapfrog,
                                 "velocity": v_array_leapfrog,

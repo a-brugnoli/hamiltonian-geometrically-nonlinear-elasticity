@@ -96,6 +96,11 @@ for ii in range(n_cases):
     print(f"Elapsed time Linear implicit : {elapsed_vec_lin_implicit[ii]}")
 
 
+dict_time = {"Time":t_vec_output}
+with open(file_time, "wb") as f:
+        pickle.dump(dict_time, f)
+        
+
 dict_results_leapfrog_cases = {"energy": energy_vec_leapfrog, 
                                 "horizontal displacement": q_x_array_leapfrog,
                                 "horizontal velocity": v_x_array_leapfrog,
