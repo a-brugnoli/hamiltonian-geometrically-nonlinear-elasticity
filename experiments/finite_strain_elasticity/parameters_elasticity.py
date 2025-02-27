@@ -28,8 +28,8 @@ wave_speed = np.sqrt((kappa + 4/3*mu)/rho)
 sec_coeff = 1
 
 # CFL in finite differences scheme (or finite element with mass lumping)
-dt_max = mesh_size/wave_speed
-dt_CFL = dt_max/sec_coeff
+dt_CFL = mesh_size/wave_speed
+dt_CFL_cons = dt_CFL/sec_coeff
 
 # # Time step to have sufficient resolution
 dt_base = dt_CFL

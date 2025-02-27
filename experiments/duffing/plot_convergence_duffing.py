@@ -27,9 +27,9 @@ error_vec_E_dis_gradient = dict_error_energy["Discrete gradient"]
 error_vec_E_lin_implicit = dict_error_energy["Linear implicit"]
 
 plt.figure()
-plt.loglog(time_step_vec, error_vec_E_leapfrog, '*-', label='Leapfrog')
 plt.loglog(time_step_vec, error_vec_E_dis_gradient, 'o-', label='Discrete gradient')
-plt.loglog(time_step_vec, error_vec_E_lin_implicit, '+-', label='Linear implicit')
+plt.loglog(time_step_vec, error_vec_E_lin_implicit, '+--', label='Linear implicit')
+plt.loglog(time_step_vec, error_vec_E_leapfrog, '^:', label='Leapfrog')
 plt.grid(color='0.8', linestyle='-', linewidth=.5)
 plt.xlabel(str_xlabel)
 plt.ylabel("$\log \epsilon_H$")
@@ -47,9 +47,9 @@ elapsed_vec_dis_gradient = dict_comp_time["Discrete gradient"]
 elapsed_vec_lin_implicit = dict_comp_time["Linear implicit"]
 
 plt.figure()
-plt.loglog(time_step_vec, elapsed_vec_leapfrog, '*-', label='Leapfrog')
 plt.loglog(time_step_vec, elapsed_vec_dis_gradient, 'o-', label='Discrete gradient')
-plt.loglog(time_step_vec, elapsed_vec_lin_implicit, '+-', label='Linear implicit')
+plt.loglog(time_step_vec, elapsed_vec_lin_implicit, '+--', label='Linear implicit')
+plt.loglog(time_step_vec, elapsed_vec_leapfrog, '^:', label='Leapfrog')
 plt.grid(color='0.8', linestyle='-', linewidth=.5)
 plt.xlabel(str_xlabel)
 plt.ylabel(r"$\log T_{\rm comp}$")

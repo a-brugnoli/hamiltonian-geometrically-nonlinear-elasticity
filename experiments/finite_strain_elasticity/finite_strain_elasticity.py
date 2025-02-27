@@ -257,15 +257,25 @@ class FiniteStrainElasticity:
         test_vel = fdrk.TestFunction(self.space_velocity)
         trial_vel = fdrk.TrialFunction(self.space_velocity)
 
+        mass_vel = self.mass_form(test_vel, trial_vel)
+
+        acc_0 = fdrk.Function(self.space_displacement, name="acc_0")
+
+        try:
+            dV_disp_0 = self.weak_grad_potential(test_vel, disp_0)
+            fdrk.solve(mass_vel == -dV_disp_0, acc_0, bcs=bcs_velocity)
+        except ValueError:
+            print("Cannot determine geometric dimension from expression in initial force. Using 0 for initial acceleration.")
+            acc_0.assign(fdrk.Constant((0.0, 0.0, 0.0)))
+
         disp_half = fdrk.Function(self.space_displacement)
-        disp_half.assign(disp_old + 0.5*self.dt*vel_old)
+        disp_half.assign(disp_old + 1/2*self.dt*vel_old + 1/8*self.dt**2*acc_0)
 
         disp_new_half = disp_half + self.dt*vel_new
 
         dV_disp = self.weak_grad_potential(test_vel, disp_half)
         # dV_disp = self.weak_grad_potential_linear(test_vel, disp_half)
 
-        mass_vel = self.mass_form(test_vel, trial_vel)
         rhs_vel  = self.mass_form(test_vel, vel_old) - self.dt * dV_disp
 
         problem_vel = fdrk.LinearVariationalProblem(mass_vel, rhs_vel, vel_new, bcs=bcs_velocity)
@@ -511,8 +521,22 @@ class FiniteStrainElasticity:
 
         disp_new = fdrk.Function(self.space_displacement, name="disp_new")
 
+        test_vel = fdrk.TestFunction(self.space_velocity)
+        trial_vel = fdrk.TrialFunction(self.space_velocity)
+        mass_vel = self.mass_form(test_vel, trial_vel)
+
+        acc_0 = fdrk.Function(self.space_displacement, name="acc_0")
+
+        try:
+            dV_disp_0 = self.weak_grad_potential(test_vel, disp_0)
+            fdrk.solve(mass_vel == -dV_disp_0, acc_0, bcs=bcs_velocity)
+        except ValueError:
+            print("Cannot determine geometric dimension from expression in initial force. Using 0 for initial acceleration.")
+            acc_0.assign(fdrk.Constant((0.0, 0.0, 0.0)))
+
         disp_half = fdrk.Function(self.space_displacement)
-        disp_half.assign(disp_old + 0.5*self.dt*vel_old)
+        disp_half.assign(disp_old + 1/2*self.dt*vel_old + 1/8*self.dt**2*acc_0)
+
         disp_new_half = disp_half + self.dt*vel_new
 
         bilinear_form = self.energy_form_linear_implicit(tuple_test_functions, tuple_trial_functions) \
@@ -622,6 +646,22 @@ class FiniteStrainElasticity:
         velocity_bc_data = dict_essential["velocity"]
         bcs_velocity = [fdrk.DirichletBC(self.space_velocity, item[1], item[0]) \
                         for item in velocity_bc_data.items()]
+        
+        test_vel = fdrk.TestFunction(self.space_velocity)
+        trial_vel = fdrk.TrialFunction(self.space_velocity)
+        mass_vel = self.mass_form(test_vel, trial_vel)
+
+        acc_0 = fdrk.Function(self.space_displacement, name="acc_0")
+
+        try:
+            dV_disp_0 = self.weak_grad_potential(test_vel, disp_0)
+            fdrk.solve(mass_vel == -dV_disp_0, acc_0, bcs=bcs_velocity)
+        except ValueError:
+            print("Cannot determine geometric dimension from expression in initial force. Using 0 for initial acceleration.")
+            acc_0.assign(fdrk.Constant((0.0, 0.0, 0.0)))
+
+        disp_half = fdrk.Function(self.space_displacement)
+        disp_half.assign(disp_old + 1/2*self.dt*vel_old + 1/8*self.dt**2*acc_0)
 
         disp_half = fdrk.Function(self.space_displacement, name="disp_half")
         disp_half.assign(disp_old + 0.5*self.dt*vel_old)

@@ -82,7 +82,7 @@ class DuffingOscillator:
         v_vec[0] = 0
         
         # First half-step for velocity using Euler
-        q_half = q_vec[0] + 0.5 * self.dt * v_vec[0]
+        q_half = q_vec[0] + 0.5 * self.dt * v_vec[0] - 1/8 * self.dt**2 * self.grad_potential_energy(q_vec[0])
         
         for i in range(self.n_steps):
             v_vec[i+1] = v_vec[i] - self.dt * self.grad_potential_energy(q_half)
@@ -202,7 +202,7 @@ class DuffingOscillator:
         x_vec[0, :] = np.array([0, sigma1_0, sigma2_0])
 
         # First half-step for velocity using Euler
-        q_half = q_vec[0] + 0.5 * self.dt * x_vec[0, 0]
+        q_half = q_vec[0] + 0.5 * self.dt * x_vec[0, 0]  - 1/8 * self.dt**2 * self.grad_potential_energy(q_vec[0])
 
         H_matrix = self.energy_matrix()
         
@@ -249,7 +249,7 @@ class DuffingOscillator:
         inv_M_C = np.diag(1 / np.diag(M_compliance))
 
         # First half-step for velocity using Euler
-        q_half = q_vec[0] + 0.5 * self.dt * v_vec[0]
+        q_half =  q_vec[0] + 0.5 * self.dt * v_vec[0] - 1/8 * self.dt**2 * self.grad_potential_energy(q_vec[0])
         
         for i in range(self.n_steps):
 

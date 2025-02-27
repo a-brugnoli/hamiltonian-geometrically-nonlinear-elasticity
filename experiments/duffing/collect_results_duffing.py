@@ -106,54 +106,54 @@ with open(file_time, "wb") as f:
         pickle.dump(dict_time, f)
 
 dict_position = {"Exact": q_exact, \
-                "Leapfrog": q_leapfrog,\
                 "Discrete gradient": q_dis_gradient,\
-                "Linear implicit": q_lin_implicit}
+                "Linear implicit": q_lin_implicit, \
+                "Leapfrog": q_leapfrog}
 
 with open(file_results_position, "wb") as f:
         pickle.dump(dict_position, f)
 
 dict_velocity = {"Exact": v_exact, \
-                "Leapfrog": v_leapfrog,\
                 "Discrete gradient": v_dis_gradient,\
-                "Linear implicit": v_lin_implicit}
+                "Linear implicit": v_lin_implicit, \
+                "Leapfrog": v_leapfrog}
 
 with open(file_results_velocity, "wb") as f:
         pickle.dump(dict_velocity, f)
 
 dict_energy = {"Exact": E_exact, \
-                "Leapfrog": E_leapfrog,\
                 "Discrete gradient": E_dis_gradient,\
-                "Linear implicit": E_lin_implicit}
+                "Linear implicit": E_lin_implicit, \
+                "Leapfrog": E_leapfrog}
 
 with open(file_results_energy, "wb") as f:
         pickle.dump(dict_energy, f)
 
-dict_error_position = {"Leapfrog": error_vec_q_leapfrog,\
-                "Discrete gradient": error_vec_q_dis_gradient,\
-                "Linear implicit": error_vec_q_lin_implicit}
+dict_error_position = {"Discrete gradient": error_vec_q_dis_gradient,\
+                "Linear implicit": error_vec_q_lin_implicit, \
+                "Leapfrog": error_vec_q_leapfrog}
 
 with open(file_results_error_position, "wb") as f:
         pickle.dump(dict_error_position, f)
 
 
-dict_error_velocity = {"Leapfrog": error_vec_v_leapfrog,\
-                "Discrete gradient": error_vec_v_dis_gradient,\
-                "Linear implicit": error_vec_v_lin_implicit}
+dict_error_velocity = {"Discrete gradient": error_vec_v_dis_gradient,\
+                "Linear implicit": error_vec_v_lin_implicit, \
+                "Leapfrog": error_vec_v_leapfrog}
 
 with open(file_results_error_velocity, "wb") as f:
         pickle.dump(dict_error_velocity, f)
 
-dict_error_energy = {"Leapfrog": error_vec_E_leapfrog,\
-                "Discrete gradient": error_vec_E_dis_gradient,\
-                "Linear implicit": error_vec_E_lin_implicit}
+dict_error_energy = {"Discrete gradient": error_vec_E_dis_gradient,\
+                "Linear implicit": error_vec_E_lin_implicit, \
+                "Leapfrog": error_vec_E_leapfrog}
 
 with open(file_results_error_energy, "wb") as f:
         pickle.dump(dict_error_energy, f)
 
-dict_elapsed_time = {"Leapfrog": elapsed_vec_leapfrog,\
-                "Discrete gradient": elapsed_vec_dis_gradient,\
-                "Linear implicit": elapsed_vec_lin_implicit}
+dict_elapsed_time = {"Discrete gradient": elapsed_vec_dis_gradient,\
+                "Linear implicit": elapsed_vec_lin_implicit,\
+                "Leapfrog": elapsed_vec_leapfrog}
 
 with open(file_results_comp_time, "wb") as f:
         pickle.dump(dict_elapsed_time, f)

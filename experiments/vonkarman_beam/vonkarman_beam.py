@@ -252,11 +252,20 @@ class VonKarmanBeam:
         trial_hor_vel = fdrk.TrialFunction(self.space_hor_vel)
         trial_ver_vel = fdrk.TrialFunction(self.space_ver_vel)
 
+        mass_hor_vel = self.mass_form(test_hor_vel, trial_hor_vel)
+        mass_ver_vel = self.mass_form(test_ver_vel, trial_ver_vel)
+
+        hor_acc_0 = fdrk.Function(self.space_hor_disp)
+        ver_acc_0 = fdrk.Function(self.space_ver_disp)
+        dV_hor_disp_0, dV_ver_disp_0 = self.weak_grad_potential(test_hor_vel, test_ver_vel, hor_disp_0, ver_disp_0)
+        fdrk.solve(mass_hor_vel == -dV_hor_disp_0, hor_acc_0, bcs=bc_hor_vel)
+        fdrk.solve(mass_ver_vel == -dV_ver_disp_0, ver_acc_0, bcs=bc_ver_vel)
+
         hor_disp_half = fdrk.Function(self.space_hor_disp)
-        hor_disp_half.assign(hor_disp_old + 0.5*self.dt*hor_vel_old)
+        hor_disp_half.assign(hor_disp_old + 1/2*self.dt*hor_vel_old +1/8*self.dt**2*hor_acc_0)
 
         ver_disp_half = fdrk.Function(self.space_ver_disp)
-        ver_disp_half.assign(ver_disp_old + 0.5*self.dt*ver_vel_old)
+        ver_disp_half.assign(ver_disp_old + 1/2*self.dt*ver_vel_old + 1/8*self.dt**2*ver_acc_0)
 
         hor_disp_new_half = hor_disp_half + self.dt*hor_vel_new
         ver_disp_new_half = ver_disp_half + self.dt*ver_vel_new
@@ -264,18 +273,18 @@ class VonKarmanBeam:
         dV_hor_disp, dV_ver_disp = self.weak_grad_potential(test_hor_vel, test_ver_vel, hor_disp_half, ver_disp_half)
         # dV_hor_disp, dV_ver_disp = self.weak_grad_potential_linear(test_hor_vel, test_ver_vel, hor_disp_half, ver_disp_half)
 
-        mass_hor_vel = self.mass_form(test_hor_vel, trial_hor_vel)
         rhs_hor_vel  = self.mass_form(test_hor_vel, hor_vel_old) - self.dt * dV_hor_disp
 
         problem_hor_vel = fdrk.LinearVariationalProblem(mass_hor_vel, rhs_hor_vel, hor_vel_new, bcs=bc_hor_vel)
         solver_hor_vel = fdrk.LinearVariationalSolver(problem_hor_vel)
 
-        mass_ver_vel = self.mass_form(test_ver_vel, trial_ver_vel)
         rhs_ver_vel = self.mass_form(test_ver_vel, ver_vel_old) - self.dt * dV_ver_disp
 
         problem_ver_vel = fdrk.LinearVariationalProblem(mass_ver_vel, rhs_ver_vel, ver_vel_new, bcs=bc_ver_vel)
         
         solver_ver_vel = fdrk.LinearVariationalSolver(problem_ver_vel)
+
+
 
         if save_vars:   
             hor_disp_array = np.zeros((self.n_output, self.n_dofs_hor_disp))
@@ -500,14 +509,16 @@ class VonKarmanBeam:
     def linear_implicit(self, save_vars=False):
         # bc_hor_vel = fdrk.DirichletBC(self.mixed_space_linear_implicit.sub(0), \
         #                             fdrk.Constant(0), "on_boundary")
-        bc_ver_vel = fdrk.DirichletBC(self.mixed_space_linear_implicit.sub(1), \
-                                      fdrk.Constant(0), "on_boundary")
+        bc_hor_vel = []
+        bc_ver_vel = [fdrk.DirichletBC(self.mixed_space_linear_implicit.sub(1), \
+                                      fdrk.Constant(0), "on_boundary")]
 
-        bcs = [bc_ver_vel]
+        bcs_velocity = bc_hor_vel + bc_ver_vel
+
 
         tuple_test_functions = fdrk.TestFunctions(self.mixed_space_linear_implicit)
         tuple_trial_functions = fdrk.TrialFunctions(self.mixed_space_linear_implicit)
-
+        
         states_old = fdrk.Function(self.mixed_space_linear_implicit) 
         hor_vel_old, ver_vel_old, axial_stress_old, bending_stress_old = states_old.subfunctions 
         tuple_states_old = (hor_vel_old, ver_vel_old, axial_stress_old, bending_stress_old)
@@ -527,7 +538,6 @@ class VonKarmanBeam:
         states_old.sub(2).interpolate(self.axial_stress(hor_disp_old, ver_disp_old))
         states_old.sub(3).interpolate(self.bending_stress(ver_disp_old))
 
-
         states_new = fdrk.Function(self.mixed_space_linear_implicit)
         hor_vel_new, ver_vel_new, axial_stress_new, bending_stress_new = states_new.subfunctions
         tuple_states_new = (hor_vel_new, ver_vel_new, axial_stress_new, bending_stress_new)
@@ -535,11 +545,28 @@ class VonKarmanBeam:
         hor_disp_new = fdrk.Function(self.space_hor_disp)
         ver_disp_new = fdrk.Function(self.space_ver_disp)
 
+        space_velocity = self.space_hor_vel * self.space_ver_vel
+        test_hor_vel, test_ver_vel = fdrk.TestFunctions(space_velocity)
+        trial_hor_vel, trial_ver_vel = fdrk.TrialFunction(space_velocity)
+
+        mass_vel = self.mass_form(test_hor_vel, trial_hor_vel) + self.mass_form(test_ver_vel, trial_ver_vel)
+
+        acc_0 = fdrk.Function(space_velocity)
+        dV_hor_disp_0, dV_ver_disp_0 = self.weak_grad_potential(test_hor_vel, test_ver_vel, hor_disp_0, ver_disp_0)
+
+        bc_hor_acc = []
+        bc_ver_acc = [fdrk.DirichletBC(space_velocity.sub(1), \
+                                      fdrk.Constant(0), "on_boundary")]
+
+        bcs_acc = bc_hor_acc + bc_ver_acc
+        fdrk.solve(mass_vel == -dV_hor_disp_0 - dV_ver_disp_0 , acc_0, bcs=bcs_acc)
+        hor_acc_0, ver_acc_0 = acc_0.subfunctions
+
         hor_disp_half = fdrk.Function(self.space_hor_disp)
-        hor_disp_half.assign(hor_disp_old + 0.5*self.dt*hor_vel_old)
+        hor_disp_half.assign(hor_disp_old + 1/2*self.dt*hor_vel_old +1/8*self.dt**2*hor_acc_0)
 
         ver_disp_half = fdrk.Function(self.space_ver_disp)
-        ver_disp_half.assign(ver_disp_old + 0.5*self.dt*ver_vel_old)
+        ver_disp_half.assign(ver_disp_old + 1/2*self.dt*ver_vel_old +1/8*self.dt**2*ver_acc_0)
 
         hor_disp_new_half = hor_disp_half + self.dt*hor_vel_new
         ver_disp_new_half = ver_disp_half + self.dt*ver_vel_new
@@ -558,7 +585,7 @@ class VonKarmanBeam:
         linear_implicit_problem = fdrk.LinearVariationalProblem(bilinear_form, \
                                                                 linear_form, \
                                                                 states_new, \
-                                                                bcs=bcs)
+                                                                bcs=bcs_velocity)
         
         linear_implicit_solver = fdrk.LinearVariationalSolver(linear_implicit_problem)
 
@@ -627,6 +654,15 @@ class VonKarmanBeam:
     
     
     def linear_implicit_static_condensation(self, save_vars=False):
+        space_velocity = self.space_hor_vel * self.space_ver_vel
+
+        # # bc_hor_vel = fdrk.DirichletBC(space_velocity.sub(0), \
+        # #                             fdrk.Constant(0), "on_boundary")
+        bc_hor_vel = []
+        bc_ver_vel = [fdrk.DirichletBC(space_velocity.sub(1), \
+                                      fdrk.Constant(0), "on_boundary")]
+        bcs_velocity = bc_hor_vel + bc_ver_vel
+
         tuple_test_functions = fdrk.TestFunctions(self.mixed_space_linear_implicit)
         tuple_trial_functions = fdrk.TrialFunctions(self.mixed_space_linear_implicit)
 
@@ -657,11 +693,21 @@ class VonKarmanBeam:
         hor_disp_new = fdrk.Function(self.space_hor_disp)
         ver_disp_new = fdrk.Function(self.space_ver_disp)
 
+        test_hor_vel, test_ver_vel = fdrk.TestFunctions(space_velocity)
+        trial_hor_vel, trial_ver_vel = fdrk.TrialFunction(space_velocity)
+
+        mass_vel = self.mass_form(test_hor_vel, trial_hor_vel) + self.mass_form(test_ver_vel, trial_ver_vel)
+
+        acc_0 = fdrk.Function(space_velocity)
+        dV_hor_disp_0, dV_ver_disp_0 = self.weak_grad_potential(test_hor_vel, test_ver_vel, hor_disp_0, ver_disp_0)
+        fdrk.solve(mass_vel == -dV_hor_disp_0 - dV_ver_disp_0, acc_0, bcs=bcs_velocity)
+        hor_acc_0, ver_acc_0 = acc_0.subfunctions
+
         hor_disp_half = fdrk.Function(self.space_hor_disp)
-        hor_disp_half.assign(hor_disp_old + 0.5*self.dt*hor_vel_old)
+        hor_disp_half.assign(hor_disp_old + 1/2*self.dt*hor_vel_old +1/8*self.dt**2*hor_acc_0)
 
         ver_disp_half = fdrk.Function(self.space_ver_disp)
-        ver_disp_half.assign(ver_disp_old + 0.5*self.dt*ver_vel_old)
+        ver_disp_half.assign(ver_disp_old + 1/2*self.dt*ver_vel_old +1/8*self.dt**2*ver_acc_0)
 
         hor_disp_new_half = hor_disp_half + self.dt*hor_vel_new
         ver_disp_new_half = ver_disp_half + self.dt*ver_vel_new
@@ -690,14 +736,7 @@ class VonKarmanBeam:
         A_blocks_vel = A_blocks[:2, :2] - A_blocks[:2, 2:] * A_22_blocks_inv * A_blocks[2:, :2]
         b_blocks_vel = b_blocks[:2] - A_blocks[:2, 2:] * A_22_blocks_inv * b_blocks[2:]
 
-        space_velocity = self.space_hor_vel * self.space_ver_vel
         velocity_new = fdrk.Function(space_velocity)
-
-        # # bc_hor_vel = fdrk.DirichletBC(space_velocity.sub(0), \
-        # #                             fdrk.Constant(0), "on_boundary")
-        bc_ver_vel = fdrk.DirichletBC(space_velocity.sub(1), \
-                                      fdrk.Constant(0), "on_boundary")
-        bcs = [bc_ver_vel]
 
         if save_vars:   
             hor_disp_array = np.zeros((self.n_output, self.n_dofs_hor_disp))
@@ -723,7 +762,7 @@ class VonKarmanBeam:
         for ii in tqdm(range(self.n_steps)):
 
             # Solve for velocity block
-            A_vel = fdrk.assemble(A_blocks_vel, bcs=bcs)
+            A_vel = fdrk.assemble(A_blocks_vel, bcs=bcs_velocity)
             b_vel = fdrk.assemble(b_blocks_vel)
             fdrk.solve(A_vel, velocity_new, b_vel)
 

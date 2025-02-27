@@ -6,7 +6,7 @@ from src.postprocessing.options import configure_matplotib
 configure_matplotib()
 
 t0_leapfrog = time.perf_counter()
-dict_results_leapfrog = bending_column.leapfrog(save_vars=True, paraview_directory=paraview_directory)
+dict_results_leapfrog = bending_column.leapfrog(save_vars=True)
 tf_leapfrog = time.perf_counter()
 
 disp_array_leapfrog = dict_results_leapfrog["displacement"]
@@ -15,8 +15,7 @@ vel_array_leapfrog = dict_results_leapfrog["velocity"]
 disp_at_point_leapfrog = disp_array_leapfrog[:, index_point, :]
 
 t0_dis_gradient = time.perf_counter()
-dict_results_dis_gradient = bending_column.implicit_method(method="discrete gradient", 
-                                                       save_vars=True, paraview_directory=paraview_directory)
+dict_results_dis_gradient = bending_column.implicit_method(method="discrete gradient", save_vars=True)
 tf_dis_gradient = time.perf_counter()
 
 disp_array_dis_gradient = dict_results_dis_gradient["displacement"]
@@ -25,7 +24,8 @@ vel_array_dis_gradient = dict_results_dis_gradient["velocity"]
 disp_at_point_dis_gradient = disp_array_dis_gradient[:, index_point, :]
 
 t0_lin_implicit = time.perf_counter()
-dict_results_lin_implicit = bending_column.linear_implicit_static_condensation(save_vars=True, paraview_directory=paraview_directory)
+dict_results_lin_implicit = bending_column.linear_implicit_static_condensation(save_vars=True)
+# dict_results_lin_implicit = bending_column.linear_implicit_static_condensation(save_vars=True)
 tf_lin_implicit = time.perf_counter()
 
 disp_array_lin_implicit = dict_results_lin_implicit["displacement"]

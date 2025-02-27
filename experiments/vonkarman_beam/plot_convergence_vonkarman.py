@@ -117,20 +117,20 @@ for ii in range(n_cases):
 
 
 
-dict_hor_displacement = {"Linear implicit": error_q_x_lin_implicit, \
-                "Discrete gradient": error_q_x_dis_gradient, \
-                "Leapfrog": error_q_x_leapfrog}
+dict_hor_displacement = {"Discrete gradient": error_q_x_dis_gradient, \
+                         "Linear implicit": error_q_x_lin_implicit, \
+                        "Leapfrog": error_q_x_leapfrog}
 
-dict_ver_displacement = {"Linear implicit": error_q_z_lin_implicit, \
-                "Discrete gradient": error_q_z_dis_gradient, \
-                "Leapfrog": error_q_z_leapfrog}
+dict_ver_displacement = {"Discrete gradient": error_q_z_dis_gradient, \
+                        "Linear implicit": error_q_z_lin_implicit, \
+                        "Leapfrog": error_q_z_leapfrog}
 
-dict_hor_velocity = {"Linear implicit": error_v_x_lin_implicit, \
-                "Discrete gradient": error_v_x_dis_gradient, \
+dict_hor_velocity = {"Discrete gradient": error_v_x_dis_gradient, \
+                "Linear implicit": error_v_x_lin_implicit, \
                 "Leapfrog": error_v_x_leapfrog}
 
-dict_ver_velocity = {"Linear implicit": error_v_z_lin_implicit, \
-                     "Discrete gradient": error_v_z_dis_gradient, 
+dict_ver_velocity = {"Discrete gradient": error_v_z_dis_gradient,  
+                     "Linear implicit": error_v_z_lin_implicit, 
                      "Leapfrog": error_v_z_leapfrog}
 
 str_xlabel = '$\log \Delta t \; \mathrm{[s]}$'
@@ -150,8 +150,8 @@ plot_convergence(time_step_vec, dict_ver_velocity, rate=True, xlabel=str_xlabel,
 
 plt.figure()
 plt.loglog(time_step_vec, comp_time_dis_gradient, 'o-', label='Discrete gradient')
-plt.loglog(time_step_vec, comp_time_lin_implicit, '+-', label='Linear implicit')
-plt.loglog(time_step_vec, comp_time_leapfrog, '^-', label='Leapfrog')
+plt.loglog(time_step_vec, comp_time_lin_implicit, '+--', label='Linear implicit')
+plt.loglog(time_step_vec, comp_time_leapfrog, '^:', label='Leapfrog')
 plt.grid(color='0.8', linestyle='-', linewidth=.5)
 plt.xlabel(str_xlabel)
 plt.ylabel(r"$\log T_{\rm comp}$")
@@ -163,8 +163,8 @@ plt.savefig(f"{directory_images}computational_time.pdf", dpi='figure', format='p
 
 plt.figure()
 plt.loglog(time_step_vec, avg_diff_E_dis_gradient, 'o-', label='Discrete gradient')
-plt.loglog(time_step_vec, avg_diff_E_lin_implicit, '+-', label='Linear implicit')
-plt.loglog(time_step_vec, avg_diff_E_leapfrog, '^-', label='Leapfrog')
+plt.loglog(time_step_vec, avg_diff_E_lin_implicit, '+--', label='Linear implicit')
+plt.loglog(time_step_vec, avg_diff_E_leapfrog, '^:', label='Leapfrog')
 plt.grid(color='0.8', linestyle='-', linewidth=.5)
 plt.xlabel(str_xlabel)
 plt.legend()
