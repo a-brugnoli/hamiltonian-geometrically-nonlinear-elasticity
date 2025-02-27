@@ -33,7 +33,7 @@ dt_CFL = dt_max/sec_coeff
 
 # # Time step to have sufficient resolution
 dt_base = dt_CFL
-t_end_approx = 1
+t_end_approx = 1/2
 n_steps_approx = np.round(t_end_approx/dt_base).astype(int)
 
 # Computation of the final time and number of steps to collect a maximum number of 
