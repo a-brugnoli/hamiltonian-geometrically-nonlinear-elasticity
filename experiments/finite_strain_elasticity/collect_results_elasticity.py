@@ -42,7 +42,6 @@ for ii in range(n_cases):
     print(f"Time step: {dt}")
 
     bending_column.set_time_step(dt)
-    
     assert np.linalg.norm(t_vec_output-bending_column.t_vec_output)<1e-12
 
     print(f"Running leapfrog")
