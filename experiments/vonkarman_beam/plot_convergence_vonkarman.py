@@ -167,6 +167,7 @@ plt.loglog(time_step_vec, avg_diff_E_lin_implicit, '+--', label='Linear implicit
 plt.loglog(time_step_vec, avg_diff_E_leapfrog, '^:', label='Leapfrog')
 plt.grid(color='0.8', linestyle='-', linewidth=.5)
 plt.xlabel(str_xlabel)
+plt.ylabel(r"$\frac{1}{N_t}\sum_{n=0}^{N_t}|H_{n+1} - H_{n}|$")
 plt.legend()
 plt.grid(True)
 plt.title("Mean of energy difference")

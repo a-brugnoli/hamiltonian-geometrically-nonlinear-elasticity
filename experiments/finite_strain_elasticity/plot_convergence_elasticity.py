@@ -84,13 +84,13 @@ for ii in range(n_cases):
                                                         v_array_lin_implicit[:, :, :, ii], dt_output, norm=norm_type)
 
 
-dict_position = {"Linear implicit": error_q_lin_implicit, \
-                "Discrete gradient": error_q_dis_gradient, \
+dict_position = {"Discrete gradient": error_q_dis_gradient, 
+                 "Linear implicit": error_q_lin_implicit,
                 "Leapfrog": error_q_leapfrog}
 
-dict_velocity = {"Linear implicit": error_v_lin_implicit, \
-                     "Discrete gradient": error_v_dis_gradient, 
-                     "Leapfrog": error_v_leapfrog}
+dict_velocity = {"Discrete gradient": error_v_dis_gradient, 
+                "Linear implicit": error_v_lin_implicit,
+                "Leapfrog": error_v_leapfrog}
 
 str_xlabel = '$\log \Delta t \; \mathrm{[s]}$'
 plot_convergence(time_step_vec, dict_position, rate=True, xlabel=str_xlabel, ylabel=r"$\log \epsilon_{\bm q}$", \
@@ -120,6 +120,7 @@ plt.loglog(time_step_vec, avg_diff_E_lin_implicit, '+-', label='Linear implicit'
 plt.loglog(time_step_vec, avg_diff_E_leapfrog, '^-', label='Leapfrog')
 plt.grid(color='0.8', linestyle='-', linewidth=.5)
 plt.xlabel(str_xlabel)
+plt.ylabel(r"$\frac{1}{N_t}\sum_{n=0}^{N_t}|H_{n+1} - H_{n}|$")
 plt.legend()
 plt.grid(True)
 plt.title("Mean of energy difference")
