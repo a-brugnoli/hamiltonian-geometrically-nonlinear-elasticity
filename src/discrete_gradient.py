@@ -18,7 +18,7 @@ def mean_value_discrete_gradient(x_new, x_old, grad_H):
      """
      Mean value discrete gradient.
      For cubic polynomials Simspon rule is exact if the number of samples 
-     is odd and the the points are equally spaced.
+     is odd and the points are equally spaced.
      """
      # n_points = 3
      # s_vec = np.linspace(0, 1, n_points)
