@@ -11,13 +11,13 @@ with open(file_results_error_position, "rb") as f:
 
 str_xlabel = '$\log \Delta t \; \mathrm{[s]}$'
 plot_convergence(time_step_vec, dict_error_position, rate=True, xlabel=str_xlabel, ylabel="$\log \epsilon_q$", \
-                title='Error position $q$', savefig=f"{directory_images}convergence_position.pdf")
+                title='Error position $q$', savefig=f"{directory_images}convergence_position")
 
 with open(file_results_error_velocity, "rb") as f:
         dict_error_velocity = pickle.load(f)
 
 plot_convergence(time_step_vec, dict_error_velocity,  rate=True, xlabel=str_xlabel, ylabel="$\log \epsilon_v$",  \
-                 title='Error velocity $v$', savefig=f"{directory_images}convergence_velocity.pdf")
+                 title='Error velocity $v$', savefig=f"{directory_images}convergence_velocity")
 
 with open(file_results_error_energy, "rb") as f:
         dict_error_energy = pickle.load(f)
