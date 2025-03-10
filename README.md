@@ -25,5 +25,6 @@ $ python experiments/finite_strain_elasticity/collect_results_elasticity.py
 This will create two folders in your home directory named 
 - `StoreResults/FiniteStrainElasticity/leapfrog`
 - `StoreResults/FiniteStrainElasticity/results`
+- 
 The first contains the paraview files for the reference solution to the problem and the second contains the results from the convergence test.
 
