@@ -16,14 +16,14 @@ $ python experiments/vonkarman_beam/plot_signals_vonkarman.py
 for the plot of the reference solutions and some time series (energy and displacement at a point)
 
 The array containing the results for finite strain elasticity are not included as they are quite heavy.
-One can visualize the images in the folder experiments/finite_strain_elasticity/images/
+One can visualize the images in the folder `experiments/finite_strain_elasticity/images/`
 
 To repricate the results run 
 ```
 $ python experiments/finite_strain_elasticity/collect_results_elasticity.py
 ```
 This will create two folders in your home directory named 
-- StoreResults/FiniteStrainElasticity/leapfrog
-- StoreResults/FiniteStrainElasticity/results
+- `StoreResults/FiniteStrainElasticity/leapfrog`
+- `StoreResults/FiniteStrainElasticity/results`
 The first contains the paraview files for the reference solution to the problem and the second contains the results from the convergence test.
 
