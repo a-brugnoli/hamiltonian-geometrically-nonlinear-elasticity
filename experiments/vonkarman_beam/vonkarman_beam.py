@@ -506,7 +506,7 @@ class VonKarmanBeam:
         return interconnection_form
 
 
-    def linear_implicit(self, save_vars=False):
+    def linear_implicit(self, save_vars=False, return_only_transition_matrix=False):
         # bc_hor_vel = fdrk.DirichletBC(self.mixed_space_linear_implicit.sub(0), \
         #                             fdrk.Constant(0), "on_boundary")
         bc_hor_vel = []
@@ -514,7 +514,6 @@ class VonKarmanBeam:
                                       fdrk.Constant(0), "on_boundary")]
 
         bcs_velocity = bc_hor_vel + bc_ver_vel
-
 
         tuple_test_functions = fdrk.TestFunctions(self.mixed_space_linear_implicit)
         tuple_trial_functions = fdrk.TrialFunctions(self.mixed_space_linear_implicit)
@@ -575,6 +574,18 @@ class VonKarmanBeam:
             - self.dt/2*self.interconnection_form_linear_implicit(tuple_test_functions, \
                                                                 tuple_trial_functions, \
                                                                 ver_disp_half)
+
+        if return_only_transition_matrix:
+            # Plot the transition matrix
+            from scipy.sparse import csr_matrix 
+            transition_matrix_petsc = fdrk.assemble(bilinear_form).M.handle
+            csr_transition_matrix = transition_matrix_petsc.getValuesCSR()
+            indptr, indices, data = csr_transition_matrix
+            transition_matrix_scipy = csr_matrix((data, indices, indptr), shape=transition_matrix_petsc.getSize())
+            # transition_matrix_scipy = csr_matrix(transition_matrix_petsc.getValuesCSR()[::-1])
+
+            return transition_matrix_scipy
+
 
 
         linear_form = self.energy_form_linear_implicit(tuple_test_functions, tuple_states_old) \
