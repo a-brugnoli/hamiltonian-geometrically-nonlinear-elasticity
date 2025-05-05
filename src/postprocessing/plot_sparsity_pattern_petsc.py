@@ -136,7 +136,7 @@ if __name__ == "__main__":
     # print(f"1D Laplacian size: {laplacian_fd.getSize()}, nonzeros: {nnz_laplacian}")
     
     # 1D mass matrix using Firedrake (DG elements)
-    degree = 2
+    degree = 4
     print("\nCreating 1D mass matrix with Firedrake ...")
 
     # Variant "equispaced" uses equidistant nodes

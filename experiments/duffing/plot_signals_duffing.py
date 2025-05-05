@@ -18,26 +18,29 @@ with open(file_time, "rb") as f:
         dict_time = pickle.load(f)
 
 # Create plots
-t_vec = dict_time["Time"]
 
-q_exact = dict_position["Exact"]
-q_leapfrog = dict_position["Leapfrog"]
-q_dis_gradient = dict_position["Discrete gradient"]
-q_lin_implicit = dict_position["Linear implicit"]
+n_t = int(t_end/time_step_vec[-1])
+n_plot = int(0.05*n_t)
+t_vec = dict_time["Time"][:n_plot]
 
-v_exact = dict_velocity["Exact"]
-v_leapfrog = dict_velocity["Leapfrog"]
-v_dis_gradient = dict_velocity["Discrete gradient"]
-v_lin_implicit = dict_velocity["Linear implicit"]
+q_exact = dict_position["Exact"][:n_plot]
+q_leapfrog = dict_position["Leapfrog"][:n_plot]
+q_dis_gradient = dict_position["Discrete gradient"][:n_plot]
+q_lin_implicit = dict_position["Linear implicit"][:n_plot]
 
-E_exact = dict_energy["Exact"]
-E_leapfrog = dict_energy["Leapfrog"]
-E_dis_gradient = dict_energy["Discrete gradient"]
-E_lin_implicit = dict_energy["Linear implicit"]
+v_exact = dict_velocity["Exact"][:n_plot]
+v_leapfrog = dict_velocity["Leapfrog"][:n_plot]
+v_dis_gradient = dict_velocity["Discrete gradient"][:n_plot]
+v_lin_implicit = dict_velocity["Linear implicit"][:n_plot]
+
+E_exact = dict_energy["Exact"][:n_plot]
+E_leapfrog = dict_energy["Leapfrog"][:n_plot]
+E_dis_gradient = dict_energy["Discrete gradient"][:n_plot]
+E_lin_implicit = dict_energy["Linear implicit"][:n_plot]
 
 plt.figure(figsize=(16, 8))
 # Position plot
-plt.subplot(2, 2, 1)
+plt.subplot(1, 2, 1)
 plt.plot(t_vec, q_exact, 'k--', label='Exact', linewidth=2)
 plt.plot(t_vec, q_dis_gradient, label='Midpoint DG')
 plt.plot(t_vec, q_lin_implicit, label='Lin implicit')
@@ -50,20 +53,8 @@ plt.legend()
 plt.grid(True)
 plt.title('Position vs Time')
 
-# Position error
-plt.subplot(2, 2, 2)
-plt.semilogy(t_vec, np.abs(q_dis_gradient - q_exact), label='Midpoint DG')
-plt.semilogy(t_vec, np.abs(q_lin_implicit - q_exact), label='Lin implicit')
-plt.semilogy(t_vec, np.abs(q_leapfrog - q_exact), label='Leapfrog')
-
-plt.xlabel('Time')
-plt.ylabel('Position Error')
-plt.legend()
-plt.grid(True)
-plt.title('Position Error vs Time')
-
 # Velocity plot
-plt.subplot(2, 2, 3)
+plt.subplot(1, 2, 2)
 plt.plot(t_vec, v_exact, 'k--', label='Exact', linewidth=2)
 plt.plot(t_vec, v_dis_gradient, label='Midpoint DG')
 plt.plot(t_vec, v_lin_implicit, label='Lin implicit')
@@ -75,8 +66,22 @@ plt.legend()
 plt.grid(True)
 plt.title('Velocity vs Time')
 
+plt.figure(figsize=(16, 8))
+# Position error
+plt.subplot(1, 2, 1)
+plt.semilogy(t_vec, np.abs(q_dis_gradient - q_exact), label='Midpoint DG')
+plt.semilogy(t_vec, np.abs(q_lin_implicit - q_exact), label='Lin implicit')
+plt.semilogy(t_vec, np.abs(q_leapfrog - q_exact), label='Leapfrog')
+
+plt.xlabel('Time')
+plt.ylabel('Position Error')
+plt.legend()
+plt.grid(True)
+plt.title('Position Error vs Time')
+
+
 # Velocity error
-plt.subplot(2, 2, 4)
+plt.subplot(1, 2, 2)
 plt.semilogy(t_vec, np.abs(v_dis_gradient - v_exact), label='Midpoint DG')
 plt.semilogy(t_vec, np.abs(v_lin_implicit - v_exact), label='Lin implicit')
 plt.semilogy(t_vec, np.abs(v_leapfrog - v_exact), label='Leapfrog')
