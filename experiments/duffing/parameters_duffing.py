@@ -1,6 +1,6 @@
 import numpy as np
 import os
-from math import pi 
+from math import pi
 
 # Initial condition
 q0 = 10

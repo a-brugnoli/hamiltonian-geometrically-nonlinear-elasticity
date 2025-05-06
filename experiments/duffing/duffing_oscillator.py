@@ -148,7 +148,7 @@ class DuffingOscillator:
         # print(f"Error jacobian: {error_jacobian}")
         # assert error_jacobian < 1e-6
 
-        perturbation = 1e-2
+        # perturbation = 1e-2
         for i in range(self.n_steps):
             x_old = np.array([q_vec[i], v_vec[i]])
             # Slightly perturbed previous guess to avoid division by zero
@@ -201,7 +201,6 @@ class DuffingOscillator:
         sigma2_0 = 0.5*self.beta*self.q0**2
         x_vec[0, :] = np.array([0, sigma1_0, sigma2_0])
 
-        # First half-step for velocity using Euler
         q_half = q_vec[0] + 0.5 * self.dt * x_vec[0, 0]  - 1/8 * self.dt**2 * self.grad_potential_energy(q_vec[0])
 
         H_matrix = self.energy_matrix()

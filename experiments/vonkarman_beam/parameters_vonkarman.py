@@ -42,6 +42,8 @@ dt_CFL_traction_cons = dt_CFL_traction/sec_coeff_traction
 # # Time step to have sufficient resolution
 dt_base = dt_CFL_bending_cons
 
+print(f"dt_base = {dt_base:.2e} s")
+
 omega1_bending = (pi/L)**2*wave_speed_bending
 T1_bending = 2*pi/omega1_bending
 
@@ -102,14 +104,14 @@ directory_images = f"{os.path.dirname(os.path.abspath(__file__))}/images/"
 if not os.path.exists(directory_images):
     os.makedirs(directory_images)
 
-import matplotlib.pyplot as plt
-from src.postprocessing.options import configure_matplotib
-configure_matplotib()
-transition_matrix_scipy = beam.linear_implicit(return_only_transition_matrix=True)
-plt.figure()
-plot_sparsity = plt.spy(transition_matrix_scipy, markersize=1)
-plt.title("Sparsity pattern of $\mathbf{A}(\mathbf{q}_0)$ (vK beam)")
-plt.savefig(f"{directory_images}sparsity_A_vK.pdf",dpi='figure',\
-             format='pdf')
+# import matplotlib.pyplot as plt
+# from src.postprocessing.options import configure_matplotib
+# configure_matplotib()
+# transition_matrix_scipy = beam.linear_implicit(return_only_transition_matrix=True)
+# plt.figure()
+# plot_sparsity = plt.spy(transition_matrix_scipy, markersize=1)
+# plt.title("Sparsity pattern of $\mathbf{A}(\mathbf{q}_0)$ (vK beam)")
+# plt.savefig(f"{directory_images}sparsity_A_vK.pdf",dpi='figure',\
+#              format='pdf')
 
-plt.show()
+# plt.show()
