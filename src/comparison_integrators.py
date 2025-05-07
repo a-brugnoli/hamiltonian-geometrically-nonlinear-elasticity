@@ -57,58 +57,41 @@ def simulate_proposed(alpha, beta, q0, dt, n_samples):
 
 def simulate_proposed_static_condensation(alpha, beta, q0, dt, n_samples):
     """
-    Linear implicit method for Duffing oscillator
-    
-    Parameters
-    ----------
-    None
-    
-    Returns
-    -------
-    q, v : numpy arrays
-        Position and velocity as a function of time
+    Simulates the Duffing oscillator using a structure-preserving scheme.
     """
-
-    q_vec = np.zeros((n_samples, 1))
-    v_vec = np.zeros((n_samples, 1))
-    sigma_vec = np.zeros((n_samples, 2))
-
-    q_n = q0
+    qh, _ = exact_solution(q0, alpha, beta, 0.5 * dt)
     v_n = 0
+    sigma_n = np.array([alpha * q0, 0.5 * beta * q0**2])
 
-    sigma1_0 = alpha*q0
-    sigma2_0 = 0.5*beta*q0**2
-    sigma_n = np.array([sigma1_0, sigma2_0])
-
-    H_matrix = np.diag([1, 1/alpha, 2/beta])
-    M_compliance = H_matrix[1:, 1:]
-    inv_M_C = np.diag(1 / np.diag(M_compliance))
-
-    q_half =  q_n + 0.5 * dt * v_n - 1/8 * dt**2 * (alpha * q_n + beta * q_n**3)
+    inv_M_C = np.diag([alpha, beta/2])
     
-    for i in range(n_samples):
+    L_mat = np.array([dt, 0])
 
-        L = np.array([1, 2*q_half])
-        stiffness_matrix = L.T @ inv_M_C @ L
-        
+    displacement = np.zeros((n_samples, 1))
+    velocity = np.zeros((n_samples, 1))
 
-        A_vel = 1 + dt**2/4*stiffness_matrix
-        B_vel = 1 - dt**2/4*stiffness_matrix
+    A0_vel = 1 + dt**2/4*alpha
+    B0_vel = 1 - dt**2/4*alpha
 
-        v_vec[i] = (B_vel * v_n - dt*L.T @ sigma_n)/A_vel
-        sigma_vec[i] = sigma_n + dt * inv_M_C @ L * (v_vec[i] + v_n)/2
+    for n in range(n_samples):
+        dtqh = dt * qh
+        A_vel = A0_vel + dtqh**2 * inv_M_C[1, 1]
+        B_vel = B0_vel - dtqh**2 * inv_M_C[1, 1]
+        L_mat[1] = 2 * dtqh
 
-        q_new_half = q_half + dt * v_vec[i, 0]
-        q_vec[i] = 0.5*(q_half + q_new_half)
+        v_np1 = (B_vel * v_n - L_mat.T @ sigma_n)/A_vel
+        sigma_np1 = sigma_n + inv_M_C @ L_mat * (v_np1 + v_n)/2
+
+        v_n = v_np1
+        qh_next = qh + dt * v_n
+        displacement[n] = 0.5 * (qh + qh_next)
+        velocity[n] = v_n
+        qh = qh_next
+        sigma_n = sigma_np1
+
+    return displacement, velocity
 
 
-        q_half = q_new_half
-        v_n = v_vec[i]
-        sigma_n = sigma_vec[i]
-
-    # x_vec = np.column_stack((v_vec, sigma_vec))
-
-    return q_vec, v_vec
 
 
 
@@ -156,8 +139,8 @@ def run_convergence_tests(alpha, beta, q0, T_end, N_trials):
         T_adj = n_samples * dt
         print(f"[{i+1}/{N_trials}] dt = {dt:.5e}, T_end = {T_adj:.5f}")
         t0 = time.perf_counter()
-        disp_p, vel_p = simulate_proposed(alpha, beta, q0, dt, n_samples)
-        # disp_p, vel_p = simulate_proposed_static_condensation(alpha, beta, q0, dt, n_samples)
+        # disp_p, vel_p = simulate_proposed(alpha, beta, q0, dt, n_samples)
+        disp_p, vel_p = simulate_proposed_static_condensation(alpha, beta, q0, dt, n_samples)
         t1 = time.perf_counter()
         timeMat[i, 0] = (t1 - t0) * 1000
         t0 = time.perf_counter()

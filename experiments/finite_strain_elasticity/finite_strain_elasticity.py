@@ -484,7 +484,7 @@ class FiniteStrainElasticity:
         return interconnection_form
 
 
-    def linear_implicit(self, save_vars=False, paraview_directory=""):
+    def linear_implicit(self, save_vars=False, paraview_directory="", return_only_transition_matrix=False):
         dict_essential = self.get_essential_bcs()
         
         # displacement_bc_data = dict_essential["displacement"]
@@ -543,6 +543,19 @@ class FiniteStrainElasticity:
             - self.dt/2*self.interconnection_form_linear_implicit(tuple_test_functions, \
                                                                 tuple_trial_functions, \
                                                                 disp_half)
+        
+        if return_only_transition_matrix:
+            # Plot the transition matrix
+            from scipy.sparse import csr_matrix 
+            transition_matrix_petsc = fdrk.assemble(bilinear_form).M.handle
+            # csr_transition_matrix = transition_matrix_petsc.getValuesCSR()
+            # indptr, indices, data = csr_transition_matrix
+            # transition_matrix_scipy = csr_matrix((data, indices, indptr), shape=transition_matrix_petsc.getSize())
+
+            # # Equivalent to the above
+            transition_matrix_scipy = csr_matrix(transition_matrix_petsc.getValuesCSR()[::-1])
+
+            return transition_matrix_scipy
 
 
         linear_form = self.energy_form_linear_implicit(tuple_test_functions, tuple_states_old) \
