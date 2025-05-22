@@ -32,16 +32,7 @@ print(f"Number of DOFs: {n_dofs_V}")
 tau = fd.TestFunction(V)
 sigma = fd.TrialFunction(V)
 
-mixed_space = V * V
-
-# Print information about the function space
-
-# Define the test and trial functions
-tau_1, tau_2 = fd.TestFunctions(mixed_space)
-sigma_1, sigma_2 = fd.TrialFunctions(mixed_space)
-
-# Define the mass matrix form
-a = fd.inner(tau_1 + tau_2, compliance_tensor(sigma_1 + sigma_2)) * fd.dx
+a = fd.inner(tau, compliance_tensor(sigma)) * fd.dx
 
 # Assemble the mass matrix
 A = fd.assemble(a).M.handle
@@ -51,17 +42,43 @@ A_scipy = sp.csr_matrix(A.getValuesCSR()[::-1])
 
 # Plot the sparsity pattern
 plt.figure(figsize=(10, 8))
-spy(A_scipy, markersize=5)
-plt.title("Sparsity pattern of the mixed mass matrix for coupled symmetric tensors")
+spy(A_scipy, markersize=15)
+plt.title("Sparsity pattern of the mass matrix for the compliance mass matrix")
 plt.tight_layout()
-plt.savefig("mass_matrix_sparsity.png", dpi=300)
+plt.savefig("compliance_mass_matrix_sparsity.pdf", dpi=300)
 
-A_block_12 = A_scipy[:n_dofs_V, n_dofs_V:]
-
-# Plot the sparsity pattern
-plt.figure(figsize=(10, 8))
-spy(A_block_12, markersize=5)
-plt.title("Block 12 of the mass matrix")
-plt.tight_layout()
-plt.savefig("mass_matrix_sparsity.png", dpi=300)
 plt.show()
+
+# mixed_space = V * V
+
+# # Print information about the function space
+
+# # Define the test and trial functions
+# tau_1, tau_2 = fd.TestFunctions(mixed_space)
+# sigma_1, sigma_2 = fd.TrialFunctions(mixed_space)
+
+# # Define the mass matrix form
+# a_mixed = fd.inner(tau_1 + tau_2, compliance_tensor(sigma_1 + sigma_2)) * fd.dx
+
+# # Assemble the mass matrix
+# A_mixed = fd.assemble(a_mixed).M.handle
+
+# # Convert the PETSc matrix to scipy sparse format for visualization
+# A_mixed_scipy = sp.csr_matrix(A_mixed.getValuesCSR()[::-1])
+
+# # Plot the sparsity pattern
+# plt.figure(figsize=(10, 8))
+# spy(A_mixed_scipy, markersize=5)
+# plt.title("Sparsity pattern of the mixed mass matrix for coupled symmetric tensors")
+# plt.tight_layout()
+# plt.savefig("mixed_compliance_mass_matrix_sparsity.pdf", dpi=300)
+
+# A_mixed_block_12 = A_mixed_scipy[:n_dofs_V, n_dofs_V:]
+
+# # Plot the sparsity pattern
+# plt.figure(figsize=(10, 8))
+# spy(A_mixed_block_12, markersize=5)
+# plt.title("Block 12 of the mass matrix")
+# plt.tight_layout()
+# plt.savefig("block_12_compliance_mass_matrix_sparsity.pdf", dpi=300)
+# plt.show()

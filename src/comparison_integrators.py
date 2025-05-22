@@ -93,8 +93,6 @@ def simulate_proposed_static_condensation(alpha, beta, q0, dt, n_samples):
 
 
 
-
-
 def simulate_semiexplicit(alpha, beta, q0, dt, n_samples):
     """
     Simulates the Duffing oscillator using a semi-explicit integration scheme.

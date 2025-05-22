@@ -99,14 +99,14 @@ if not os.path.exists(directory_images):
 # Paraview folder
 paraview_directory = home_dir + "/StoreResults/FiniteStrainElasticity/"
 
-import matplotlib.pyplot as plt
-from src.postprocessing.options import configure_matplotib
-configure_matplotib()
-transition_matrix_scipy = bending_column.linear_implicit(return_only_transition_matrix=True)
-plt.figure()
-plot_sparsity = plt.spy(transition_matrix_scipy, markersize=1)
-plt.title("Sparsity pattern of $\mathbf{A}(\mathbf{q}_0)$ (bending column)")
-plt.savefig(f"{directory_images}sparsity_A_elasticity.pdf",dpi='figure',\
-             format='pdf')
+# import matplotlib.pyplot as plt
+# from src.postprocessing.options import configure_matplotib
+# configure_matplotib()
+# transition_matrix_scipy = bending_column.linear_implicit(return_only_transition_matrix=True)
+# plt.figure()
+# plot_sparsity = plt.spy(transition_matrix_scipy, markersize=1)
+# plt.title("Sparsity pattern of $\mathbf{A}(\mathbf{q}_0)$ (bending column)")
+# plt.savefig(f"{directory_images}sparsity_A_elasticity.pdf",dpi='figure',\
+#              format='pdf')
 
-plt.show()
+# plt.show()
