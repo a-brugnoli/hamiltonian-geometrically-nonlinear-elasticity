@@ -32,7 +32,10 @@ dt_CFL = mesh_size/wave_speed
 dt_CFL_cons = dt_CFL/sec_coeff
 
 # # Time step to have sufficient resolution
-dt_base = dt_CFL
+dt_base = dt_CFL/16
+
+print(f"dt_CFL: {dt_CFL:.2e} s")
+
 t_end_approx = 1/2
 n_steps_approx = np.round(t_end_approx/dt_base).astype(int)
 
@@ -91,6 +94,8 @@ file_results_reference = directory_results + "results_reference.pkl"
 file_results_leapfrog = directory_results + "results_leapfrog.pkl"
 file_results_dis_gradient = directory_results + "results_discrete_gradient.pkl"
 file_results_lin_implicit = directory_results + "results_linear_implicit.pkl"
+
+file_results_semiexplicit = directory_results + "results_semiexplicit.pkl"
 
 directory_images = f"{os.path.dirname(os.path.abspath(__file__))}/images/"
 if not os.path.exists(directory_images):

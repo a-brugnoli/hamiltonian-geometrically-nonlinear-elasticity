@@ -94,6 +94,8 @@ class FiniteStrainElasticity:
         # Double space for the stain for linear and nonlinear part
         self.mixed_space_linear_implicit_strain = self.space_velocity * self.space_stress_strain * self.space_stress_strain
 
+        # Space for semiexplicit method
+        self.mixed_space_semiexplicit_strain = self.space_displacement * self.space_stress_strain
 
     def set_time_step(self, time_step):
         self.dt.assign(time_step)
@@ -168,6 +170,7 @@ class FiniteStrainElasticity:
         return 1/2*(fdrk.grad(displacement).T + fdrk.grad(displacement) \
                 + fdrk.dot(fdrk.grad(displacement).T, fdrk.grad(displacement)))
 
+
     def second_piola_stress(self, displacement):
         strain_tensor = self.green_lagrange_strain(displacement)
         return self.stiffness_tensor(strain_tensor)
@@ -188,6 +191,19 @@ class FiniteStrainElasticity:
     def hamiltonian(self, displacement, velocity):
         return self.kinetic_energy(velocity) + self.deformation_energy(displacement)
     
+
+    def hamiltonian_strain_splitting(self, functions):
+
+        velocity, strain_nonlinear, strain_linear = functions
+
+        strain = strain_linear + strain_nonlinear
+        stress = self.stiffness_tensor(strain)
+
+        energy_form =  fdrk.inner(velocity, self.density*velocity) \
+                        + fdrk.inner(strain, stress) \
+
+        return 0.5* energy_form*fdrk.dx
+
 
     def deformation_energy_leapfrog(self, displacement_min, displacement_plus):
         strain_min = self.infinitesimal_strain(displacement_min)
@@ -523,7 +539,7 @@ class FiniteStrainElasticity:
         vel_0 = dict_init_conditions_disp["velocity"]
         vel_old.interpolate(vel_0)
 
-        stress_old.interpolate(self.second_piola_stress(disp_old))
+        stress_old.project(self.second_piola_stress(disp_old))
 
         states_new = fdrk.Function(self.mixed_space_linear_implicit, name="states_new")
         vel_new, stress_new = states_new.subfunctions
@@ -656,7 +672,7 @@ class FiniteStrainElasticity:
         vel_0 = dict_init_conditions_disp["velocity"]
 
         vel_old.interpolate(vel_0)
-        stress_old.interpolate(self.second_piola_stress(disp_old))
+        stress_old.project(self.second_piola_stress(disp_old))
 
         states_new = fdrk.Function(self.mixed_space_linear_implicit, name="states_new")
         tuple_states_new = states_new.subfunctions
@@ -714,7 +730,9 @@ class FiniteStrainElasticity:
         b_blocks = b_vector.blocks
 
         b_block_vel = b_blocks[0] - A_blocks[0, 1] * A_11_inv * b_blocks[1]
-        
+
+        M_inv_stress = fdrk.assemble(A_11_inv).M.handle
+
         # # # Misterious bug. This is not working as expected        
         # linear_implicit_velocity_problem = fdrk.LinearVariationalProblem(A_block_vel, \
         #                                                                 b_block_vel, \
@@ -747,8 +765,6 @@ class FiniteStrainElasticity:
         energy_vec[0] = 0.5* fdrk.assemble(self.energy_form_linear_implicit(tuple_states_old, \
                                                                             tuple_states_old))
         kk = 0
-
-        M_inv_stress = fdrk.assemble(A_11_inv).M.handle
 
         for ii in tqdm(range(self.n_steps)):
 
@@ -805,7 +821,6 @@ class FiniteStrainElasticity:
         return dict_results
     
 
-
     def mass_form_linear_implicit_strain(self, test_functions, functions):
 
         test_velocity, test_strain_nonlinear, test_strain_linear = test_functions
@@ -818,18 +833,6 @@ class FiniteStrainElasticity:
         return mass*fdrk.dx
     
 
-    def energy_form_linear_implicit_strain(self, functions):
-
-        velocity, strain_nonlinear, strain_linear = functions
-
-        strain = strain_linear + strain_nonlinear
-        stress = self.stiffness_tensor(strain)
-
-        energy_form =  fdrk.inner(velocity, self.density*velocity) \
-                        + fdrk.inner(strain, stress) \
-
-        return 0.5* energy_form*fdrk.dx
-
     def interconnection_form_linear_implicit_strain(self, test_functions, functions, displacement):
 
         test_velocity, test_strain_nonlinear, test_strain_linear = test_functions
@@ -837,14 +840,14 @@ class FiniteStrainElasticity:
 
         stress = self.stiffness_tensor(strain_linear + strain_nonlinear)
 
-        D_transpose = fdrk.inner(fdrk.grad(test_velocity), stress) * fdrk.dx \
-            + fdrk.inner(fdrk.grad(test_velocity), fdrk.dot(fdrk.grad(displacement), stress)) * fdrk.dx
+        deformation_gradient = self.deformation_gradient(displacement)
+
+        D_transpose = fdrk.inner(fdrk.grad(test_velocity), fdrk.dot(deformation_gradient, stress)) * fdrk.dx
 
         D = fdrk.inner(test_strain_linear, fdrk.grad(velocity)) * fdrk.dx \
             + fdrk.inner(test_strain_nonlinear, fdrk.dot(fdrk.grad(displacement).T, fdrk.grad(velocity))) * fdrk.dx
 
         return - D_transpose + D
-
 
 
     def linear_implicit_strain(self, save_vars=False, paraview_directory="", return_only_transition_matrix=False):
@@ -881,8 +884,8 @@ class FiniteStrainElasticity:
         vel_0 = dict_init_conditions_disp["velocity"]
         vel_old.interpolate(vel_0)
 
-        strain_nonlinear_old.interpolate(self.green_lagrange_strain_nonlinear(disp_old))
-        strain_linear_old.interpolate(self.infinitesimal_strain(disp_old))
+        strain_nonlinear_old.project(self.green_lagrange_strain_nonlinear(disp_old))
+        strain_linear_old.project(self.infinitesimal_strain(disp_old))
 
         states_new = fdrk.Function(self.mixed_space_linear_implicit_strain, name="states_new")
         vel_new, strain_nonlinear_new, strain_linear_new = states_new.subfunctions
@@ -949,7 +952,7 @@ class FiniteStrainElasticity:
         if paraview_directory != "":
             if not os.path.exists(paraview_directory):
                 os.makedirs(paraview_directory)
-            method_dir = paraview_directory + "/linear_implicit/"
+            method_dir = paraview_directory + "/linear_implicit_strain/"
             if not os.path.exists(method_dir):
                 os.makedirs(method_dir)
             paraview_file = fdrk.File(method_dir + "/solution.pvd")
@@ -960,7 +963,7 @@ class FiniteStrainElasticity:
 
 
         energy_vec = np.zeros(len(self.t_vec_output))
-        energy_vec[0] = fdrk.assemble(self.energy_form_linear_implicit_strain(tuple_states_old))
+        energy_vec[0] = fdrk.assemble(self.hamiltonian_strain_splitting(tuple_states_old))
         kk = 0
 
         for ii in tqdm(range(self.n_steps)):
@@ -976,7 +979,399 @@ class FiniteStrainElasticity:
                 kk += 1
                 actual_time = (ii+1)*float(self.dt)
                 # assert np.isclose(actural_time, self.t_vec_output[kk])
-                energy_vec[kk] = fdrk.assemble(self.energy_form_linear_implicit_strain(tuple_states_new))
+                energy_vec[kk] = fdrk.assemble(self.hamiltonian_strain_splitting(tuple_states_new))
+                if save_vars: 
+                    disp_array[kk] = disp_new.dat.data_ro[:]
+                    vel_array[kk] = vel_new.dat.data_ro[:]
+
+                if paraview_directory!="":
+                    paraview_file.write(disp_new, vel_new, time=actual_time)
+
+        if not save_vars:
+            disp_array = disp_new.dat.data_ro[:]
+            vel_array = vel_new.dat.data_ro[:]
+
+        dict_results = {"displacement": disp_array, 
+                        "velocity": vel_array, 
+                        "energy": energy_vec}
+        
+        return dict_results
+    
+
+    def mass_form_semiexplicit_strain(self, test_functions, functions):
+
+        test_velocity, test_strain_nonlinear = test_functions
+        velocity, strain_nonlinear = functions
+
+        mass = fdrk.inner(test_velocity, self.density*velocity) \
+            + fdrk.inner(test_strain_nonlinear, strain_nonlinear) 
+
+        return mass*fdrk.dx
+
+
+    def interconnection_form_semiexplicit_strain(self, test_functions, functions, displacement):
+
+        test_velocity, test_strain_nonlinear = test_functions
+        velocity, strain_nonlinear = functions
+
+        stress_nonlinear = self.stiffness_tensor(strain_nonlinear)
+
+        deformation_gradient = self.deformation_gradient(displacement)
+
+        D_transpose = fdrk.inner(fdrk.grad(test_velocity), fdrk.dot(deformation_gradient, stress_nonlinear)) * fdrk.dx
+
+        D = fdrk.inner(test_strain_nonlinear, fdrk.sym(fdrk.dot(fdrk.grad(displacement).T, fdrk.grad(velocity)))) * fdrk.dx
+
+        return - D_transpose + D
+
+
+    def semiexplicit_strain(self, save_vars=False, paraview_directory="", return_only_transition_matrix=False):
+        """
+        An alternative formulation using the splitting of the strain tensor into
+        linear and non-linear parts
+        """
+        
+        dict_essential = self.get_essential_bcs()
+        
+        # displacement_bc_data = dict_essential["displacement"]
+        # bcs_displacement = [fdrk.DirichletBC(self.space_displacement, item[1], item[0]) \
+        #                 for item in displacement_bc_data.items()]
+
+        velocity_bc_data = dict_essential["velocity"]
+        bcs_velocity = [fdrk.DirichletBC(self.mixed_space_semiexplicit_strain.sub(0), item[1], item[0]) \
+                        for item in velocity_bc_data.items()]
+        
+        bcs = bcs_velocity
+        
+        tuple_test_functions_wo_linear_strain = fdrk.TestFunctions(self.mixed_space_semiexplicit_strain)
+        test_velocity, test_strain_nonlinear = tuple_test_functions_wo_linear_strain
+        tuple_trial_functions_wo_linear_strain = fdrk.TrialFunctions(self.mixed_space_semiexplicit_strain)
+
+        states_old_wo_linear_strain = fdrk.Function(self.mixed_space_semiexplicit_strain, \
+                                                    name="states_old_wo_linear_strain") 
+        vel_old, strain_nonlinear_old = states_old_wo_linear_strain.subfunctions 
+        tuple_states_old_wo_linear_strain = (vel_old, strain_nonlinear_old) 
+
+        disp_old = fdrk.Function(self.space_displacement, name="disp_old")
+        strain_linear_old = fdrk.Function(self.space_stress_strain, name="strain_linear_old")
+
+        dict_init_conditions_disp = self.get_initial_conditions()
+        disp_0 = dict_init_conditions_disp["displacement"]
+        disp_old.interpolate(disp_0)
+
+        vel_0 = dict_init_conditions_disp["velocity"]
+        vel_old.interpolate(vel_0)
+        
+        strain_nonlinear_old.project(self.green_lagrange_strain_nonlinear(disp_old))
+        strain_linear_old.project(self.infinitesimal_strain(disp_old))
+
+        tuple_states_old = (vel_old, strain_nonlinear_old, strain_linear_old) 
+
+        states_new_wo_linear_strain = fdrk.Function(self.mixed_space_semiexplicit_strain, name="states_new_wo_linear_strain")
+        vel_new, strain_nonlinear_new = states_new_wo_linear_strain.subfunctions
+
+        disp_new = fdrk.Function(self.space_displacement, name="disp_new")
+        strain_linear_new = fdrk.Function(self.space_stress_strain, name="strain_linear_new")
+        tuple_states_new = (vel_new, strain_nonlinear_new, strain_linear_new)
+
+        test_vel = fdrk.TestFunction(self.space_velocity)
+        trial_vel = fdrk.TrialFunction(self.space_velocity)
+        mass_vel = self.mass_form(test_vel, trial_vel)
+
+        acc_0 = fdrk.Function(self.space_displacement, name="acc_0")
+
+        try:
+            dV_disp_0 = self.weak_grad_potential(test_vel, disp_0)
+            fdrk.solve(mass_vel == -dV_disp_0, acc_0, bcs=bcs_velocity)
+        except ValueError:
+            print("Cannot determine geometric dimension from expression in initial force. Using 0 for initial acceleration.")
+            acc_0.assign(fdrk.Constant((0.0, 0.0, 0.0)))
+
+        disp_half = fdrk.Function(self.space_displacement)
+        disp_half.assign(disp_old + 1/2*self.dt*vel_old + 1/8*self.dt**2*acc_0)
+
+        strain_linear_half = fdrk.Function(self.space_stress_strain, name="strain_linear_half")
+        strain_linear_half.project(self.infinitesimal_strain(disp_half))
+        stress_linear_half = self.stiffness_tensor(strain_linear_half)
+
+        # This may be used to accelerate
+
+        # test_linear_strain = fdrk.TestFunction(self.space_stress_strain)
+        # trial_linear_strain = fdrk.TrialFunction(self.space_stress_strain)
+        # mass_strain = self.mass_form(test_linear_strain, test_linear_strain)
+
+        disp_new_half = disp_half + self.dt*vel_new
+        # Setting up function space for the strain at new half step to be solved 
+        # in the for loop. First we use projection
+        strain_linear_new_half = fdrk.Function(self.space_stress_strain, name="strain_linear_new_half")
+
+        bilinear_form = self.mass_form_semiexplicit_strain(tuple_test_functions_wo_linear_strain, \
+                                                            tuple_trial_functions_wo_linear_strain) \
+            - self.dt/2*self.interconnection_form_semiexplicit_strain(tuple_test_functions_wo_linear_strain, \
+                                                            tuple_trial_functions_wo_linear_strain, \
+                                                            disp_half)
+        
+        if return_only_transition_matrix:
+            # Plot the transition matrix
+            from scipy.sparse import csr_matrix 
+            transition_matrix_petsc = fdrk.assemble(bilinear_form).M.handle
+            # csr_transition_matrix = transition_matrix_petsc.getValuesCSR()
+            # indptr, indices, data = csr_transition_matrix
+            # transition_matrix_scipy = csr_matrix((data, indices, indptr), shape=transition_matrix_petsc.getSize())
+
+            # # Equivalent to the above
+            transition_matrix_scipy = csr_matrix(transition_matrix_petsc.getValuesCSR()[::-1])
+
+            return transition_matrix_scipy
+
+        # Add the contribution of the linear strain to the linear form
+        linear_form = self.mass_form_semiexplicit_strain(tuple_test_functions_wo_linear_strain, \
+                                                         tuple_states_old_wo_linear_strain) \
+            + self.dt/2*self.interconnection_form_semiexplicit_strain(tuple_test_functions_wo_linear_strain, \
+                                                                tuple_states_old_wo_linear_strain, \
+                                                                disp_half)  \
+            - self.dt * self.weak_grad_potential_stress(test_velocity, disp_half, stress_linear_half) 
+        
+
+        semiexplicit_problem = fdrk.LinearVariationalProblem(bilinear_form, \
+                                                            linear_form, \
+                                                            states_new_wo_linear_strain, \
+                                                            bcs=bcs)
+        
+        semiexplicit_solver = fdrk.LinearVariationalSolver(semiexplicit_problem)
+
+        if save_vars:   
+            disp_array = np.zeros((self.n_output, self.n_dofs_disp, 3))
+            vel_array = np.zeros((self.n_output, self.n_dofs_disp, 3))
+            
+            disp_array[0] = disp_old.dat.data_ro[:]
+            vel_array[0] = vel_old.dat.data_ro[:]
+
+        if paraview_directory != "":
+            if not os.path.exists(paraview_directory):
+                os.makedirs(paraview_directory)
+            method_dir = paraview_directory + "/semiexplicit_strain/"
+            if not os.path.exists(method_dir):
+                os.makedirs(method_dir)
+            paraview_file = fdrk.File(method_dir + "/solution.pvd")
+
+            disp_new.assign(disp_old)
+            vel_new.assign(vel_old)
+            paraview_file.write(disp_new, vel_new, time=0.0)
+
+
+        energy_vec = np.zeros(len(self.t_vec_output))
+        energy_vec[0] = fdrk.assemble(self.hamiltonian_strain_splitting(tuple_states_old))
+        kk = 0
+
+        for ii in tqdm(range(self.n_steps)):
+
+            semiexplicit_solver.solve()
+
+            disp_new.assign(0.5*(disp_half + disp_new_half))
+            # This will not work
+            strain_linear_new_half.project(strain_linear_half + self.dt*self.infinitesimal_strain(vel_new))
+            strain_linear_new.assign(0.5*(strain_linear_half + strain_linear_new_half))
+
+            disp_half.assign(disp_new_half)
+            strain_linear_half.assign(strain_linear_new_half)
+            states_old_wo_linear_strain.assign(states_new_wo_linear_strain)
+
+            if (ii+1)%self.output_frequency==0:
+                kk += 1
+                actual_time = (ii+1)*float(self.dt)
+                # assert np.isclose(actural_time, self.t_vec_output[kk])
+                energy_vec[kk] = fdrk.assemble(self.hamiltonian_strain_splitting(tuple_states_new))
+                if save_vars: 
+                    disp_array[kk] = disp_new.dat.data_ro[:]
+                    vel_array[kk] = vel_new.dat.data_ro[:]
+
+                if paraview_directory!="":
+                    paraview_file.write(disp_new, vel_new, time=actual_time)
+
+        if not save_vars:
+            disp_array = disp_new.dat.data_ro[:]
+            vel_array = vel_new.dat.data_ro[:]
+
+        dict_results = {"displacement": disp_array, 
+                        "velocity": vel_array, 
+                        "energy": energy_vec}
+        
+        return dict_results
+    
+
+    def semiexplicit_strain_static_condensation(self, save_vars=False, paraview_directory="", \
+                                                return_only_transition_matrix=False):
+        """
+        An alternative formulation using the splitting of the strain tensor into
+        linear and non-linear parts
+        """
+        
+        tuple_test_functions_wo_linear_strain = fdrk.TestFunctions(self.mixed_space_semiexplicit_strain)
+        test_velocity, test_strain_nonlinear = tuple_test_functions_wo_linear_strain
+        tuple_trial_functions_wo_linear_strain = fdrk.TrialFunctions(self.mixed_space_semiexplicit_strain)
+
+        states_old_wo_linear_strain = fdrk.Function(self.mixed_space_semiexplicit_strain, \
+                                                    name="states_old_wo_linear_strain") 
+        vel_old, strain_nonlinear_old = states_old_wo_linear_strain.subfunctions 
+        tuple_states_old_wo_linear_strain = (vel_old, strain_nonlinear_old) 
+
+        disp_old = fdrk.Function(self.space_displacement, name="disp_old")
+        strain_linear_old = fdrk.Function(self.space_stress_strain, name="strain_linear_old")
+
+        dict_init_conditions_disp = self.get_initial_conditions()
+        disp_0 = dict_init_conditions_disp["displacement"]
+        disp_old.interpolate(disp_0)
+
+        vel_0 = dict_init_conditions_disp["velocity"]
+        vel_old.interpolate(vel_0)
+        
+        strain_nonlinear_old.project(self.green_lagrange_strain_nonlinear(disp_old))
+        strain_linear_old.project(self.infinitesimal_strain(disp_old))
+
+        tuple_states_old = (vel_old, strain_nonlinear_old, strain_linear_old) 
+
+        states_new_wo_linear_strain = fdrk.Function(self.mixed_space_semiexplicit_strain, name="states_new_wo_linear_strain")
+        vel_new, strain_nonlinear_new = states_new_wo_linear_strain.subfunctions
+
+        disp_new = fdrk.Function(self.space_displacement, name="disp_new")
+        strain_linear_new = fdrk.Function(self.space_stress_strain, name="strain_linear_new")
+        tuple_states_new = (vel_new, strain_nonlinear_new, strain_linear_new)
+
+        dict_essential = self.get_essential_bcs()
+        velocity_bc_data = dict_essential["velocity"]
+        bcs_velocity = [fdrk.DirichletBC(self.space_velocity, item[1], item[0]) \
+                        for item in velocity_bc_data.items()]
+        
+
+        test_vel = fdrk.TestFunction(self.space_velocity)
+        trial_vel = fdrk.TrialFunction(self.space_velocity)
+        mass_vel = self.mass_form(test_vel, trial_vel)
+
+        acc_0 = fdrk.Function(self.space_displacement, name="acc_0")
+
+        try:
+            dV_disp_0 = self.weak_grad_potential(test_vel, disp_0)
+            fdrk.solve(mass_vel == -dV_disp_0, acc_0, bcs=bcs_velocity)
+        except ValueError:
+            print("Cannot determine geometric dimension from expression in initial force. Using 0 for initial acceleration.")
+            acc_0.assign(fdrk.Constant((0.0, 0.0, 0.0)))
+
+        disp_half = fdrk.Function(self.space_displacement)
+        disp_half.assign(disp_old + 1/2*self.dt*vel_old + 1/8*self.dt**2*acc_0)
+
+        strain_linear_half = fdrk.Function(self.space_stress_strain, name="strain_linear_half")
+        strain_linear_half.project(self.infinitesimal_strain(disp_half))
+        stress_linear_half = self.stiffness_tensor(strain_linear_half)
+
+        # This may be used to accelerate
+
+        # test_linear_strain = fdrk.TestFunction(self.space_stress_strain)
+        # trial_linear_strain = fdrk.TrialFunction(self.space_stress_strain)
+        # mass_strain = self.mass_form(test_linear_strain, test_linear_strain)
+
+        disp_new_half = disp_half + self.dt*vel_new
+        # Setting up function space for the strain at new half step to be solved 
+        # in the for loop. First we use projection
+        strain_linear_new_half = fdrk.Function(self.space_stress_strain, name="strain_linear_new_half")
+
+        bilinear_form = self.mass_form_semiexplicit_strain(tuple_test_functions_wo_linear_strain, \
+                                                            tuple_trial_functions_wo_linear_strain) \
+            - self.dt/2*self.interconnection_form_semiexplicit_strain(tuple_test_functions_wo_linear_strain, \
+                                                            tuple_trial_functions_wo_linear_strain, \
+                                                            disp_half)
+        
+        if return_only_transition_matrix:
+            # Plot the transition matrix
+            from scipy.sparse import csr_matrix 
+            transition_matrix_petsc = fdrk.assemble(bilinear_form).M.handle
+            # csr_transition_matrix = transition_matrix_petsc.getValuesCSR()
+            # indptr, indices, data = csr_transition_matrix
+            # transition_matrix_scipy = csr_matrix((data, indices, indptr), shape=transition_matrix_petsc.getSize())
+
+            # # Equivalent to the above
+            transition_matrix_scipy = csr_matrix(transition_matrix_petsc.getValuesCSR()[::-1])
+
+            return transition_matrix_scipy
+
+        # Add the contribution of the linear strain to the linear form
+        linear_form = self.mass_form_semiexplicit_strain(tuple_test_functions_wo_linear_strain, \
+                                                         tuple_states_old_wo_linear_strain) \
+            + self.dt/2*self.interconnection_form_semiexplicit_strain(tuple_test_functions_wo_linear_strain, \
+                                                                tuple_states_old_wo_linear_strain, \
+                                                                disp_half)  \
+            - self.dt * self.weak_grad_potential_stress(test_velocity, disp_half, stress_linear_half) 
+        
+
+        # Apply static condensation to solve for velocity only
+        A_tensor = fdrk.Tensor(bilinear_form) 
+        A_blocks = A_tensor.blocks
+
+        A_11_inv = A_blocks[1, 1].inv
+
+        A_block_vel = A_blocks[0, 0] - A_blocks[0, 1] * A_11_inv * A_blocks[1, 0]
+
+        b_vector = fdrk.Tensor(linear_form)
+        b_blocks = b_vector.blocks
+
+        b_block_vel = b_blocks[0] - A_blocks[0, 1] * A_11_inv * b_blocks[1]
+
+        M_inv_strain_nonlinear = fdrk.assemble(A_11_inv).M.handle
+
+        if save_vars:   
+            disp_array = np.zeros((self.n_output, self.n_dofs_disp, 3))
+            vel_array = np.zeros((self.n_output, self.n_dofs_disp, 3))
+            
+            disp_array[0] = disp_old.dat.data_ro[:]
+            vel_array[0] = vel_old.dat.data_ro[:]
+
+        if paraview_directory != "":
+            if not os.path.exists(paraview_directory):
+                os.makedirs(paraview_directory)
+            method_dir = paraview_directory + "/semiexplicit_strain/"
+            if not os.path.exists(method_dir):
+                os.makedirs(method_dir)
+            paraview_file = fdrk.File(method_dir + "/solution.pvd")
+
+            disp_new.assign(disp_old)
+            vel_new.assign(vel_old)
+            paraview_file.write(disp_new, vel_new, time=0.0)
+
+
+        energy_vec = np.zeros(len(self.t_vec_output))
+        energy_vec[0] = fdrk.assemble(self.hamiltonian_strain_splitting(tuple_states_old))
+        kk = 0
+
+        for ii in tqdm(range(self.n_steps)):
+
+            A_vel = fdrk.assemble(A_block_vel, bcs=bcs_velocity)
+            b_vel = fdrk.assemble(b_block_vel)
+            fdrk.solve(A_vel, vel_new, b_vel)
+
+            states_new_wo_linear_strain.sub(0).assign(vel_new)
+
+            local_vel_new = fdrk.AssembledVector(vel_new)
+            
+            b_strain_nonlinear = fdrk.assemble(b_blocks[1] - A_blocks[1, 0] * local_vel_new)
+
+            with b_strain_nonlinear.dat.vec_ro as b_strain_nonlinear_petsc:
+                with strain_nonlinear_new.dat.vec_wo as strain_nonlinear_new_vec:
+                    M_inv_strain_nonlinear.mult(b_strain_nonlinear_petsc, strain_nonlinear_new_vec)
+
+            disp_new.assign(0.5*(disp_half + disp_new_half))
+
+            strain_linear_new_half.project(strain_linear_half + self.dt*self.infinitesimal_strain(vel_new))
+            strain_linear_new.assign(0.5*(strain_linear_half + strain_linear_new_half))
+
+            disp_half.assign(disp_new_half)
+            strain_linear_half.assign(strain_linear_new_half)
+            states_old_wo_linear_strain.assign(states_new_wo_linear_strain)
+
+            if (ii+1)%self.output_frequency==0:
+                kk += 1
+                actual_time = (ii+1)*float(self.dt)
+                # assert np.isclose(actural_time, self.t_vec_output[kk])
+                energy_vec[kk] = fdrk.assemble(self.hamiltonian_strain_splitting(tuple_states_new))
                 if save_vars: 
                     disp_array[kk] = disp_new.dat.data_ro[:]
                     vel_array[kk] = vel_new.dat.data_ro[:]
