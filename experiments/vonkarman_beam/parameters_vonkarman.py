@@ -18,8 +18,8 @@ n_elements = 50
 mesh_size = L/n_elements
 
 # # Initial condition
-alpha = .1
-ampl_hor_disp_0 = alpha*height
+alpha = 1
+ampl_hor_disp_0 = 0 #alpha*height
 ampl_ver_disp_0 = alpha*height
 
 # Wave speed and connection with time step
@@ -47,7 +47,7 @@ print(f"dt_base = {dt_base:.2e} s")
 omega1_bending = (pi/L)**2*wave_speed_bending
 T1_bending = 2*pi/omega1_bending
 
-t_end_approx = 0.1*T1_bending
+t_end_approx = 5*T1_bending
 n_steps_approx = np.round(t_end_approx/dt_base).astype(int)
 
 # Computation of the final time and number of steps to collect a maximum number of 
@@ -65,7 +65,9 @@ t_end = n_steps.astype(int)*dt_base
 t_span = [0, t_end]
 
 # Declaration of the model for the finest simulation
-coeff_reference = 2**7
+n_cases = 5
+
+coeff_reference = 2**(n_cases+1) # Reference time step is the finest one
 dt_reference = dt_base/coeff_reference
 
 beam = VonKarmanBeam(time_step=dt_base, t_span=t_span, n_output= n_sim_output,\
@@ -81,7 +83,6 @@ t_vec_output = beam.t_vec_output
 t_vec_output_ms = t_vec_output*1e3
 dt_output = np.mean(np.diff(t_vec_output)) 
 
-n_cases = 6
 time_step_vec = np.array([dt_base/2**n for n in range(n_cases)])
 time_step_vec_mus = time_step_vec*1e6
 

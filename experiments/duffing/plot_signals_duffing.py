@@ -38,37 +38,35 @@ E_leapfrog = dict_energy["Leapfrog"][:n_plot]
 E_dis_gradient = dict_energy["Discrete gradient"][:n_plot]
 E_lin_implicit = dict_energy["Linear implicit"][:n_plot]
 
-plt.figure(figsize=(16, 8))
 # Position plot
-plt.subplot(1, 2, 1)
+plt.figure()
 plt.plot(t_vec, q_exact, 'k--', label='Exact', linewidth=2)
 plt.plot(t_vec, q_dis_gradient, label='Midpoint DG')
 plt.plot(t_vec, q_lin_implicit, label='Lin implicit')
 plt.plot(t_vec, q_leapfrog, label='Leapfrog')
-
-
 plt.xlabel('Time')
 plt.ylabel('Position')
 plt.legend()
 plt.grid(True)
 plt.title('Position vs Time')
+plt.savefig(f"{directory_images}position_signals_duffing.pdf", dpi='figure', format='pdf', bbox_inches="tight")
+
 
 # Velocity plot
-plt.subplot(1, 2, 2)
+plt.figure()
 plt.plot(t_vec, v_exact, 'k--', label='Exact', linewidth=2)
 plt.plot(t_vec, v_dis_gradient, label='Midpoint DG')
 plt.plot(t_vec, v_lin_implicit, label='Lin implicit')
 plt.plot(t_vec, v_leapfrog, label='Leapfrog')
-
 plt.xlabel('Time')
 plt.ylabel('Velocity')
 plt.legend()
 plt.grid(True)
 plt.title('Velocity vs Time')
+plt.savefig(f"{directory_images}velocity_signals_duffing.pdf", dpi='figure', format='pdf', bbox_inches="tight")
 
-plt.figure(figsize=(16, 8))
 # Position error
-plt.subplot(1, 2, 1)
+plt.figure()
 plt.semilogy(t_vec, np.abs(q_dis_gradient - q_exact), label='Midpoint DG')
 plt.semilogy(t_vec, np.abs(q_lin_implicit - q_exact), label='Lin implicit')
 plt.semilogy(t_vec, np.abs(q_leapfrog - q_exact), label='Leapfrog')
@@ -78,10 +76,11 @@ plt.ylabel('Position Error')
 plt.legend()
 plt.grid(True)
 plt.title('Position Error vs Time')
+plt.savefig(f"{directory_images}time_error_position_duffing.pdf", dpi='figure', format='pdf', bbox_inches="tight")
 
 
 # Velocity error
-plt.subplot(1, 2, 2)
+plt.figure()
 plt.semilogy(t_vec, np.abs(v_dis_gradient - v_exact), label='Midpoint DG')
 plt.semilogy(t_vec, np.abs(v_lin_implicit - v_exact), label='Lin implicit')
 plt.semilogy(t_vec, np.abs(v_leapfrog - v_exact), label='Leapfrog')
@@ -91,6 +90,7 @@ plt.ylabel('Velocity Error')
 plt.legend()
 plt.grid(True)
 plt.title('Velocity Error vs Time')
+plt.savefig(f"{directory_images}time_error_velocity_duffing.pdf", dpi='figure', format='pdf', bbox_inches="tight")
 
 
 plt.figure(figsize=(16, 8))

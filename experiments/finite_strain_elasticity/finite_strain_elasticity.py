@@ -613,7 +613,8 @@ class FiniteStrainElasticity:
 
             disp_new.assign(disp_old)
             vel_new.assign(vel_old)
-            paraview_file.write(disp_new, vel_new, time=0.0)
+            stress_new.assign(stress_old)
+            paraview_file.write(disp_new, vel_new, stress_new, time=0.0)
 
 
         energy_vec = np.zeros(len(self.t_vec_output))
@@ -641,7 +642,7 @@ class FiniteStrainElasticity:
                     vel_array[kk] = vel_new.dat.data_ro[:]
 
                 if paraview_directory!="":
-                    paraview_file.write(disp_new, vel_new, time=actual_time)
+                    paraview_file.write(disp_new, vel_new, stress_new, time=actual_time)
 
         if not save_vars:
             disp_array = disp_new.dat.data_ro[:]
@@ -758,7 +759,8 @@ class FiniteStrainElasticity:
 
             disp_new.assign(disp_old)
             vel_new.assign(vel_old)
-            paraview_file.write(disp_new, vel_new, time=0.0)
+            stress_new.assign(stress_old)
+            paraview_file.write(disp_new, vel_new, stress_new, time=0.0)
 
 
         energy_vec = np.zeros(len(self.t_vec_output))
@@ -808,7 +810,7 @@ class FiniteStrainElasticity:
                     vel_array[kk] = vel_new.dat.data_ro[:]
 
                 if paraview_directory!="":
-                    paraview_file.write(disp_new, vel_new, time=actual_time)
+                    paraview_file.write(disp_new, vel_new, stress_new, time=actual_time)
 
         if not save_vars:
             disp_array = disp_new.dat.data_ro[:]
@@ -959,9 +961,7 @@ class FiniteStrainElasticity:
 
             disp_new.assign(disp_old)
             vel_new.assign(vel_old)
-            paraview_file.write(disp_new, vel_new, time=0.0)
-
-
+            
         energy_vec = np.zeros(len(self.t_vec_output))
         energy_vec[0] = fdrk.assemble(self.hamiltonian_strain_splitting(tuple_states_old))
         kk = 0

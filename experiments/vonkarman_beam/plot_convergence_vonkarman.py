@@ -10,21 +10,25 @@ norm_type = "L2"
 with open(file_results_reference, "rb") as f:
         dict_results_reference = pickle.load(f)
 
-energy_vec_reference = dict_results_reference["energy"]
-q_x_array_reference = dict_results_reference["horizontal displacement"]
-v_x_array_reference = dict_results_reference["horizontal velocity"]
-q_z_array_reference = dict_results_reference["vertical displacement"]
-v_z_array_reference = dict_results_reference["vertical velocity"]
+fraction_total = 100
+n_plot_convergence = int(max_output/fraction_total) 
+energy_vec_reference = dict_results_reference["energy"][:n_plot_convergence]
+q_x_array_reference = dict_results_reference["horizontal displacement"][:n_plot_convergence, :]
+v_x_array_reference = dict_results_reference["horizontal velocity"][:n_plot_convergence, :]
+q_z_array_reference = dict_results_reference["vertical displacement"][:n_plot_convergence, :]
+v_z_array_reference = dict_results_reference["vertical velocity"][:n_plot_convergence, :]
     
 with open(file_results_leapfrog, "rb") as f:
         dict_results_leapfrog = pickle.load(f)
 
-energy_vec_leapfrog = dict_results_leapfrog["energy"]
-q_x_array_leapfrog = dict_results_leapfrog["horizontal displacement"]
-v_x_array_leapfrog = dict_results_leapfrog["horizontal velocity"]
-q_z_array_leapfrog = dict_results_leapfrog["vertical displacement"]
-v_z_array_leapfrog = dict_results_leapfrog["vertical velocity"]
 comp_time_leapfrog = dict_results_leapfrog["elapsed time"]
+
+energy_vec_leapfrog = dict_results_leapfrog["energy"][:n_plot_convergence]
+
+q_x_array_leapfrog = dict_results_leapfrog["horizontal displacement"][:n_plot_convergence, :]
+v_x_array_leapfrog = dict_results_leapfrog["horizontal velocity"][:n_plot_convergence, :]
+q_z_array_leapfrog = dict_results_leapfrog["vertical displacement"][:n_plot_convergence, :]
+v_z_array_leapfrog = dict_results_leapfrog["vertical velocity"][:n_plot_convergence, :]
 
 diff_energy_vec_leapfrog = np.abs(np.diff(energy_vec_leapfrog, axis=0))
 avg_diff_E_leapfrog = np.mean(diff_energy_vec_leapfrog, axis=0)
@@ -32,12 +36,14 @@ avg_diff_E_leapfrog = np.mean(diff_energy_vec_leapfrog, axis=0)
 with open(file_results_dis_gradient, "rb") as f:
         dict_results_dis_gradient = pickle.load(f)
 
-energy_vec_dis_gradient = dict_results_dis_gradient["energy"]
-q_x_array_dis_gradient = dict_results_dis_gradient["horizontal displacement"]
-v_x_array_dis_gradient = dict_results_dis_gradient["horizontal velocity"]
-q_z_array_dis_gradient = dict_results_dis_gradient["vertical displacement"]
-v_z_array_dis_gradient = dict_results_dis_gradient["vertical velocity"]
 comp_time_dis_gradient = dict_results_dis_gradient["elapsed time"]
+
+energy_vec_dis_gradient = dict_results_dis_gradient["energy"][:n_plot_convergence]
+
+q_x_array_dis_gradient = dict_results_dis_gradient["horizontal displacement"][:n_plot_convergence, :]
+v_x_array_dis_gradient = dict_results_dis_gradient["horizontal velocity"][:n_plot_convergence, :]
+q_z_array_dis_gradient = dict_results_dis_gradient["vertical displacement"][:n_plot_convergence, :]
+v_z_array_dis_gradient = dict_results_dis_gradient["vertical velocity"][:n_plot_convergence, :]
 
 diff_energy_dis_gradient = np.abs(np.diff(energy_vec_dis_gradient, axis=0))
 avg_diff_E_dis_gradient = np.mean(diff_energy_dis_gradient, axis=0)
@@ -45,12 +51,14 @@ avg_diff_E_dis_gradient = np.mean(diff_energy_dis_gradient, axis=0)
 with open(file_results_lin_implicit, "rb") as f:
         dict_results_lin_implicit = pickle.load(f)
 
-energy_vec_lin_implicit = dict_results_lin_implicit["energy"]
-q_x_array_lin_implicit = dict_results_lin_implicit["horizontal displacement"]
-v_x_array_lin_implicit = dict_results_lin_implicit["horizontal velocity"]
-q_z_array_lin_implicit = dict_results_lin_implicit["vertical displacement"]
-v_z_array_lin_implicit = dict_results_lin_implicit["vertical velocity"]
 comp_time_lin_implicit = dict_results_lin_implicit["elapsed time"]
+
+energy_vec_lin_implicit = dict_results_lin_implicit["energy"][:n_plot_convergence]
+
+q_x_array_lin_implicit = dict_results_lin_implicit["horizontal displacement"][:n_plot_convergence, :]
+v_x_array_lin_implicit = dict_results_lin_implicit["horizontal velocity"][:n_plot_convergence, :]
+q_z_array_lin_implicit = dict_results_lin_implicit["vertical displacement"][:n_plot_convergence, :]
+v_z_array_lin_implicit = dict_results_lin_implicit["vertical velocity"][:n_plot_convergence, :]
 
 diff_energy_vec_lin_implicit = np.abs(np.diff(energy_vec_lin_implicit, axis=0))
 avg_diff_E_lin_implicit = np.mean(diff_energy_vec_lin_implicit, axis=0)
@@ -135,16 +143,16 @@ dict_ver_velocity = {"Discrete gradient": error_v_z_dis_gradient,
 
 str_xlabel = '$\log \Delta t \; \mathrm{[s]}$'
 plot_convergence(time_step_vec, dict_hor_displacement, rate=True, xlabel=str_xlabel, ylabel="$\log \epsilon_{q_x}$", \
-                title='Error displacement $q_x$', savefig=f"{directory_images}convergence_horizontal_displacement")
+                title='Error displacement $q_x$', savefig=f"{directory_images}convergence_horizontal_displacement_vonkarman")
 
 plot_convergence(time_step_vec, dict_hor_velocity, rate=True, xlabel=str_xlabel, ylabel="$\log \epsilon_{v_x}$",  \
-                 title='Error velocity $v_x$', savefig=f"{directory_images}convergence_horizontal_velocity")
+                 title='Error velocity $v_x$', savefig=f"{directory_images}convergence_horizontal_velocity_vonkarman")
 
 plot_convergence(time_step_vec, dict_ver_displacement, rate=True, xlabel=str_xlabel, ylabel="$\log \epsilon_{q_z}$", \
-                title='Error displacement $q_z$', savefig=f"{directory_images}convergence_vertical_displacement")
+                title='Error displacement $q_z$', savefig=f"{directory_images}convergence_vertical_displacement_vonkarman")
 
 plot_convergence(time_step_vec, dict_ver_velocity, rate=True, xlabel=str_xlabel, ylabel="$\log \epsilon_{v_z}$",  \
-                 title='Error velocity $v_z$', savefig=f"{directory_images}convergence_vertical_velocity")
+                 title='Error velocity $v_z$', savefig=f"{directory_images}convergence_vertical_velocity_vonkarman")
 
 
 
@@ -158,7 +166,7 @@ plt.ylabel(r"$\log T_{\rm comp}$")
 plt.legend()
 plt.grid(True)
 plt.title("Computational time [s]")
-plt.savefig(f"{directory_images}computational_time.pdf", dpi='figure', format='pdf', bbox_inches="tight")
+plt.savefig(f"{directory_images}computational_time_vonkarman.pdf", dpi='figure', format='pdf', bbox_inches="tight")
 
 
 plt.figure()
@@ -171,7 +179,7 @@ plt.ylabel(r"$\frac{1}{N_t}\sum_{n=0}^{N_t}|H_{n+1} - H_{n}|$")
 plt.legend()
 plt.grid(True)
 plt.title("Mean of energy difference")
-plt.savefig(f"{directory_images}energy_difference.pdf", dpi='figure', format='pdf', bbox_inches="tight")
+plt.savefig(f"{directory_images}energy_difference_vonkarman.pdf", dpi='figure', format='pdf', bbox_inches="tight")
 
 
 plt.show()

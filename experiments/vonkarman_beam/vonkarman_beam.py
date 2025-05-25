@@ -6,7 +6,7 @@ class VonKarmanBeam:
     def __init__(self, **kwargs): 
         parameters = {
         "rho":1, "E": 1, "A": 1, "I":1, "L":1,
-        "q0_hor":1, "q0_ver":1, "time_step": 0.01, "n_elem": 10,  
+        "q0_hor": 0, "q0_ver":1, "time_step": 0.01, "n_elem": 10,  
         "n_output": 100, "t_span": np.array([0, 1]),
         }
 
@@ -111,23 +111,26 @@ class VonKarmanBeam:
     def axial_strain(self, hor_disp, ver_disp):
         try:
             eps_a = hor_disp.dx(0) + 1/2*(ver_disp.dx(0))**2
-            return eps_a
         except ValueError:
-            print("Invalid expression in axial strain. Don't use numbers.")
-            return
+            print("Invalid expression in axial strain. Set to zero.")
+            eps_a = fdrk.Constant(0)
+        return eps_a
 
 
     def bending_strain(self, ver_disp):
-        try:
-            kappa = ver_disp.dx(0).dx(0) 
-        except ValueError:
-            print("Invalid expression in bending strain. Don't use numbers.")
+        kappa = ver_disp.dx(0).dx(0) 
+
         return kappa
     
     
     def axial_stress(self, hor_disp, ver_disp):
-        return self.axial_stiffness*self.axial_strain(hor_disp, ver_disp)
-    
+        try:
+            axial_stress = self.axial_stiffness*self.axial_strain(hor_disp, ver_disp)
+        except TypeError:
+            print("Invalid expression in axial stress. Set to zero")
+            axial_stress = fdrk.Constant(0)
+
+        return axial_stress
 
     def bending_stress(self, ver_disp):
         return self.bending_stiffness*self.bending_strain(ver_disp)
@@ -222,10 +225,13 @@ class VonKarmanBeam:
             - q at integers 
         Here we do at integers
         """
-        # bc_hor_vel = fdrk.DirichletBC(self.space_hor_vel, fdrk.Constant(0), "on_boundary")
-        bc_hor_vel = []
+        bc_hor_disp = fdrk.DirichletBC(self.space_hor_disp, fdrk.Constant(0), "on_boundary")
         bc_ver_disp = fdrk.DirichletBC(self.space_ver_disp, fdrk.Constant(0), "on_boundary")
+
+        bc_hor_vel = fdrk.DirichletBC(self.space_hor_vel, fdrk.Constant(0), "on_boundary")
         bc_ver_vel = fdrk.DirichletBC(self.space_ver_vel, fdrk.Constant(0), "on_boundary")
+
+        bcs = [bc_hor_vel, bc_ver_vel]
 
         hor_disp_old = fdrk.Function(self.space_hor_disp)
         ver_disp_old = fdrk.Function(self.space_ver_disp)
@@ -358,14 +364,13 @@ class VonKarmanBeam:
             - q at integers 
         Here we do at integers
         """
-        # bc_hor_disp = fdrk.DirichletBC(self.mixed_space_implicit.sub(0), fdrk.Constant(0), "on_boundary")        
-        # bc_hor_vel = fdrk.DirichletBC(self.mixed_space_implicit.sub(2), fdrk.Constant(0), "on_boundary")
+        bc_hor_disp = fdrk.DirichletBC(self.mixed_space_implicit.sub(0), fdrk.Constant(0), "on_boundary")        
+        bc_hor_vel = fdrk.DirichletBC(self.mixed_space_implicit.sub(2), fdrk.Constant(0), "on_boundary")
 
         bc_ver_disp = fdrk.DirichletBC(self.mixed_space_implicit.sub(1), fdrk.Constant(0), "on_boundary")
         bc_ver_vel = fdrk.DirichletBC(self.mixed_space_implicit.sub(3), fdrk.Constant(0), "on_boundary")
 
-        # bcs = [bc_hor_disp, bc_ver_disp, bc_hor_vel, bc_ver_vel]
-        bcs = [bc_ver_disp, bc_ver_vel]
+        bcs = [bc_hor_disp, bc_ver_disp, bc_hor_vel, bc_ver_vel]
 
         test_hor_disp, test_ver_disp, test_hor_vel, test_ver_vel = fdrk.TestFunctions(self.mixed_space_implicit)
 
@@ -507,13 +512,12 @@ class VonKarmanBeam:
 
 
     def linear_implicit(self, save_vars=False, return_only_transition_matrix=False):
-        # bc_hor_vel = fdrk.DirichletBC(self.mixed_space_linear_implicit.sub(0), \
-        #                             fdrk.Constant(0), "on_boundary")
-        bc_hor_vel = []
-        bc_ver_vel = [fdrk.DirichletBC(self.mixed_space_linear_implicit.sub(1), \
-                                      fdrk.Constant(0), "on_boundary")]
+        bc_hor_vel = fdrk.DirichletBC(self.mixed_space_linear_implicit.sub(0), \
+                                    fdrk.Constant(0), "on_boundary")
+        bc_ver_vel = fdrk.DirichletBC(self.mixed_space_linear_implicit.sub(1), \
+                                      fdrk.Constant(0), "on_boundary")
 
-        bcs_velocity = bc_hor_vel + bc_ver_vel
+        bcs_velocity = [bc_hor_vel, bc_ver_vel]
 
         tuple_test_functions = fdrk.TestFunctions(self.mixed_space_linear_implicit)
         tuple_trial_functions = fdrk.TrialFunctions(self.mixed_space_linear_implicit)
@@ -553,11 +557,12 @@ class VonKarmanBeam:
         acc_0 = fdrk.Function(space_velocity)
         dV_hor_disp_0, dV_ver_disp_0 = self.weak_grad_potential(test_hor_vel, test_ver_vel, hor_disp_0, ver_disp_0)
 
-        bc_hor_acc = []
-        bc_ver_acc = [fdrk.DirichletBC(space_velocity.sub(1), \
-                                      fdrk.Constant(0), "on_boundary")]
+        bc_hor_acc = fdrk.DirichletBC(space_velocity.sub(0), \
+                                      fdrk.Constant(0), "on_boundary")
+        bc_ver_acc = fdrk.DirichletBC(space_velocity.sub(1), \
+                                      fdrk.Constant(0), "on_boundary")
 
-        bcs_acc = bc_hor_acc + bc_ver_acc
+        bcs_acc = [bc_hor_acc, bc_ver_acc]
         fdrk.solve(mass_vel == -dV_hor_disp_0 - dV_ver_disp_0 , acc_0, bcs=bcs_acc)
         hor_acc_0, ver_acc_0 = acc_0.subfunctions
 
@@ -667,12 +672,12 @@ class VonKarmanBeam:
     def linear_implicit_static_condensation(self, save_vars=False):
         space_velocity = self.space_hor_vel * self.space_ver_vel
 
-        # # bc_hor_vel = fdrk.DirichletBC(space_velocity.sub(0), \
-        # #                             fdrk.Constant(0), "on_boundary")
-        bc_hor_vel = []
-        bc_ver_vel = [fdrk.DirichletBC(space_velocity.sub(1), \
-                                      fdrk.Constant(0), "on_boundary")]
-        bcs_velocity = bc_hor_vel + bc_ver_vel
+        bc_hor_vel = fdrk.DirichletBC(space_velocity.sub(0), \
+                                    fdrk.Constant(0), "on_boundary")
+        bc_ver_vel = fdrk.DirichletBC(space_velocity.sub(1), \
+                                      fdrk.Constant(0), "on_boundary")
+        
+        bcs_velocity = [bc_hor_vel, bc_ver_vel]
 
         tuple_test_functions = fdrk.TestFunctions(self.mixed_space_linear_implicit)
         tuple_trial_functions = fdrk.TrialFunctions(self.mixed_space_linear_implicit)
