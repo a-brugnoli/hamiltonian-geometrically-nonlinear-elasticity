@@ -42,8 +42,6 @@ dt_CFL_traction_cons = dt_CFL_traction/sec_coeff_traction
 # # Time step to have sufficient resolution
 dt_base = dt_CFL_bending_cons
 
-print(f"dt_base = {dt_base:.2e} s")
-
 omega1_bending = (pi/L)**2*wave_speed_bending
 T1_bending = 2*pi/omega1_bending
 

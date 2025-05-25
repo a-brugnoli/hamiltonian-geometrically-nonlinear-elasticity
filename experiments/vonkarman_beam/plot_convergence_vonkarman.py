@@ -10,8 +10,8 @@ norm_type = "L2"
 with open(file_results_reference, "rb") as f:
         dict_results_reference = pickle.load(f)
 
-fraction_total = 100
-n_plot_convergence = int(max_output/fraction_total) 
+fraction_total = 1/50
+n_plot_convergence = int(max_output*fraction_total) 
 energy_vec_reference = dict_results_reference["energy"][:n_plot_convergence]
 q_x_array_reference = dict_results_reference["horizontal displacement"][:n_plot_convergence, :]
 v_x_array_reference = dict_results_reference["horizontal velocity"][:n_plot_convergence, :]

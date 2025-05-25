@@ -6,29 +6,32 @@ from matplotlib import cm
 from src.postprocessing.options import configure_matplotib
 configure_matplotib()
 
+fraction_total = 1
+n_plot_convergence = int(max_output*fraction_total)
+
 with open(file_time, "rb") as f:
         dict_time = pickle.load(f)
 
-t_vec_results_ms = 1e3*dict_time["Time"]
+t_vec_results_ms = 1e3*dict_time["Time"][:n_plot_convergence]
 
 with open(file_results_reference, "rb") as f:
         dict_results_reference = pickle.load(f)
 
-energy_vec_reference = dict_results_reference["energy"]
-q_x_array_reference = dict_results_reference["horizontal displacement"]
-v_x_array_reference = dict_results_reference["horizontal velocity"]
-q_z_array_reference = dict_results_reference["vertical displacement"]
-v_z_array_reference = dict_results_reference["vertical velocity"]
+energy_vec_reference = dict_results_reference["energy"][:n_plot_convergence]
+q_x_array_reference = dict_results_reference["horizontal displacement"][:n_plot_convergence, :]
+v_x_array_reference = dict_results_reference["horizontal velocity"][:n_plot_convergence, :]
+q_z_array_reference = dict_results_reference["vertical displacement"][:n_plot_convergence, :]
+v_z_array_reference = dict_results_reference["vertical velocity"][:n_plot_convergence, :]
     
 
 with open(file_results_leapfrog, "rb") as f:
         dict_results_leapfrog = pickle.load(f)
 
-energy_vec_leapfrog = dict_results_leapfrog["energy"]
-q_x_array_leapfrog = dict_results_leapfrog["horizontal displacement"]
-v_x_array_leapfrog = dict_results_leapfrog["horizontal velocity"]
-q_z_array_leapfrog = dict_results_leapfrog["vertical displacement"]
-v_z_array_leapfrog = dict_results_leapfrog["vertical velocity"]
+energy_vec_leapfrog = dict_results_leapfrog["energy"][:n_plot_convergence]
+q_x_array_leapfrog = dict_results_leapfrog["horizontal displacement"][:n_plot_convergence, :]
+v_x_array_leapfrog = dict_results_leapfrog["horizontal velocity"][:n_plot_convergence, :]
+q_z_array_leapfrog = dict_results_leapfrog["vertical displacement"][:n_plot_convergence, :]
+v_z_array_leapfrog = dict_results_leapfrog["vertical velocity"][:n_plot_convergence, :]
 comp_time_leapfrog = dict_results_leapfrog["elapsed time"]
 
 diff_E_leapfrog = np.diff(energy_vec_leapfrog, axis=0)
@@ -37,11 +40,11 @@ diff_E_leapfrog = np.diff(energy_vec_leapfrog, axis=0)
 with open(file_results_dis_gradient, "rb") as f:
         dict_results_dis_gradient = pickle.load(f)
 
-energy_vec_dis_gradient = dict_results_dis_gradient["energy"]
-q_x_array_dis_gradient = dict_results_dis_gradient["horizontal displacement"]
-v_x_array_dis_gradient = dict_results_dis_gradient["horizontal velocity"]
-q_z_array_dis_gradient = dict_results_dis_gradient["vertical displacement"]
-v_z_array_dis_gradient = dict_results_dis_gradient["vertical velocity"]
+energy_vec_dis_gradient = dict_results_dis_gradient["energy"][:n_plot_convergence]
+q_x_array_dis_gradient = dict_results_dis_gradient["horizontal displacement"][:n_plot_convergence, :]
+v_x_array_dis_gradient = dict_results_dis_gradient["horizontal velocity"][:n_plot_convergence, :]
+q_z_array_dis_gradient = dict_results_dis_gradient["vertical displacement"][:n_plot_convergence, :]
+v_z_array_dis_gradient = dict_results_dis_gradient["vertical velocity"][:n_plot_convergence, :]
 comp_time_dis_gradient = dict_results_dis_gradient["elapsed time"]
 
 diff_E_dis_gradient = np.diff(energy_vec_dis_gradient, axis=0)
@@ -49,11 +52,11 @@ diff_E_dis_gradient = np.diff(energy_vec_dis_gradient, axis=0)
 with open(file_results_lin_implicit, "rb") as f:
         dict_results_lin_implicit = pickle.load(f)
 
-energy_vec_lin_implicit = dict_results_lin_implicit["energy"]
-q_x_array_lin_implicit = dict_results_lin_implicit["horizontal displacement"]
-v_x_array_lin_implicit = dict_results_lin_implicit["horizontal velocity"]
-q_z_array_lin_implicit = dict_results_lin_implicit["vertical displacement"]
-v_z_array_lin_implicit = dict_results_lin_implicit["vertical velocity"]
+energy_vec_lin_implicit = dict_results_lin_implicit["energy"][:n_plot_convergence]
+q_x_array_lin_implicit = dict_results_lin_implicit["horizontal displacement"][:n_plot_convergence, :]
+v_x_array_lin_implicit = dict_results_lin_implicit["horizontal velocity"][:n_plot_convergence, :]
+q_z_array_lin_implicit = dict_results_lin_implicit["vertical displacement"][:n_plot_convergence, :]
+v_z_array_lin_implicit = dict_results_lin_implicit["vertical velocity"][:n_plot_convergence, :]
 comp_time_lin_implicit = dict_results_lin_implicit["elapsed time"]
 
 diff_E_lin_implicit = np.diff(energy_vec_lin_implicit, axis=0)
