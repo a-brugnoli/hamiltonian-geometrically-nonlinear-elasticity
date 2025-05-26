@@ -36,7 +36,7 @@ dt_base = dt_CFL/16
 
 print(f"dt_CFL: {dt_CFL:.2e} s")
 
-t_end_approx = 1/2
+t_end_approx = 1/2/500
 n_steps_approx = np.round(t_end_approx/dt_base).astype(int)
 
 # Computation of the final time and number of steps to collect a maximum number of 
@@ -94,6 +94,9 @@ file_results_reference = directory_results + "results_reference.pkl"
 file_results_leapfrog = directory_results + "results_leapfrog.pkl"
 file_results_dis_gradient = directory_results + "results_discrete_gradient.pkl"
 file_results_lin_implicit = directory_results + "results_linear_implicit.pkl"
+
+file_results_angular_momentum = directory_results + "results_angular_momentum.pkl"
+
 
 file_results_semiexplicit = directory_results + "results_semiexplicit.pkl"
 
