@@ -23,6 +23,18 @@ v_x_array_reference = dict_results_reference["horizontal velocity"][:n_plot_conv
 q_z_array_reference = dict_results_reference["vertical displacement"][:n_plot_convergence, :]
 v_z_array_reference = dict_results_reference["vertical velocity"][:n_plot_convergence, :]
     
+with open(file_results_linear, "rb") as f:
+        dict_results_linear = pickle.load(f)
+
+energy_vec_linear = dict_results_linear["energy"][:n_plot_convergence]
+q_x_array_linear = dict_results_linear["horizontal displacement"][:n_plot_convergence, :]
+v_x_array_linear = dict_results_linear["horizontal velocity"][:n_plot_convergence, :]
+q_z_array_linear = dict_results_linear["vertical displacement"][:n_plot_convergence, :]
+v_z_array_linear = dict_results_linear["vertical velocity"][:n_plot_convergence, :]
+    
+hor_disp_at_point_linear = q_x_array_linear[:, index_point]
+ver_disp_at_point_linear = q_z_array_linear[:, index_point]
+
 
 with open(file_results_leapfrog, "rb") as f:
         dict_results_leapfrog = pickle.load(f)
@@ -96,7 +108,9 @@ hor_disp_at_point_lin_implicit = q_x_array_lin_implicit[:, index_point]
 
 plt.figure()
 plt.plot(t_vec_results_ms, hor_disp_at_point_reference, \
-            label=fr"Ref $\Delta t = {dt_reference*1e6:.1f} \; \mathrm{{[\mu s]}}$")
+            label=fr"Nonlinear")
+plt.plot(t_vec_results_ms, hor_disp_at_point_linear, \
+            label=fr"Linear")
 # for ii in range(n_cases):
 #     if mask_stable_leapfrog[ii]:
 #         plt.plot(t_vec_results_ms, hor_disp_at_point_leapfrog[:, ii], \
@@ -108,6 +122,8 @@ plt.plot(t_vec_results_ms, hor_disp_at_point_reference, \
 plt.legend()
 plt.xlabel("Time [ms]")
 plt.title("Horizontal displacement")
+plt.savefig(f"{directory_images}horizontal_displacement_at_point_vonkarman.pdf",dpi='figure',\
+             format='pdf')
 
 ver_disp_at_point_reference = q_z_array_reference[:, index_point]
 ver_disp_at_point_leapfrog = q_z_array_leapfrog[:, index_point]
@@ -117,7 +133,9 @@ ver_disp_at_point_lin_implicit = q_z_array_lin_implicit[:, index_point]
 
 plt.figure()
 plt.plot(t_vec_results_ms, ver_disp_at_point_reference, \
-            label=fr"Ref $\Delta t = {dt_reference*1e6:.1f} \; \mathrm{{[\mu s]}}$")
+            label=fr"Nonlinear")
+plt.plot(t_vec_results_ms, ver_disp_at_point_linear, \
+            label=fr"Linear")
 # for ii in range(n_cases):
 #     if mask_stable_leapfrog[ii]:
 #         plt.plot(t_vec_results_ms, ver_disp_at_point_leapfrog[:, ii], \
@@ -125,7 +143,8 @@ plt.plot(t_vec_results_ms, ver_disp_at_point_reference, \
 plt.legend()
 plt.xlabel("Time [ms]")
 plt.title("Vertical displacement")
-
+plt.savefig(f"{directory_images}vertical_displacement_at_point_vonkarman.pdf",dpi='figure',\
+             format='pdf')
 
 # plt.figure()
 # plt.plot(t_vec_results_ms, ver_disp_at_point_reference, \
@@ -181,6 +200,37 @@ ax.set_title("Vertical displacement")
 ax.view_init(elev=30, azim=45)
 # ax.set_box_aspect(None, zoom=zoom)
 plt.savefig(f"{directory_images}vertical_displacement_vonkarman.pdf", dpi='figure', \
+            format='pdf', bbox_inches=bbox)
+
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+X_array, T_array_ms = np.meshgrid(x_vec, t_vec_results_ms)
+surf = ax.plot_surface(X_array, T_array_ms, 1e6*q_x_array_linear, \
+                        cmap=cm.viridis, alpha=0.7, linewidth=0, antialiased=True)
+# Add labels and legend
+ax.set_xlabel("$x \; \mathrm{[m]}$")
+ax.set_ylabel("$t \; \mathrm{[ms]}$")
+ax.set_zlabel("$q_x \; [\mu \mathrm{m}]$ ")
+ax.set_title("Horizontal displacement")
+# Set viewing angle
+ax.view_init(elev=30, azim=45)
+plt.savefig(f"{directory_images}horizontal_displacement_vonkarman_linear.pdf",dpi='figure',\
+             format='pdf', bbox_inches=bbox)
+
+fig = plt.figure()
+ax = fig.add_subplot(111, projection='3d')
+X_array, T_array_ms = np.meshgrid(x_vec, t_vec_results_ms)
+surf = ax.plot_surface(X_array, T_array_ms, 1e3*q_z_array_linear, \
+                       cmap=cm.viridis, alpha=0.7, linewidth=0, antialiased=True)
+# Add labels and legend
+ax.set_xlabel("$x \; \mathrm{[m]}$")
+ax.set_ylabel("$t \; \mathrm{[ms]}$")
+ax.set_zlabel("$q_z \; \mathrm{[mm]}$ ")
+ax.set_title("Vertical displacement")
+# Set viewing angle
+ax.view_init(elev=30, azim=45)
+# ax.set_box_aspect(None, zoom=zoom)
+plt.savefig(f"{directory_images}vertical_displacement_vonkarman_linear.pdf", dpi='figure', \
             format='pdf', bbox_inches=bbox)
 plt.show()
 

@@ -75,7 +75,7 @@ beam = VonKarmanBeam(time_step=dt_base, t_span=t_span, n_output= n_sim_output,\
                         rho = rho, E = E, I = I, A=A, L=L)
 
 x_vec = beam.x_vec
-x_point = L/2
+x_point = L/4
 index_point = np.argmin(np.abs(x_vec - x_point))
 
 
