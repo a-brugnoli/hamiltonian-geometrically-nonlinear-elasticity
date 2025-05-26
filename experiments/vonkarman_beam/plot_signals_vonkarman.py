@@ -89,41 +89,42 @@ diff_E_lin_implicit = np.diff(energy_vec_lin_implicit, axis=0)
 # plt.ylabel("$H(t_{n+1}) - H(t_n)$")
 # plt.title("Difference Energy")
 
-# hor_disp_at_point_reference = q_x_array_reference[:, index_point]
-# hor_disp_at_point_leapfrog = q_x_array_leapfrog[:, index_point]
-# hor_disp_at_point_dis_gradient = q_x_array_dis_gradient[:, index_point]
-# hor_disp_at_point_lin_implicit = q_x_array_lin_implicit[:, index_point]
+hor_disp_at_point_reference = q_x_array_reference[:, index_point]
+hor_disp_at_point_leapfrog = q_x_array_leapfrog[:, index_point]
+hor_disp_at_point_dis_gradient = q_x_array_dis_gradient[:, index_point]
+hor_disp_at_point_lin_implicit = q_x_array_lin_implicit[:, index_point]
 
-# plt.figure()
-# plt.plot(t_vec_output, hor_disp_at_point_reference, \
-#             label=fr"Ref $\Delta t = {dt_reference*1e6:.1f} \; \mathrm{{[\mu s]}}$")
+plt.figure()
+plt.plot(t_vec_results_ms, hor_disp_at_point_reference, \
+            label=fr"Ref $\Delta t = {dt_reference*1e6:.1f} \; \mathrm{{[\mu s]}}$")
 # for ii in range(n_cases):
-#     plt.plot(t_vec_output, hor_disp_at_point_leapfrog[:, ii], \
+#     if mask_stable_leapfrog[ii]:
+#         plt.plot(t_vec_results_ms, hor_disp_at_point_leapfrog[:, ii], \
+#                 label=fr"DG $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
+#     plt.plot(t_vec_results_ms, hor_disp_at_point_dis_gradient[:, ii], \
 #              label=fr"DG $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
-#     plt.plot(t_vec_output, hor_disp_at_point_dis_gradient[:, ii], \
-#              label=fr"DG $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
-#     plt.plot(t_vec_output, hor_disp_at_point_lin_implicit[:, ii], \
+#     plt.plot(t_vec_results_ms, hor_disp_at_point_lin_implicit[:, ii], \
 #              label=fr"LI $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
-# plt.legend()
-# plt.xlabel("Time [ms]")
-# plt.title("Horizontal displacement")
+plt.legend()
+plt.xlabel("Time [ms]")
+plt.title("Horizontal displacement")
 
-# ver_disp_at_point_reference = q_z_array_reference[:, index_point]
-# ver_disp_at_point_leapfrog = q_z_array_leapfrog[:, index_point]
-# ver_disp_at_point_dis_gradient = q_z_array_dis_gradient[:, index_point]
-# ver_disp_at_point_lin_implicit = q_z_array_lin_implicit[:, index_point]
+ver_disp_at_point_reference = q_z_array_reference[:, index_point]
+ver_disp_at_point_leapfrog = q_z_array_leapfrog[:, index_point]
+ver_disp_at_point_dis_gradient = q_z_array_dis_gradient[:, index_point]
+ver_disp_at_point_lin_implicit = q_z_array_lin_implicit[:, index_point]
 
 
-# plt.figure()
-# plt.plot(t_vec_results_ms, ver_disp_at_point_reference, \
-#             label=fr"Ref $\Delta t = {dt_reference*1e6:.1f} \; \mathrm{{[\mu s]}}$")
+plt.figure()
+plt.plot(t_vec_results_ms, ver_disp_at_point_reference, \
+            label=fr"Ref $\Delta t = {dt_reference*1e6:.1f} \; \mathrm{{[\mu s]}}$")
 # for ii in range(n_cases):
 #     if mask_stable_leapfrog[ii]:
 #         plt.plot(t_vec_results_ms, ver_disp_at_point_leapfrog[:, ii], \
 #                 label=fr"LF $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
-# plt.legend()
-# plt.xlabel("Time [ms]")
-# plt.title("Vertical displacement")
+plt.legend()
+plt.xlabel("Time [ms]")
+plt.title("Vertical displacement")
 
 
 # plt.figure()

@@ -45,6 +45,8 @@ dt_base = dt_CFL_bending_cons
 omega1_bending = (pi/L)**2*wave_speed_bending
 T1_bending = 2*pi/omega1_bending
 
+print(f"Period of the first bending mode: {1e3*T1_bending:.0f} [ms]")
+
 t_end_approx = 5*T1_bending
 n_steps_approx = np.round(t_end_approx/dt_base).astype(int)
 
@@ -73,7 +75,7 @@ beam = VonKarmanBeam(time_step=dt_base, t_span=t_span, n_output= n_sim_output,\
                         rho = rho, E = E, I = I, A=A, L=L)
 
 x_vec = beam.x_vec
-x_point = L/4
+x_point = L/2
 index_point = np.argmin(np.abs(x_vec - x_point))
 
 
@@ -95,6 +97,8 @@ if not os.path.exists(directory_results):
 
 file_time = directory_results + "time_vector.pkl"
 file_results_reference = directory_results + "results_reference.pkl"
+file_results_linear = directory_results + "results_linear_leapfrog.pkl"
+
 file_results_leapfrog = directory_results + "results_leapfrog.pkl"
 file_results_dis_gradient = directory_results + "results_discrete_gradient.pkl"
 file_results_lin_implicit = directory_results + "results_linear_implicit.pkl"

@@ -173,7 +173,12 @@ class VonKarmanBeam:
 
     def weak_grad_potential_linear(self, test_hor_vel, test_ver_vel, \
                                             hor_disp, ver_disp):
-        N_xx = self.axial_stiffness*hor_disp.dx(0)
+        try:
+            N_xx = self.axial_stiffness*hor_disp.dx(0)
+        except ValueError:
+            print("Invalid expression in axial stress. Set to zero")
+            N_xx = fdrk.Constant(0)
+        
         bend_mom = self.bending_stress(ver_disp)
 
         form_dV_hor_disp = + fdrk.inner(test_hor_vel.dx(0), N_xx)*fdrk.dx 
@@ -217,7 +222,7 @@ class VonKarmanBeam:
         return y_array
     
 
-    def leapfrog(self, save_vars=False):
+    def leapfrog(self, save_vars=False, linear=False):
         """
         Solve using leapfrog/Verlet method
         Two version 
@@ -263,7 +268,11 @@ class VonKarmanBeam:
 
         hor_acc_0 = fdrk.Function(self.space_hor_disp)
         ver_acc_0 = fdrk.Function(self.space_ver_disp)
-        dV_hor_disp_0, dV_ver_disp_0 = self.weak_grad_potential(test_hor_vel, test_ver_vel, hor_disp_0, ver_disp_0)
+        if linear:
+            dV_hor_disp_0, dV_ver_disp_0 = self.weak_grad_potential_linear(test_hor_vel, test_ver_vel, hor_disp_0, ver_disp_0)
+        else:
+            dV_hor_disp_0, dV_ver_disp_0 = self.weak_grad_potential(test_hor_vel, test_ver_vel, hor_disp_0, ver_disp_0)
+        
         fdrk.solve(mass_hor_vel == -dV_hor_disp_0, hor_acc_0, bcs=bc_hor_vel)
         fdrk.solve(mass_ver_vel == -dV_ver_disp_0, ver_acc_0, bcs=bc_ver_vel)
 
@@ -276,8 +285,10 @@ class VonKarmanBeam:
         hor_disp_new_half = hor_disp_half + self.dt*hor_vel_new
         ver_disp_new_half = ver_disp_half + self.dt*ver_vel_new
 
-        dV_hor_disp, dV_ver_disp = self.weak_grad_potential(test_hor_vel, test_ver_vel, hor_disp_half, ver_disp_half)
-        # dV_hor_disp, dV_ver_disp = self.weak_grad_potential_linear(test_hor_vel, test_ver_vel, hor_disp_half, ver_disp_half)
+        if linear:
+            dV_hor_disp, dV_ver_disp = self.weak_grad_potential_linear(test_hor_vel, test_ver_vel, hor_disp_half, ver_disp_half)
+        else:
+            dV_hor_disp, dV_ver_disp = self.weak_grad_potential(test_hor_vel, test_ver_vel, hor_disp_half, ver_disp_half)
 
         rhs_hor_vel  = self.mass_form(test_hor_vel, hor_vel_old) - self.dt * dV_hor_disp
 
@@ -289,8 +300,6 @@ class VonKarmanBeam:
         problem_ver_vel = fdrk.LinearVariationalProblem(mass_ver_vel, rhs_ver_vel, ver_vel_new, bcs=bc_ver_vel)
         
         solver_ver_vel = fdrk.LinearVariationalSolver(problem_ver_vel)
-
-
 
         if save_vars:   
             hor_disp_array = np.zeros((self.n_output, self.n_dofs_hor_disp))
@@ -318,7 +327,6 @@ class VonKarmanBeam:
             hor_disp_new.assign(0.5*(hor_disp_half + hor_disp_new_half))      
             ver_disp_new.assign(0.5*(ver_disp_half + ver_disp_new_half))
 
-             
             if (ii+1)%self.output_frequency==0:
                 # energy_vec[kk] = fdrk.assemble(self.kinetic_energy(hor_vel_new, ver_vel_new) \
                 #                 + self.deformation_energy_leapfrog(hor_disp_half, hor_disp_new_half, ver_disp_half, ver_disp_new_half))
@@ -666,9 +674,7 @@ class VonKarmanBeam:
         
         return dict_results
     
-
-    
-    
+  
     def linear_implicit_static_condensation(self, save_vars=False):
         space_velocity = self.space_hor_vel * self.space_ver_vel
 
