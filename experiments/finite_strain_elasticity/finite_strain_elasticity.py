@@ -195,11 +195,16 @@ class FiniteStrainElasticity:
     def angular_momentum(self, displacement, velocity):
 
         position = self.coordinates + displacement
-        one_vector = fdrk.as_vector([0, 0, 1])
+        e_1 = fdrk.as_vector([1, 0, 0])
+        e_2 = fdrk.as_vector([0, 1, 0])
+        e_3 = fdrk.as_vector([0, 0, 1])
 
-        return fdrk.inner(one_vector, self.density*velocity)*fdrk.dx
+        pi_x = fdrk.assemble(fdrk.inner(fdrk.cross(e_1, position), self.density*velocity)*fdrk.dx)
+        pi_y = fdrk.assemble(fdrk.inner(fdrk.cross(e_2, position), self.density*velocity)*fdrk.dx)
+        pi_z = fdrk.assemble(fdrk.inner(fdrk.cross(e_3, position), self.density*velocity)*fdrk.dx)
 
-        # return fdrk.inner(fdrk.cross(one_vector, position), self.density*velocity)*fdrk.dx
+        return np.array([pi_x, pi_y, pi_z])
+    
 
     def hamiltonian_strain_splitting(self, functions):
 
@@ -256,7 +261,7 @@ class FiniteStrainElasticity:
         return fdrk.inner(test, self.density*trial)*fdrk.dx
 
 
-    def leapfrog(self, save_vars=False, paraview_directory=""):
+    def leapfrog(self, save_vars=False, paraview_directory="", test_angular_momentum=False):
         """
         Solve using leapfrog/Verlet method
         Two version 
@@ -266,14 +271,16 @@ class FiniteStrainElasticity:
         """
         dict_essential = self.get_essential_bcs()
         
-        displacement_bc_data = dict_essential["displacement"]
-        bcs_displacement = [fdrk.DirichletBC(self.space_displacement, item[1], item[0]) \
-                        for item in displacement_bc_data.items()]
+        # displacement_bc_data = dict_essential["displacement"]
+        # bcs_displacement = [fdrk.DirichletBC(self.space_displacement, item[1], item[0]) \
+        #                 for item in displacement_bc_data.items()]
 
-        velocity_bc_data = dict_essential["velocity"]
-        bcs_velocity = [fdrk.DirichletBC(self.space_velocity, item[1], item[0]) \
-                        for item in velocity_bc_data.items()]
-
+        if test_angular_momentum:
+            bcs_velocity = []
+        else:
+            velocity_bc_data = dict_essential["velocity"]
+            bcs_velocity = [fdrk.DirichletBC(self.space_velocity, item[1], item[0]) \
+                            for item in velocity_bc_data.items()]
 
         disp_old = fdrk.Function(self.space_displacement)
         vel_old = fdrk.Function(self.space_velocity)
@@ -340,8 +347,8 @@ class FiniteStrainElasticity:
         # energy_vec = np.zeros(len(self.t_vec_output)-1)
         energy_vec = np.zeros(len(self.t_vec_output))
         energy_vec[0] = fdrk.assemble(self.hamiltonian(disp_old, vel_old))
-        angular_momentum_vec = np.zeros(len(self.t_vec_output))
-        angular_momentum_vec[0] = fdrk.assemble(self.angular_momentum(disp_old, vel_old))
+        angular_momentum_vec = np.zeros((len(self.t_vec_output), 3))
+        angular_momentum_vec[0] = self.angular_momentum(disp_old, vel_old)
 
         kk = 0
 
@@ -359,7 +366,7 @@ class FiniteStrainElasticity:
                 # assert np.isclose(actual_time, self.t_vec_output[kk])
 
                 energy_vec[kk] = fdrk.assemble(self.hamiltonian(disp_new, vel_new))
-                angular_momentum_vec[kk] = fdrk.assemble(self.angular_momentum(disp_new, vel_new))
+                angular_momentum_vec[kk] = self.angular_momentum(disp_new, vel_new)
 
                 if save_vars: 
                     disp_array[kk] = disp_new.dat.data_ro[:]
@@ -383,7 +390,8 @@ class FiniteStrainElasticity:
         return dict_results
     
 
-    def implicit_method(self, method="discrete gradient", save_vars=False, paraview_directory=""):
+    def implicit_method(self, method="discrete gradient", save_vars=False, \
+                        paraview_directory="", test_angular_momentum=False):
         """
         Solve using leapfrog/Verlet method
         Two version 
@@ -393,15 +401,18 @@ class FiniteStrainElasticity:
         """
         dict_essential = self.get_essential_bcs()
         
-        displacement_bc_data = dict_essential["displacement"]
-        bcs_displacement = [fdrk.DirichletBC(self.mixed_space_implicit.sub(0), item[1], item[0]) \
-                        for item in displacement_bc_data.items()]
+        if test_angular_momentum:
+            bcs = []
+        else:
+            displacement_bc_data = dict_essential["displacement"]
+            bcs_displacement = [fdrk.DirichletBC(self.mixed_space_implicit.sub(0), item[1], item[0]) \
+                            for item in displacement_bc_data.items()]
 
-        velocity_bc_data = dict_essential["velocity"]
-        bcs_velocity = [fdrk.DirichletBC(self.mixed_space_implicit.sub(1), item[1], item[0]) \
-                        for item in velocity_bc_data.items()]
-        
-        bcs = bcs_displacement + bcs_velocity
+            velocity_bc_data = dict_essential["velocity"]
+            bcs_velocity = [fdrk.DirichletBC(self.mixed_space_implicit.sub(1), item[1], item[0]) \
+                            for item in velocity_bc_data.items()]
+            
+            bcs = bcs_displacement + bcs_velocity
 
         test_disp, test_vel = fdrk.TestFunctions(self.mixed_space_implicit)
 
@@ -435,7 +446,6 @@ class FiniteStrainElasticity:
             average_stress = 0.5*(stress_old + stress_new)
 
             dV_disp = self.weak_grad_potential_stress(test_vel, disp_midpoint, average_stress)
-
         else:
             raise ValueError("Unknown type of implicit method")
         
@@ -466,8 +476,8 @@ class FiniteStrainElasticity:
 
         energy_vec = np.zeros(len(self.t_vec_output))
         energy_vec[0] = fdrk.assemble(self.hamiltonian(disp_old, vel_old))
-        angular_momentum_vec = np.zeros(len(self.t_vec_output))
-        angular_momentum_vec[0] = fdrk.assemble(self.angular_momentum(disp_old, vel_old))
+        angular_momentum_vec = np.zeros((len(self.t_vec_output), 3))
+        angular_momentum_vec[0] = self.angular_momentum(disp_old, vel_old)
 
         kk = 0
 
@@ -481,7 +491,7 @@ class FiniteStrainElasticity:
                 actual_time = (ii+1)*float(self.dt)
                 # assert np.isclose(actural_time, self.t_vec_output[kk])
                 energy_vec[kk] = fdrk.assemble(self.hamiltonian(disp_old, vel_old))
-                angular_momentum_vec[kk] = fdrk.assemble(self.angular_momentum(disp_old, vel_old))
+                angular_momentum_vec[kk] = self.angular_momentum(disp_old, vel_old)
 
                 if save_vars: 
                     disp_array[kk] = disp_old.dat.data_ro[:]
@@ -532,18 +542,23 @@ class FiniteStrainElasticity:
         return interconnection_form
 
 
-    def linear_implicit(self, save_vars=False, paraview_directory="", return_only_transition_matrix=False):
+    def linear_implicit(self, save_vars=False, paraview_directory="", \
+                        return_only_transition_matrix=False,
+                        test_angular_momentum=False):
         dict_essential = self.get_essential_bcs()
         
         # displacement_bc_data = dict_essential["displacement"]
         # bcs_displacement = [fdrk.DirichletBC(self.space_displacement, item[1], item[0]) \
         #                 for item in displacement_bc_data.items()]
 
-        velocity_bc_data = dict_essential["velocity"]
-        bcs_velocity = [fdrk.DirichletBC(self.mixed_space_linear_implicit.sub(0), item[1], item[0]) \
-                        for item in velocity_bc_data.items()]
-        
-        bcs = bcs_velocity
+        if test_angular_momentum:
+            bcs = []
+        else:
+            velocity_bc_data = dict_essential["velocity"]
+            bcs_velocity = [fdrk.DirichletBC(self.mixed_space_linear_implicit.sub(0), item[1], item[0]) \
+                            for item in velocity_bc_data.items()]
+            
+            bcs = bcs_velocity
         
         tuple_test_functions = fdrk.TestFunctions(self.mixed_space_linear_implicit)
         tuple_trial_functions = fdrk.TrialFunctions(self.mixed_space_linear_implicit)
@@ -577,7 +592,7 @@ class FiniteStrainElasticity:
 
         try:
             dV_disp_0 = self.weak_grad_potential(test_vel, disp_0)
-            fdrk.solve(mass_vel == -dV_disp_0, acc_0, bcs=bcs_velocity)
+            fdrk.solve(mass_vel == -dV_disp_0, acc_0, bcs=bcs)
         except ValueError:
             print("Cannot determine geometric dimension from expression in initial force. Using 0 for initial acceleration.")
             acc_0.assign(fdrk.Constant((0.0, 0.0, 0.0)))
@@ -642,6 +657,8 @@ class FiniteStrainElasticity:
         energy_vec = np.zeros(len(self.t_vec_output))
         energy_vec[0] = 0.5* fdrk.assemble(self.energy_form_linear_implicit(tuple_states_old, \
                                                                             tuple_states_old))
+        angular_momentum_vec = np.zeros((len(self.t_vec_output), 3))
+        angular_momentum_vec[0] = self.angular_momentum(disp_old, vel_old)
         kk = 0
 
         for ii in tqdm(range(self.n_steps)):
@@ -659,6 +676,8 @@ class FiniteStrainElasticity:
                 # assert np.isclose(actural_time, self.t_vec_output[kk])
                 energy_vec[kk] = 0.5*fdrk.assemble(self.energy_form_linear_implicit(tuple_states_new, \
                                                                                     tuple_states_new))
+                angular_momentum_vec[kk] = self.angular_momentum(disp_new, vel_new)
+
                 if save_vars: 
                     disp_array[kk] = disp_new.dat.data_ro[:]
                     vel_array[kk] = vel_new.dat.data_ro[:]
@@ -672,12 +691,15 @@ class FiniteStrainElasticity:
 
         dict_results = {"displacement": disp_array, 
                         "velocity": vel_array, 
-                        "energy": energy_vec}
+                        "energy": energy_vec,
+                        "angular momentum": angular_momentum_vec}
         
         return dict_results
     
 
-    def linear_implicit_static_condensation(self, save_vars=False, paraview_directory=""):
+    def linear_implicit_static_condensation(self, save_vars=False, 
+                                            paraview_directory="",
+                                            test_angular_momentum=False):
         
         tuple_test_functions = fdrk.TestFunctions(self.mixed_space_linear_implicit)
         tuple_trial_functions = fdrk.TrialFunctions(self.mixed_space_linear_implicit)
@@ -704,10 +726,13 @@ class FiniteStrainElasticity:
         disp_new = fdrk.Function(self.space_displacement, name="disp_new")
         vel_new = fdrk.Function(self.space_velocity, name="vel_new")
         
-        dict_essential = self.get_essential_bcs()
-        velocity_bc_data = dict_essential["velocity"]
-        bcs_velocity = [fdrk.DirichletBC(self.space_velocity, item[1], item[0]) \
-                        for item in velocity_bc_data.items()]
+        if test_angular_momentum:
+            bcs_velocity = []
+        else:
+            dict_essential = self.get_essential_bcs()
+            velocity_bc_data = dict_essential["velocity"]
+            bcs_velocity = [fdrk.DirichletBC(self.space_velocity, item[1], item[0]) \
+                            for item in velocity_bc_data.items()]
         
         test_vel = fdrk.TestFunction(self.space_velocity)
         trial_vel = fdrk.TrialFunction(self.space_velocity)
@@ -788,8 +813,8 @@ class FiniteStrainElasticity:
         energy_vec = np.zeros(len(self.t_vec_output))
         energy_vec[0] = 0.5* fdrk.assemble(self.energy_form_linear_implicit(tuple_states_old, \
                                                                             tuple_states_old))
-        angular_momentum_vec = np.zeros(len(self.t_vec_output))
-        angular_momentum_vec[0] = fdrk.assemble(self.angular_momentum(disp_old, vel_old))
+        angular_momentum_vec = np.zeros((len(self.t_vec_output), 3))
+        angular_momentum_vec[0] = self.angular_momentum(disp_old, vel_old)
 
         kk = 0
 
@@ -830,7 +855,7 @@ class FiniteStrainElasticity:
                 # assert np.isclose(actural_time, self.t_vec_output[kk])
                 energy_vec[kk] = 0.5*fdrk.assemble(self.energy_form_linear_implicit(tuple_states_new, \
                                                                                     tuple_states_new))
-                angular_momentum_vec[kk] = fdrk.assemble(self.angular_momentum(disp_new, vel_new))
+                angular_momentum_vec[kk] = self.angular_momentum(disp_new, vel_new)
 
                 if save_vars: 
                     disp_array[kk] = disp_new.dat.data_ro[:]

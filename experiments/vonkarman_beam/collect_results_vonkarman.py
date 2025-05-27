@@ -6,7 +6,7 @@ from experiments.vonkarman_beam.parameters_vonkarman import *
 try:
     with open(file_results_reference, "rb") as f:
         dict_results_reference = pickle.load(f)
-    print("Dictionary loaded successfully")
+    print("Dictionary reference results loaded successfully")
 except FileNotFoundError:
     print(f"Error: The file '{file_results_reference}' does not exist.")
     print(f"Running reference")
@@ -17,7 +17,25 @@ except FileNotFoundError:
     with open(file_results_reference, "wb") as f:
         pickle.dump(dict_results_reference, f)
 except pickle.UnpicklingError:
-    print("Error: The file contains invalid or corrupted data.")
+    print(f"Error: The file {dict_results_reference} contains invalid or corrupted data.")
+except Exception as e:
+    print(f"An unexpected error occurred: {e}")
+
+try:
+    with open(file_results_linear, "rb") as f:
+        dict_results_linear = pickle.load(f)
+    print("Dictionary linear results loaded successfully")
+except FileNotFoundError:
+    print(f"Error: The file '{file_results_linear}' does not exist.")
+    print(f"Running linear analysis")
+    beam.set_time_step(dt_reference)
+    t0_linear = time.perf_counter()
+    dict_results_linear = beam.leapfrog(save_vars=True, linear=True)
+    tf_linear = time.perf_counter()
+    with open(file_results_linear, "wb") as f:
+        pickle.dump(dict_results_linear, f)
+except pickle.UnpicklingError:
+    print(f"Error: The file {file_results_linear} contains invalid or corrupted data.")
 except Exception as e:
     print(f"An unexpected error occurred: {e}")
 
@@ -90,17 +108,14 @@ for ii in range(n_cases):
     q_z_array_lin_implicit[:, :, ii] = dict_results_lin_implicit["vertical displacement"]
     v_z_array_lin_implicit[:, :, ii] = dict_results_lin_implicit["vertical velocity"]
 
-
     print(f"Elapsed time Leapfrog : {elapsed_vec_leapfrog[ii]}")
     print(f"Elapsed time Midpoint Discrete gradient : {elapsed_vec_dis_gradient[ii]}")
     print(f"Elapsed time Linear implicit : {elapsed_vec_lin_implicit[ii]}")
-
 
 dict_time = {"Time":t_vec_output}
 with open(file_time, "wb") as f:
         pickle.dump(dict_time, f)
         
-
 dict_results_leapfrog_cases = {"energy": energy_vec_leapfrog, 
                                 "horizontal displacement": q_x_array_leapfrog,
                                 "horizontal velocity": v_x_array_leapfrog,
