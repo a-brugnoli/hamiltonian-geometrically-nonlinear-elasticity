@@ -12,7 +12,7 @@ n_plot_convergence = int(max_output*fraction_total)
 with open(file_time, "rb") as f:
         dict_time = pickle.load(f)
 
-t_vec_results_ms = 1e3*dict_time["Time"][:n_plot_convergence]
+t_vec_results_s = dict_time["Time"][:n_plot_convergence]
 
 with open(file_results_reference, "rb") as f:
         dict_results_reference = pickle.load(f)
@@ -75,29 +75,29 @@ diff_E_lin_implicit = np.diff(energy_vec_lin_implicit, axis=0)
 
 # plt.figure()
 # for ii in range(n_cases):
-#     plt.plot(t_vec_results_ms, energy_vec_dis_gradient[:, ii], '-.', \
+#     plt.plot(t_vec_results_s, energy_vec_dis_gradient[:, ii], '-.', \
 #              label=fr"DG $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
-#     plt.plot(t_vec_results_ms, energy_vec_lin_implicit[:, ii], ':', \
+#     plt.plot(t_vec_results_s, energy_vec_lin_implicit[:, ii], ':', \
 #              label=fr"LI $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
 #     if mask_stable_leapfrog[ii]:
-#         plt.plot(t_vec_results_ms, energy_vec_leapfrog[:, ii], '-.', \
+#         plt.plot(t_vec_results_s, energy_vec_leapfrog[:, ii], '-.', \
 #              label=fr"LF $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
 # plt.legend()
-# plt.xlabel("Time [ms]")
+# plt.xlabel("Time [s]")
 # plt.title("Energy")
 
 
 # plt.figure()
 # for ii in range(n_cases):
-#     plt.plot(t_vec_results_ms[1:], diff_E_dis_gradient[:, ii], '-.', \
+#     plt.plot(t_vec_results_s[1:], diff_E_dis_gradient[:, ii], '-.', \
 #             label=fr"DG $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
-#     plt.plot(t_vec_results_ms[1:], diff_E_lin_implicit[:, ii], ':', \
+#     plt.plot(t_vec_results_s[1:], diff_E_lin_implicit[:, ii], ':', \
 #             label=fr"LI $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
 #     if mask_stable_leapfrog[ii]:
-#         plt.plot(t_vec_results_ms[1:], diff_E_leapfrog[:, ii], '-.', \
+#         plt.plot(t_vec_results_s[1:], diff_E_leapfrog[:, ii], '-.', \
 #                 label=fr"LF $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
 # plt.legend()
-# plt.xlabel("Time [ms]")
+# plt.xlabel("Time [s]")
 # plt.ylabel("$H(t_{n+1}) - H(t_n)$")
 # plt.title("Difference Energy")
 
@@ -107,21 +107,21 @@ hor_disp_at_point_dis_gradient = q_x_array_dis_gradient[:, index_point]
 hor_disp_at_point_lin_implicit = q_x_array_lin_implicit[:, index_point]
 
 plt.figure()
-plt.plot(t_vec_results_ms, hor_disp_at_point_reference, '--', \
+plt.plot(t_vec_results_s, 1e6*hor_disp_at_point_reference, '--', \
             label=fr"Nonlinear")
-plt.plot(t_vec_results_ms, hor_disp_at_point_linear, '-', \
+plt.plot(t_vec_results_s, 1e6*hor_disp_at_point_linear, '-', \
             label=fr"Linear")
 # for ii in range(n_cases):
 #     if mask_stable_leapfrog[ii]:
-#         plt.plot(t_vec_results_ms, hor_disp_at_point_leapfrog[:, ii], \
+#         plt.plot(t_vec_results_s, hor_disp_at_point_leapfrog[:, ii], \
 #                 label=fr"DG $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
-#     plt.plot(t_vec_results_ms, hor_disp_at_point_dis_gradient[:, ii], \
+#     plt.plot(t_vec_results_s, hor_disp_at_point_dis_gradient[:, ii], \
 #              label=fr"DG $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
-#     plt.plot(t_vec_results_ms, hor_disp_at_point_lin_implicit[:, ii], \
+#     plt.plot(t_vec_results_s, hor_disp_at_point_lin_implicit[:, ii], \
 #              label=fr"LI $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
 plt.legend()
-plt.xlabel("Time [ms]")
-plt.title("Horizontal displacement")
+plt.xlabel("Time [s]")
+plt.title("Horizontal displacement [$\mu\mathrm{m}$]")
 plt.savefig(f"{directory_images}horizontal_displacement_at_point_vonkarman.pdf",dpi='figure',\
              format='pdf')
 
@@ -132,39 +132,39 @@ ver_disp_at_point_lin_implicit = q_z_array_lin_implicit[:, index_point]
 
 
 plt.figure()
-plt.plot(t_vec_results_ms, ver_disp_at_point_reference, '--', \
+plt.plot(t_vec_results_s, 1e3*ver_disp_at_point_reference, '--', \
             label=fr"Nonlinear")
-plt.plot(t_vec_results_ms, ver_disp_at_point_linear, '-', \
+plt.plot(t_vec_results_s, 1e3*ver_disp_at_point_linear, '-', \
             label=fr"Linear")
 # for ii in range(n_cases):
 #     if mask_stable_leapfrog[ii]:
-#         plt.plot(t_vec_results_ms, ver_disp_at_point_leapfrog[:, ii], \
+#         plt.plot(t_vec_results_s, ver_disp_at_point_leapfrog[:, ii], \
 #                 label=fr"LF $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
 plt.legend()
-plt.xlabel("Time [ms]")
-plt.title("Vertical displacement")
+plt.xlabel("Time [s]")
+plt.title("Vertical displacement [$\mathrm{mm}$]")
 plt.savefig(f"{directory_images}vertical_displacement_at_point_vonkarman.pdf",dpi='figure',\
              format='pdf')
 
 # plt.figure()
-# plt.plot(t_vec_results_ms, ver_disp_at_point_reference, \
+# plt.plot(t_vec_results_s, ver_disp_at_point_reference, \
 #             label=fr"Ref $\Delta t = {dt_reference*1e6:.1f} \; \mathrm{{[\mu s]}}$")
 # for ii in range(n_cases):
-#     plt.plot(t_vec_results_ms, ver_disp_at_point_dis_gradient[:, ii], \
+#     plt.plot(t_vec_results_s, ver_disp_at_point_dis_gradient[:, ii], \
 #             label=fr"DG $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
 # plt.legend()
-# plt.xlabel("Time [ms]")
+# plt.xlabel("Time [s]")
 # plt.title("Vertical displacement")
 
 
 # plt.figure()
-# plt.plot(t_vec_results_ms, ver_disp_at_point_reference, \
+# plt.plot(t_vec_results_s, ver_disp_at_point_reference, \
 #             label=fr"Ref $\Delta t = {dt_reference*1e6:.1f} \; \mathrm{{[\mu s]}}$")
 # for ii in range(n_cases):
-#     plt.plot(t_vec_results_ms, ver_disp_at_point_lin_implicit[:, ii], \
+#     plt.plot(t_vec_results_s, ver_disp_at_point_lin_implicit[:, ii], \
 #             label=fr"LI $\Delta t = {time_step_vec_mus[ii]:.1f} \; \mathrm{{[\mu s]}}$")
 # plt.legend()
-# plt.xlabel("Time [ms]")
+# plt.xlabel("Time [s]")
 # plt.title("Vertical displacement")
 
 
@@ -173,12 +173,12 @@ bbox = Bbox.from_extents(0.75, 0.05, 6.75, 6)  # Adjust these values as needed
 
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
-X_array, T_array_ms = np.meshgrid(x_vec, t_vec_results_ms)
-surf = ax.plot_surface(X_array, T_array_ms, 1e6*q_x_array_reference, \
+X_array, T_array_s = np.meshgrid(x_vec, t_vec_results_s)
+surf = ax.plot_surface(X_array, T_array_s, 1e6*q_x_array_reference, \
                         cmap=cm.viridis, alpha=0.7, linewidth=0, antialiased=True)
 # Add labels and legend
 ax.set_xlabel("$x \; \mathrm{[m]}$")
-ax.set_ylabel("$t \; \mathrm{[ms]}$")
+ax.set_ylabel("$t \; \mathrm{[s]}$")
 ax.set_zlabel("$q_x \; [\mu \mathrm{m}]$ ")
 ax.set_title("Horizontal displacement")
 # Set viewing angle
@@ -188,12 +188,12 @@ plt.savefig(f"{directory_images}horizontal_displacement_vonkarman.pdf",dpi='figu
 
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
-X_array, T_array_ms = np.meshgrid(x_vec, t_vec_results_ms)
-surf = ax.plot_surface(X_array, T_array_ms, 1e3*q_z_array_reference, \
+X_array, T_array_s = np.meshgrid(x_vec, t_vec_results_s)
+surf = ax.plot_surface(X_array, T_array_s, 1e3*q_z_array_reference, \
                        cmap=cm.viridis, alpha=0.7, linewidth=0, antialiased=True)
 # Add labels and legend
 ax.set_xlabel("$x \; \mathrm{[m]}$")
-ax.set_ylabel("$t \; \mathrm{[ms]}$")
+ax.set_ylabel("$t \; \mathrm{[s]}$")
 ax.set_zlabel("$q_z \; \mathrm{[mm]}$ ")
 ax.set_title("Vertical displacement")
 # Set viewing angle
@@ -204,12 +204,12 @@ plt.savefig(f"{directory_images}vertical_displacement_vonkarman.pdf", dpi='figur
 
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
-X_array, T_array_ms = np.meshgrid(x_vec, t_vec_results_ms)
-surf = ax.plot_surface(X_array, T_array_ms, 1e6*q_x_array_linear, \
+X_array, T_array_s = np.meshgrid(x_vec, t_vec_results_s)
+surf = ax.plot_surface(X_array, T_array_s, 1e6*q_x_array_linear, \
                         cmap=cm.viridis, alpha=0.7, linewidth=0, antialiased=True)
 # Add labels and legend
 ax.set_xlabel("$x \; \mathrm{[m]}$")
-ax.set_ylabel("$t \; \mathrm{[ms]}$")
+ax.set_ylabel("$t \; \mathrm{[s]}$")
 ax.set_zlabel("$q_x \; [\mu \mathrm{m}]$ ")
 ax.set_title("Horizontal displacement")
 # Set viewing angle
@@ -219,12 +219,12 @@ plt.savefig(f"{directory_images}horizontal_displacement_vonkarman_linear.pdf",dp
 
 fig = plt.figure()
 ax = fig.add_subplot(111, projection='3d')
-X_array, T_array_ms = np.meshgrid(x_vec, t_vec_results_ms)
-surf = ax.plot_surface(X_array, T_array_ms, 1e3*q_z_array_linear, \
+X_array, T_array_s = np.meshgrid(x_vec, t_vec_results_s)
+surf = ax.plot_surface(X_array, T_array_s, 1e3*q_z_array_linear, \
                        cmap=cm.viridis, alpha=0.7, linewidth=0, antialiased=True)
 # Add labels and legend
 ax.set_xlabel("$x \; \mathrm{[m]}$")
-ax.set_ylabel("$t \; \mathrm{[ms]}$")
+ax.set_ylabel("$t \; \mathrm{[s]}$")
 ax.set_zlabel("$q_z \; \mathrm{[mm]}$ ")
 ax.set_title("Vertical displacement")
 # Set viewing angle
@@ -248,7 +248,7 @@ plt.show()
 #     current_cmap = colormaps[ii % len(colormaps)]
     
 #     # Create surface with alpha transparency
-#     surf = ax_surfaces.plot_surface(X_array, T_array_ms, diff_q_z_array_lin_implicit[:,:, ii], \
+#     surf = ax_surfaces.plot_surface(X_array, T_array_s, diff_q_z_array_lin_implicit[:,:, ii], \
 #                                     cmap=current_cmap, alpha=0.7, linewidth=0, antialiased=True)
     
 #     # Create proxy artist for legend
@@ -258,7 +258,7 @@ plt.show()
 
 # # Add labels and legend
 # ax_surfaces.set_xlabel("$x \; \mathrm{[m]}$")
-# ax_surfaces.set_ylabel("$t \; \mathrm{[ms]}$")
+# ax_surfaces.set_ylabel("$t \; \mathrm{[s]}$")
 # ax_surfaces.set_zlabel("$q_z \; \mathrm{[m]}$ ")
 # ax_surfaces.set_title("Vertical displacement LI")
 # ax_surfaces.legend(handles=proxy_artists, loc='upper right')
