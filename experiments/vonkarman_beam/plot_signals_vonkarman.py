@@ -107,9 +107,9 @@ hor_disp_at_point_dis_gradient = q_x_array_dis_gradient[:, index_point]
 hor_disp_at_point_lin_implicit = q_x_array_lin_implicit[:, index_point]
 
 plt.figure()
-plt.plot(t_vec_results_ms, hor_disp_at_point_reference, '-.', \
+plt.plot(t_vec_results_ms, hor_disp_at_point_reference, '--', \
             label=fr"Nonlinear")
-plt.plot(t_vec_results_ms, hor_disp_at_point_linear, ':', \
+plt.plot(t_vec_results_ms, hor_disp_at_point_linear, '-', \
             label=fr"Linear")
 # for ii in range(n_cases):
 #     if mask_stable_leapfrog[ii]:
@@ -132,9 +132,9 @@ ver_disp_at_point_lin_implicit = q_z_array_lin_implicit[:, index_point]
 
 
 plt.figure()
-plt.plot(t_vec_results_ms, ver_disp_at_point_reference, '-.', \
+plt.plot(t_vec_results_ms, ver_disp_at_point_reference, '--', \
             label=fr"Nonlinear")
-plt.plot(t_vec_results_ms, ver_disp_at_point_linear, ':', \
+plt.plot(t_vec_results_ms, ver_disp_at_point_linear, '-', \
             label=fr"Linear")
 # for ii in range(n_cases):
 #     if mask_stable_leapfrog[ii]:

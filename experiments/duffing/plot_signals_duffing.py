@@ -41,8 +41,8 @@ E_lin_implicit = dict_energy["Linear implicit"][:n_plot]
 # Position plot
 plt.figure()
 plt.plot(t_vec, q_exact, 'k--', label='Exact', linewidth=2)
-plt.plot(t_vec, q_dis_gradient, label='Midpoint DG')
-plt.plot(t_vec, q_lin_implicit, label='Lin implicit')
+plt.plot(t_vec, q_dis_gradient, label='Discrete gradient')
+plt.plot(t_vec, q_lin_implicit, label='Linear implicit')
 plt.plot(t_vec, q_leapfrog, label='Leapfrog')
 plt.xlabel('Time')
 plt.ylabel('Position')
@@ -55,8 +55,8 @@ plt.savefig(f"{directory_images}position_signals_duffing.pdf", dpi='figure', for
 # Velocity plot
 plt.figure()
 plt.plot(t_vec, v_exact, 'k--', label='Exact', linewidth=2)
-plt.plot(t_vec, v_dis_gradient, label='Midpoint DG')
-plt.plot(t_vec, v_lin_implicit, label='Lin implicit')
+plt.plot(t_vec, v_dis_gradient, label='Discrete gradient')
+plt.plot(t_vec, v_lin_implicit, label='Linear implicit')
 plt.plot(t_vec, v_leapfrog, label='Leapfrog')
 plt.xlabel('Time')
 plt.ylabel('Velocity')
@@ -67,7 +67,7 @@ plt.savefig(f"{directory_images}velocity_signals_duffing.pdf", dpi='figure', for
 
 # Position error
 plt.figure()
-plt.semilogy(t_vec, np.abs(q_dis_gradient - q_exact), label='Midpoint DG')
+plt.semilogy(t_vec, np.abs(q_dis_gradient - q_exact), label='Discrete gradient')
 plt.semilogy(t_vec, np.abs(q_lin_implicit - q_exact), label='Lin implicit')
 plt.semilogy(t_vec, np.abs(q_leapfrog - q_exact), label='Leapfrog')
 
@@ -81,7 +81,7 @@ plt.savefig(f"{directory_images}time_error_position_duffing.pdf", dpi='figure', 
 
 # Velocity error
 plt.figure()
-plt.semilogy(t_vec, np.abs(v_dis_gradient - v_exact), label='Midpoint DG')
+plt.semilogy(t_vec, np.abs(v_dis_gradient - v_exact), label='Discrete gradient')
 plt.semilogy(t_vec, np.abs(v_lin_implicit - v_exact), label='Lin implicit')
 plt.semilogy(t_vec, np.abs(v_leapfrog - v_exact), label='Leapfrog')
 
@@ -97,7 +97,7 @@ plt.figure(figsize=(16, 8))
 # Phase space plot
 plt.subplot(1, 2, 1)
 plt.plot(q_exact, v_exact, 'k--', label='Exact', linewidth=2)
-plt.plot(q_dis_gradient, v_dis_gradient, label='Midpoint DG')
+plt.plot(q_dis_gradient, v_dis_gradient, label='Discrete gradient')
 plt.plot(q_lin_implicit, v_lin_implicit, label='Lin implicit')
 plt.plot(q_leapfrog, v_leapfrog, label='Leapfrog')
 
@@ -110,7 +110,7 @@ plt.title('Phase Space')
 
 # Energy error
 plt.subplot(1, 2, 2)
-plt.semilogy(t_vec, np.abs(E_dis_gradient - E_exact)/E_exact, label='Midpoint DG')
+plt.semilogy(t_vec, np.abs(E_dis_gradient - E_exact)/E_exact, label='Discrete gradient')
 plt.semilogy(t_vec, np.abs(E_lin_implicit - E_exact)/E_exact, label='Lin implicit')
 plt.semilogy(t_vec, np.abs(E_leapfrog - E_exact)/E_exact, label='Leapfrog')
 
